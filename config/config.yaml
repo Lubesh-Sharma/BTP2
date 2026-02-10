@@ -1,0 +1,31 @@
+# File Paths
+input_dir: "input"
+output_dir: "output_mine"
+device: cuda
+
+# Preprocessing Parameters
+k: 30              # Number of FPS points
+t: 8       # HKS time parameter (float) 
+neigvecs: 50  # Number of eigenvectors for HKS
+
+# Model Architecture
+feature_dim: 50   # Should match neigvecs ideally, or HKS output dim
+embed_dim: 128
+depth: 4
+num_heads: 4
+decoder_embed_dim: 64
+decoder_depth: 2
+decoder_num_heads: 4
+mlp_ratio: 2.0
+num_mask_queries: 4000
+
+# Training Parameters
+epochs: 10
+mask_ratio: 0.8
+feature_mask_group_ratio: 0.6
+learning_rate: 0.001
+weight_decay: 0.0001
+
+# Output Settings
+log_interval: 1
+save_checkpoints: true
