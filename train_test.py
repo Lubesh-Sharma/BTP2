@@ -241,10 +241,10 @@ def test_model(model, test_shapes, device, output_dir):
 def main():
     parser = argparse.ArgumentParser(description="ASMAE Train and Test")
     parser.add_argument('--data_dir', type=str, 
-                       default='/data/home/user/Lubesh_22CS30065/btp2/input/diffusion_knn_k=5/FAUST_Dataset',
-                       help='Directory with .obj files')
+                        default='input/diffusion_knn_k=5/FAUST_Dataset',
+                        help='Directory with .obj files')
     parser.add_argument('--output_dir', type=str, default='output_test',
-                       help='Output directory for test results')
+                        help='Output directory for test results')
     parser.add_argument('--train_size', type=int, default=60,
                        help='Number of shapes for training')
     parser.add_argument('--test_size', type=int, default=20,
@@ -268,6 +268,11 @@ def main():
         device = 'cpu'
     else:
         device = args.device
+    
+    # Ensure necessary directories exist
+    os.makedirs('output', exist_ok=True)
+    os.makedirs('checkpoints', exist_ok=True)
+    os.makedirs(args.output_dir, exist_ok=True)
     
     print(f"\n{'='*60}")
     print("ASMAE TRAINING AND TESTING")

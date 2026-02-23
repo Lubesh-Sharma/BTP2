@@ -1,2 +1,3 @@
 # Ignore all folders starting with "output"
 output*/
+output_test*/
