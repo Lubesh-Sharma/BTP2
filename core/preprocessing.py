@@ -51,6 +51,7 @@ def normalize_pc(points):
     scale = np.max(np.linalg.norm(points, axis=1))
     if scale > 0: points /= scale
     return points
+    
 def normalize_descriptors(features, eps=1e-12):
     """
     L2-normalize each feature channel over vertices
@@ -60,7 +61,7 @@ def normalize_descriptors(features, eps=1e-12):
     features = features / (norms + eps)
     return features
 
-def process_geometry(obj_path, k, t):
+def process_geometry(obj_path, k, t, output_dir="output"):
     """
     Orchestrates the geometric preprocessing.
     """
@@ -76,13 +77,14 @@ def process_geometry(obj_path, k, t):
     fps_idx = compute_fps(VPos, k)
     
     base_name = os.path.splitext(os.path.basename(obj_path))[0]
-    pp_path = os.path.join("output", base_name + ".pp")
+    os.makedirs(output_dir, exist_ok=True)
+    pp_path = os.path.join(output_dir, base_name + ".pp")
     save_pp_file(pp_path, VPos, fps_idx)
     
     print(f"[{obj_path}] Computing HKS (t={t})...")
     features = compute_hks_features(VPos, Elements, fps_idx, t)
     features = normalize_descriptors(features)
     features = np.log(np.abs(features) + 1e-10)
-    mat_path = os.path.join("output", "matrix_" + base_name + ".txt")
+    mat_path = os.path.join(output_dir, "matrix_" + base_name + ".txt")
     np.savetxt(mat_path, features)
     return VPos, Elements, features, fps_idx

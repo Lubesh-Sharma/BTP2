@@ -1,0 +1,24 @@
+data_dir: "input/diffusion_knn_k=5/FAUST_Dataset"
+output_dir: "p2p_results"
+
+shape1: "tr_reg_071.obj"
+shape2: "tr_reg_075.obj"
+
+geometry:
+  k: 30
+  t: 8
+
+correspondence:
+  device: "cuda"
+  eps: 0.05
+  n_iter: 100
+  checkpoint_path: "checkpoints/trained_model.pth"
+
+model:
+  embed_dim: 128
+  depth: 4
+  num_heads: 4
+  decoder_embed_dim: 64
+  decoder_depth: 2
+  decoder_num_heads: 4
+  mlk_ratio: 2.0

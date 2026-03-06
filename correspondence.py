@@ -1,28 +1,12 @@
 import os
 import torch
 import numpy as np
+import argparse
+import yaml
 from scipy.spatial.distance import cdist
 
 from models.asmae import ASMAE
 from core.preprocessing import process_geometry, normalize_pc
-
-
-# -------------------------------------------------
-# CONFIG
-# -------------------------------------------------
-DEVICE = "cuda"
-FEATURE_DIM = 30
-EPS = 0.05
-N_ITER = 100
-
-CHECKPOINT = "/data/home/user/Lubesh_22CS30065/btp2/checkpoints/trained_model.pth"
-
-SHAPE1 = "/data/home/user/Lubesh_22CS30065/btp2/input/diffusion_knn_k=5/FAUST_Dataset/tr_reg_071.obj"
-SHAPE2 = "/data/home/user/Lubesh_22CS30065/btp2/input/diffusion_knn_k=5/FAUST_Dataset/tr_reg_075.obj"
-
-OUT_DIR = "p2p_results"
-os.makedirs(OUT_DIR, exist_ok=True)
-
 
 # -------------------------------------------------
 # Sinkhorn (numpy, stable)
@@ -39,80 +23,115 @@ def sinkhorn(cost, eps=0.05, n_iter=100):
     P = (u[:, None] * K) * v[None, :]
     return P
 
-
 # -------------------------------------------------
 # Load ASMAE
 # -------------------------------------------------
-def load_model():
+def load_model(config, feature_dim, device):
+    model_cfg = config['model']
     model = ASMAE(
-        feature_dim=FEATURE_DIM,
-        embed_dim=128,
-        depth=4,
-        num_heads=4,
-        decoder_embed_dim=64,
-        decoder_depth=2,
-        decoder_num_heads=4,
-        mlk_ratio=2.0
-    ).to(DEVICE)  # Fixed: use DEVICE constant
+        feature_dim=feature_dim,
+        embed_dim=model_cfg['embed_dim'],
+        depth=model_cfg['depth'],
+        num_heads=model_cfg['num_heads'],
+        decoder_embed_dim=model_cfg['decoder_embed_dim'],
+        decoder_depth=model_cfg['decoder_depth'],
+        decoder_num_heads=model_cfg['decoder_num_heads'],
+        mlk_ratio=model_cfg['mlk_ratio']
+    ).to(device)
 
-    checkpoint = torch.load(CHECKPOINT, map_location=DEVICE)  # Fixed: use constants
+    checkpoint_path = config['correspondence']['checkpoint_path']
+    if not os.path.exists(checkpoint_path):
+        raise FileNotFoundError(f"Checkpoint not found at: {checkpoint_path}")
+        
+    checkpoint = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
     return model
 
-
 # -------------------------------------------------
 # MAIN
 # -------------------------------------------------
-print("Loading shapes and geometry...")
+def main():
+    parser = argparse.ArgumentParser(description="ASMAE Correspondence")
+    parser.add_argument('--config', type=str, default='config/corres.yaml', help='Path to corres config file')
+    args = parser.parse_args()
+    
+    with open(args.config, 'r') as f:
+        config = yaml.safe_load(f)
+        
+    device = config['correspondence'].get('device', 'cuda')
+    if device == 'cuda' and not torch.cuda.is_available():
+        print("CUDA not available, using CPU")
+        device = 'cpu'
+        
+    out_dir = config['output_dir']
+    os.makedirs(out_dir, exist_ok=True)
+    
+    data_dir = config['data_dir']
+    shape1_path = os.path.join(data_dir, config['shape1'])
+    shape2_path = os.path.join(data_dir, config['shape2'])
+    
+    k = config['geometry']['k']
+    t = config['geometry']['t']
+    
+    eps = config['correspondence']['eps']
+    n_iter = config['correspondence']['n_iter']
+    
+    print("Loading shapes and geometry...")
+    # NOTE: Output dir for preprocessing intermediate files is set to out_dir
+    V1, _, feat1, _ = process_geometry(shape1_path, k=k, t=t, output_dir=out_dir)
+    V2, _, feat2, _ = process_geometry(shape2_path, k=k, t=t, output_dir=out_dir)
 
-V1, _, feat1, _ = process_geometry(SHAPE1, k=30, t=8)
-V2, _, feat2, _ = process_geometry(SHAPE2, k=30, t=8)
+    V1 = normalize_pc(V1)
+    V2 = normalize_pc(V2)
 
-V1 = normalize_pc(V1)
-V2 = normalize_pc(V2)
+    N1, N2 = V1.shape[0], V2.shape[0]
+    
+    feature_dim = feat1.shape[1]
 
-N1, N2 = V1.shape[0], V2.shape[0]
+    print("Loading ASMAE model...")
+    model = load_model(config, feature_dim, device)
 
-print("Loading ASMAE model...")
-model = load_model()
+    print("Extracting ASMAE features...")
+    with torch.no_grad():
+        f1 = torch.tensor(feat1, dtype=torch.float32, device=device).unsqueeze(0)
+        f2 = torch.tensor(feat2, dtype=torch.float32, device=device).unsqueeze(0)
 
-print("Extracting ASMAE features...")
-with torch.no_grad():
-    f1 = torch.tensor(feat1, dtype=torch.float32, device=DEVICE).unsqueeze(0)
-    f2 = torch.tensor(feat2, dtype=torch.float32, device=DEVICE).unsqueeze(0)
+        p1 = torch.tensor(V1, dtype=torch.float32, device=device).unsqueeze(0)
+        p2 = torch.tensor(V2, dtype=torch.float32, device=device).unsqueeze(0)
 
-    p1 = torch.tensor(V1, dtype=torch.float32, device=DEVICE).unsqueeze(0)
-    p2 = torch.tensor(V2, dtype=torch.float32, device=DEVICE).unsqueeze(0)
+        z1 = model.extract_features(f1, p1).squeeze(0).cpu().numpy()
+        z2 = model.extract_features(f2, p2).squeeze(0).cpu().numpy()
 
-    z1 = model.extract_features(f1, p1).squeeze(0).cpu().numpy()
-    z2 = model.extract_features(f2, p2).squeeze(0).cpu().numpy()
+    # ℓ2-normalize (IMPORTANT)
+    z1 /= np.linalg.norm(z1, axis=1, keepdims=True) + 1e-8
+    z2 /= np.linalg.norm(z2, axis=1, keepdims=True) + 1e-8
 
-# ℓ2-normalize (IMPORTANT)
-z1 /= np.linalg.norm(z1, axis=1, keepdims=True) + 1e-8
-z2 /= np.linalg.norm(z2, axis=1, keepdims=True) + 1e-8
+    print("Computing feature cost matrix...")
+    cost = cdist(z1, z2, metric="sqeuclidean")
 
+    print("Running Sinkhorn...")
+    P = sinkhorn(cost, eps=eps, n_iter=n_iter)
 
-print("Computing feature cost matrix...")
-cost = cdist(z1, z2, metric="sqeuclidean")
+    print("Extracting one-direction P2P (shape2 -> shape1)...")
+    p2p = np.argmax(P.T, axis=1)  # shape2 -> shape1
 
-print("Running Sinkhorn...")
-P = sinkhorn(cost, eps=EPS, n_iter=N_ITER)
+    # -------------------------------------------------
+    # SAVE (two-column format)
+    # -------------------------------------------------
+    shape1_name = os.path.splitext(config['shape1'])[0]
+    shape2_name = os.path.splitext(config['shape2'])[0]
+    out_path = os.path.join(
+        out_dir,
+        f"p2p_{shape1_name}_to_{shape2_name}_sinkhorn.txt"
+    )
 
-print("Extracting one-direction P2P (shape2 → shape1)...")
-p2p = np.argmax(P.T, axis=1)  # shape2 → shape1
+    pairs = np.stack([np.arange(N2), p2p], axis=1)
+    np.savetxt(out_path, pairs, fmt="%d")
 
-# -------------------------------------------------
-# SAVE (two-column format)
-# -------------------------------------------------
-out_path = os.path.join(
-    OUT_DIR,
-    "p2p_tr_reg_071_to_tr_reg_075_sinkhorn.txt"
-)
-
-pairs = np.stack([np.arange(N2), p2p], axis=1)
-np.savetxt(out_path, pairs, fmt="%d")
-
-print("Saved P2P map to:", out_path)
-print(f"Mapped points: {pairs.shape[0]} / {N2}")
+    print("Saved P2P map to:", out_path)
+    print(f"Mapped points: {pairs.shape[0]} / {N2}")
+    
+if __name__ == "__main__":
+    main()

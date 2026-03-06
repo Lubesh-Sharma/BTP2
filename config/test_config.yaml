@@ -1,0 +1,23 @@
+data_dir: "input/diffusion_knn_k=5/FAUST_Dataset"
+output_dir: "output_test"
+train_size: 60
+test_size: 20
+
+geometry:
+  k: 30
+  t: 8
+
+testing:
+  device: "cuda"
+  mask_ratio: 0.4
+  checkpoint_dir: "checkpoints"
+  checkpoint_name: "trained_model.pth"
+
+model:
+  embed_dim: 128
+  depth: 4
+  num_heads: 4
+  decoder_embed_dim: 64
+  decoder_depth: 2
+  decoder_num_heads: 4
+  mlk_ratio: 2.0
