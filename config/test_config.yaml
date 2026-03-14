@@ -6,10 +6,12 @@ test_size: 20
 geometry:
   k: 30
   t: 8
+  neigvecs: 300
 
 testing:
   device: "cuda"
   mask_ratio: 0.4
+  feature_ratio: 0.2
   checkpoint_dir: "checkpoints"
   checkpoint_name: "trained_model.pth"
 
@@ -21,3 +23,9 @@ model:
   decoder_depth: 2
   decoder_num_heads: 4
   mlk_ratio: 2.0
+  num_mask_queries: 5000
+  encoder_k: 20
+  aamg_k: 10
+  aamg_emb_dim: 64
+  pos_embed_dim: 64
+  temperature: 1.0

@@ -31,11 +31,11 @@ class AAMG_Query(nn.Module):
     """
     Adaptive Adversarial Mask Generator.
     """
-    def __init__(self, feature_dim, num_queries=256, embed_dim=64):
+    def __init__(self, feature_dim, num_queries=256, embed_dim=64, k=10, temperature=1.0):
         super().__init__()
-        self.dgcnn = LightDGCNN(feature_dim, k=10, emb_dims=embed_dim)
+        self.dgcnn = LightDGCNN(feature_dim, k=k, emb_dims=embed_dim)
         self.filter_queries = nn.Parameter(torch.randn(num_queries, embed_dim))
-        self.temperature = 1.0
+        self.temperature = temperature
 
     def forward(self, x, num_active_queries=None):
         B, N, C = x.shape

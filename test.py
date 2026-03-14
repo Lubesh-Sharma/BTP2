@@ -9,7 +9,7 @@ from core.preprocessing import process_geometry
 from models.asmae import ASMAE
 from utils.files import save_masked_matrix
 
-def load_test_shapes(data_dir, k, t, start_idx, num_shapes, output_dir):
+def load_test_shapes(data_dir, k, t, neigvecs, start_idx, num_shapes, output_dir):
     """Load test .obj files from directory"""
     print(f"\n{'='*60}")
     print(f"Loading {num_shapes} test shapes from: {data_dir}")
@@ -25,7 +25,7 @@ def load_test_shapes(data_dir, k, t, start_idx, num_shapes, output_dir):
         try:
             path = os.path.join(data_dir, obj_file)
             name = os.path.splitext(obj_file)[0]
-            VPos, El, Feat, eigvecs = process_geometry(path, k, t, output_dir=output_dir)
+            VPos, El, Feat, eigvecs = process_geometry(path, k, t, neigvecs, output_dir=output_dir)
             if VPos is None or len(VPos) == 0:
                 print("SKIP (no vertices)")
                 continue
@@ -56,6 +56,7 @@ def test_model(model, test_shapes, config):
         
     output_dir = config['output_dir']
     mask_ratio = config['testing']['mask_ratio']
+    feature_ratio = config['testing'].get('feature_ratio', 0.2)
     
     print(f"\n{'='*60}")
     print("TESTING PHASE")
@@ -82,8 +83,8 @@ def test_model(model, test_shapes, config):
             p2 = torch.tensor((s2['pos']).copy()).float().unsqueeze(0).to(device)
             f2 = torch.tensor(s2['feat']).float().unsqueeze(0).to(device)
             
-            pred1, _, _, f1_masked, _, mask1 = model(f1, p1, f2, p2, mask_ratio=mask_ratio)
-            pred2, _, _, f2_masked, _, mask2 = model(f2, p2, f1, p1, mask_ratio=mask_ratio)
+            pred1, _, _, f1_masked, _, mask1 = model(f1, p1, f2, p2, mask_ratio=mask_ratio, feature_ratio=feature_ratio)
+            pred2, _, _, f2_masked, _, mask2 = model(f2, p2, f1, p1, mask_ratio=mask_ratio, feature_ratio=feature_ratio)
             
             if mask1 is not None and mask1.sum() > 0:
                 err1 = torch.abs(pred1[mask1] - f1[mask1])
@@ -154,7 +155,13 @@ def main():
         decoder_embed_dim=model_cfg['decoder_embed_dim'],
         decoder_depth=model_cfg['decoder_depth'],
         decoder_num_heads=model_cfg['decoder_num_heads'],
-        mlk_ratio=model_cfg['mlk_ratio']
+        mlk_ratio=model_cfg['mlk_ratio'],
+        num_mask_queries=model_cfg.get('num_mask_queries', 5000),
+        encoder_k=model_cfg.get('encoder_k', 20),
+        aamg_k=model_cfg.get('aamg_k', 10),
+        aamg_emb_dim=model_cfg.get('aamg_emb_dim', 64),
+        pos_embed_dim=model_cfg.get('pos_embed_dim', 64),
+        temperature=model_cfg.get('temperature', 1.0)
     )
     
     model.load_state_dict(checkpoint['model_state_dict'])
@@ -164,10 +171,11 @@ def main():
     output_dir = config['output_dir']
     k = config['geometry']['k']
     t = config['geometry']['t']
+    neigvecs = config['geometry'].get('neigvecs', 300)
     train_size = config['train_size']
     test_size = config['test_size']
     
-    test_shapes = load_test_shapes(data_dir, k, t, start_idx=train_size, num_shapes=test_size, output_dir=output_dir)
+    test_shapes = load_test_shapes(data_dir, k, t, neigvecs, start_idx=train_size, num_shapes=test_size, output_dir=output_dir)
     if len(test_shapes) < 2:
         print("Not enough shapes for testing.")
         return

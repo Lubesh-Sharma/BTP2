@@ -61,7 +61,7 @@ def normalize_descriptors(features, eps=1e-12):
     features = features / (norms + eps)
     return features
 
-def process_geometry(obj_path, k, t, output_dir="output"):
+def process_geometry(obj_path, k, t, neigvecs=300, output_dir="output"):
     """
     Orchestrates the geometric preprocessing.
     """
@@ -82,7 +82,7 @@ def process_geometry(obj_path, k, t, output_dir="output"):
     save_pp_file(pp_path, VPos, fps_idx)
     
     print(f"[{obj_path}] Computing HKS (t={t})...")
-    features = compute_hks_features(VPos, Elements, fps_idx, t)
+    features = compute_hks_features(VPos, Elements, fps_idx, t, neigvecs=neigvecs)
     features = normalize_descriptors(features)
     features = np.log(np.abs(features) + 1e-10)
     mat_path = os.path.join(output_dir, "matrix_" + base_name + ".txt")

@@ -12,21 +12,22 @@ class ASMAE(nn.Module):
     """
     def __init__(self, feature_dim=32, embed_dim=128, depth=4, num_heads=4,
                  decoder_embed_dim=128, decoder_depth=2, decoder_num_heads=4,
-                 mlk_ratio=4.):
+                 mlk_ratio=4., num_mask_queries=5000, encoder_k=20, aamg_k=10,
+                 aamg_emb_dim=64, pos_embed_dim=64, temperature=1.0):
         super().__init__()
         
-        self.num_mask_queries = 5000 
-        self.mask_generator = AAMG_Query(feature_dim, num_queries=self.num_mask_queries, embed_dim=64)
+        self.num_mask_queries = num_mask_queries 
+        self.mask_generator = AAMG_Query(feature_dim, num_queries=self.num_mask_queries, embed_dim=aamg_emb_dim, k=aamg_k, temperature=temperature)
         
         # ENCODER
         self.feature_embed = nn.Linear(feature_dim, embed_dim)
         self.pos_embed = nn.Sequential(
-            nn.Linear(3, 64),
+            nn.Linear(3, pos_embed_dim),
             nn.GELU(),
-            nn.Linear(64, embed_dim)
+            nn.Linear(pos_embed_dim, embed_dim)
         )
         self.encoder_blocks = nn.ModuleList([
-            LocalSelfAttentionBlock(embed_dim, num_heads, mlk_ratio, k=20)
+            LocalSelfAttentionBlock(embed_dim, num_heads, mlk_ratio, k=encoder_k)
             for _ in range(depth)
         ])
         self.encoder_norm = nn.LayerNorm(embed_dim)
@@ -35,9 +36,9 @@ class ASMAE(nn.Module):
         self.decoder_embed = nn.Linear(embed_dim, decoder_embed_dim)
         self.mask_token = nn.Parameter(torch.zeros(1, 1, decoder_embed_dim))
         self.decoder_pos_embed = nn.Sequential(
-            nn.Linear(3, 64),
+            nn.Linear(3, pos_embed_dim),
             nn.GELU(),
-            nn.Linear(64, decoder_embed_dim)
+            nn.Linear(pos_embed_dim, decoder_embed_dim)
         )
         self.decoder_blocks = nn.ModuleList([
             CrossAttentionBlock(decoder_embed_dim, decoder_num_heads, mlk_ratio)

@@ -16,7 +16,7 @@ from core.preprocessing import process_geometry, normalize_pc
 from models.asmae import ASMAE
 from utils.files import save_masked_matrix
 
-def load_all_shapes(data_dir, k=30, t=8, max_shapes=None):
+def load_all_shapes(data_dir, k=30, t=8, neigvecs=300, max_shapes=None):
     """Load all .obj files from directory"""
     obj_files = sorted([f for f in os.listdir(data_dir) if f.endswith('.obj')])
     
@@ -39,7 +39,7 @@ def load_all_shapes(data_dir, k=30, t=8, max_shapes=None):
             name = os.path.splitext(obj_file)[0]
             
             # Load geometry
-            VPos, El, Feat, eigvecs = process_geometry(path, k, t)
+            VPos, El, Feat, eigvecs = process_geometry(path, k, t, neigvecs=neigvecs)
             
             # Validate
             if VPos is None or len(VPos) == 0:
@@ -72,7 +72,7 @@ def load_all_shapes(data_dir, k=30, t=8, max_shapes=None):
     return shapes
 
 
-def train_model(model, train_shapes, device, num_epochs=100, lr=1e-4):
+def train_model(model, train_shapes, device, num_epochs=100, lr=1e-4, mask_ratio=0.4, feature_ratio=0.2):
     """Train model on shape pairs"""
     print(f"\n{'='*60}")
     print("TRAINING PHASE")
@@ -111,11 +111,11 @@ def train_model(model, train_shapes, device, num_epochs=100, lr=1e-4):
             f2 = torch.tensor(s2['feat']).float().unsqueeze(0).to(device)
             
             # Forward pass: s1 -> s2
-            pred1, _, _, _, _, mask1 = model(f1, p1, f2, p2, mask_ratio=0.4)
+            pred1, _, _, _, _, mask1 = model(f1, p1, f2, p2, mask_ratio=mask_ratio, feature_ratio=feature_ratio)
             loss1 = criterion(pred1[mask1], f1[mask1]) if mask1.sum() > 0 else criterion(pred1, f1)
             
             # Forward pass: s2 -> s1
-            pred2, _, _, _, _, mask2 = model(f2, p2, f1, p1, mask_ratio=0.4)
+            pred2, _, _, _, _, mask2 = model(f2, p2, f1, p1, mask_ratio=mask_ratio, feature_ratio=feature_ratio)
             loss2 = criterion(pred2[mask2], f2[mask2]) if mask2.sum() > 0 else criterion(pred2, f2)
             
             # Total loss
@@ -139,7 +139,7 @@ def train_model(model, train_shapes, device, num_epochs=100, lr=1e-4):
     return model
 
 
-def test_model(model, test_shapes, device, output_dir):
+def test_model(model, test_shapes, device, output_dir, mask_ratio=0.4, feature_ratio=0.2):
     """Test model, save matrices, and report masked MAE"""
     print(f"\n{'='*60}")
     print("TESTING PHASE")
@@ -172,8 +172,8 @@ def test_model(model, test_shapes, device, output_dir):
             f2 = torch.tensor(s2['feat']).float().unsqueeze(0).to(device)
             
             # Forward pass
-            pred1, _, _, f1_masked, _, mask1 = model(f1, p1, f2, p2, mask_ratio=0.4)
-            pred2, _, _, f2_masked, _, mask2 = model(f2, p2, f1, p1, mask_ratio=0.4)
+            pred1, _, _, f1_masked, _, mask1 = model(f1, p1, f2, p2, mask_ratio=mask_ratio, feature_ratio=feature_ratio)
+            pred2, _, _, f2_masked, _, mask2 = model(f2, p2, f1, p1, mask_ratio=mask_ratio, feature_ratio=feature_ratio)
             
             # ---- Masked MAE computation ----
             if mask1 is not None and mask1.sum() > 0:
@@ -257,6 +257,24 @@ def main():
                        help='Device: cuda or cpu')
     parser.add_argument('--checkpoint', type=str, default=None,
                        help='Path to checkpoint (for testing only)')
+    parser.add_argument('--mask_ratio', type=float, default=0.4,
+                       help='Ratio of nodes to mask for attention')
+    parser.add_argument('--feature_ratio', type=float, default=0.2,
+                       help='Ratio of features to mask')
+    parser.add_argument('--neigvecs', type=int, default=300,
+                       help='Number of eigenvectors for HKS')
+    parser.add_argument('--num_mask_queries', type=int, default=5000,
+                       help='Number of mask queries')
+    parser.add_argument('--encoder_k', type=int, default=20,
+                       help='k value for local self attention block')
+    parser.add_argument('--aamg_k', type=int, default=10,
+                       help='k value for AAMG DGCNN')
+    parser.add_argument('--aamg_emb_dim', type=int, default=64,
+                       help='Embed dimension for AAMG generator')
+    parser.add_argument('--pos_embed_dim', type=int, default=64,
+                       help='Positional embedding dimensionality')
+    parser.add_argument('--temperature', type=float, default=1.0,
+                       help='Temperature for gumbel softmax')
     parser.add_argument('--test_only', action='store_true',
                        help='Skip training, only test')
     
@@ -282,7 +300,7 @@ def main():
     
     # Load all shapes
     total_needed = args.train_size + args.test_size
-    all_shapes = load_all_shapes(args.data_dir, k=30, t=8, max_shapes=total_needed)
+    all_shapes = load_all_shapes(args.data_dir, k=30, t=8, neigvecs=args.neigvecs, max_shapes=total_needed)
     
     if len(all_shapes) < total_needed:
         print(f"\nWARNING: Only loaded {len(all_shapes)} shapes, needed {total_needed}")
@@ -314,7 +332,13 @@ def main():
         decoder_embed_dim=64,
         decoder_depth=2,
         decoder_num_heads=4,
-        mlk_ratio=2.0  # Note: it's mlk_ratio, not mlp_ratio
+        mlk_ratio=2.0,  # Note: it's mlk_ratio, not mlp_ratio
+        num_mask_queries=args.num_mask_queries,
+        encoder_k=args.encoder_k,
+        aamg_k=args.aamg_k,
+        aamg_emb_dim=args.aamg_emb_dim,
+        pos_embed_dim=args.pos_embed_dim,
+        temperature=args.temperature
     ).to(device)
     
     num_params = sum(p.numel() for p in model.parameters())
@@ -332,7 +356,8 @@ def main():
     else:
         # Train
         model = train_model(model, train_shapes, device, 
-                          num_epochs=args.epochs, lr=args.lr)
+                          num_epochs=args.epochs, lr=args.lr,
+                          mask_ratio=args.mask_ratio, feature_ratio=args.feature_ratio)
         
         # Save checkpoint
         os.makedirs('checkpoints', exist_ok=True)
@@ -345,7 +370,7 @@ def main():
         print(f"\nCheckpoint saved: {checkpoint_path}")
     
     # Test
-    test_model(model, test_shapes, device, args.output_dir)
+    test_model(model, test_shapes, device, args.output_dir, mask_ratio=args.mask_ratio, feature_ratio=args.feature_ratio)
     
     print(f"\n{'='*60}")
     print("ALL DONE!")

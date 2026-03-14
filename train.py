@@ -8,7 +8,7 @@ import argparse
 from core.preprocessing import process_geometry
 from models.asmae import ASMAE
 
-def load_train_shapes(data_dir, k, t, max_shapes, output_dir):
+def load_train_shapes(data_dir, k, t, neigvecs, max_shapes, output_dir):
     """Load all .obj files from directory"""
     print(f"\n{'='*60}")
     print(f"Loading {max_shapes} train shapes from: {data_dir}")
@@ -25,7 +25,7 @@ def load_train_shapes(data_dir, k, t, max_shapes, output_dir):
         try:
             path = os.path.join(data_dir, obj_file)
             name = os.path.splitext(obj_file)[0]
-            VPos, El, Feat, eigvecs = process_geometry(path, k, t, output_dir=output_dir)
+            VPos, El, Feat, eigvecs = process_geometry(path, k, t, neigvecs, output_dir=output_dir)
             if VPos is None or len(VPos) == 0:
                 print("SKIP (no vertices)")
                 continue
@@ -57,6 +57,7 @@ def train_model(model, train_shapes, config):
     num_epochs = config['training']['epochs']
     lr = config['training']['lr']
     mask_ratio = config['training']['mask_ratio']
+    feature_ratio = config['training'].get('feature_ratio', 0.2)
     
     print(f"\n{'='*60}")
     print("TRAINING PHASE")
@@ -86,10 +87,10 @@ def train_model(model, train_shapes, config):
             p2 = torch.tensor((s2['pos']).copy()).float().unsqueeze(0).to(device)
             f2 = torch.tensor(s2['feat']).float().unsqueeze(0).to(device)
             
-            pred1, _, _, _, _, mask1 = model(f1, p1, f2, p2, mask_ratio=mask_ratio)
+            pred1, _, _, _, _, mask1 = model(f1, p1, f2, p2, mask_ratio=mask_ratio, feature_ratio=feature_ratio)
             loss1 = criterion(pred1[mask1], f1[mask1]) if mask1.sum() > 0 else criterion(pred1, f1)
             
-            pred2, _, _, _, _, mask2 = model(f2, p2, f1, p1, mask_ratio=mask_ratio)
+            pred2, _, _, _, _, mask2 = model(f2, p2, f1, p1, mask_ratio=mask_ratio, feature_ratio=feature_ratio)
             loss2 = criterion(pred2[mask2], f2[mask2]) if mask2.sum() > 0 else criterion(pred2, f2)
             
             loss = loss1 + loss2
@@ -123,8 +124,9 @@ def main():
     output_dir = config['output_dir']
     k = config['geometry']['k']
     t = config['geometry']['t']
+    neigvecs = config['geometry'].get('neigvecs', 300)
     
-    train_shapes = load_train_shapes(data_dir, k, t, max_shapes=train_size, output_dir=output_dir)
+    train_shapes = load_train_shapes(data_dir, k, t, neigvecs, max_shapes=train_size, output_dir=output_dir)
     if len(train_shapes) < 2:
         print("Not enough shapes for training.")
         return
@@ -139,7 +141,13 @@ def main():
         decoder_embed_dim=model_cfg['decoder_embed_dim'],
         decoder_depth=model_cfg['decoder_depth'],
         decoder_num_heads=model_cfg['decoder_num_heads'],
-        mlk_ratio=model_cfg['mlk_ratio']
+        mlk_ratio=model_cfg['mlk_ratio'],
+        num_mask_queries=model_cfg.get('num_mask_queries', 5000),
+        encoder_k=model_cfg.get('encoder_k', 20),
+        aamg_k=model_cfg.get('aamg_k', 10),
+        aamg_emb_dim=model_cfg.get('aamg_emb_dim', 64),
+        pos_embed_dim=model_cfg.get('pos_embed_dim', 64),
+        temperature=model_cfg.get('temperature', 1.0)
     )
     
     print(f"  Feature dimension: {feature_dim}")
