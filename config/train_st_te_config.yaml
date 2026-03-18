@@ -1,0 +1,54 @@
+data_dir: "input/diffusion_knn_k=5/FAUST_Dataset"
+output_dir: "output_st_te"
+train_size: 60
+test_size: 20
+
+geometry:
+  k: 30
+  t: 8
+  neigvecs: 300
+
+training:
+  epochs: 200
+  lr: 0.0001
+  device: "cuda"
+  student_mask_ratio: 0.4
+  student_feature_ratio: 0.7
+  teacher_mask_ratio: 0.4
+  teacher_feature_ratio: 0.2
+  consistency_weight: 1.0
+  contrastive_weight: 1.0
+  contrastive_temperature: 0.5
+  ema_alpha: 0.99
+  checkpoint_dir: "checkpoints"
+  checkpoint_name: "st_te_model.pth"
+
+student_model:
+  embed_dim: 128
+  depth: 4
+  num_heads: 4
+  decoder_embed_dim: 64
+  decoder_depth: 2
+  decoder_num_heads: 4
+  mlk_ratio: 2.0
+  num_mask_queries: 5000
+  encoder_k: 20
+  aamg_k: 10
+  aamg_emb_dim: 64
+  pos_embed_dim: 64
+  temperature: 1.0
+
+teacher_model:
+  embed_dim: 128
+  depth: 4
+  num_heads: 4
+  decoder_embed_dim: 64
+  decoder_depth: 2
+  decoder_num_heads: 4
+  mlk_ratio: 2.0
+  num_mask_queries: 5000
+  encoder_k: 20
+  aamg_k: 10
+  aamg_emb_dim: 64
+  pos_embed_dim: 64
+  temperature: 1.0
