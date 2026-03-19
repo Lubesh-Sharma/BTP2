@@ -186,7 +186,6 @@ def main():
     with open(args.config, 'r') as f:
         config = yaml.safe_load(f)
         
-    os.makedirs('output', exist_ok=True)
     os.makedirs(config['training']['checkpoint_dir'], exist_ok=True)
     
     train_size = config['train_size']

@@ -117,10 +117,8 @@ def test_model(model, test_shapes, config):
         avg_mae = total_mae / total_masked_elements
         print(f"\nAverage MAE on masked points (test set): {avg_mae:.6f}")
     else:
-        avg_mae = float('inf')
         print("\nWARNING: No masked elements found during testing")
     print(f"\nTesting complete! All results saved to: {output_dir}")
-    return avg_mae
 
 def main():
     parser = argparse.ArgumentParser(description="ASMAE Testing")

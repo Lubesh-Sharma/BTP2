@@ -10,8 +10,8 @@ geometry:
 
 testing:
   device: "cuda"
-  mask_ratio: 0.4
-  feature_ratio: 0.2
+  mask_ratio: 0.6769261099458623
+  feature_ratio: 0.17787933391133298
   checkpoint_dir: "checkpoints"
   checkpoint_name: "st_te_model.pth"
 

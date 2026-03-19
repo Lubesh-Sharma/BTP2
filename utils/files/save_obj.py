@@ -6,8 +6,7 @@ def save_masked_obj(pos, elements, mask, filename):
     """
     Saves a visualization of the masked shape.
     """
-    if not filename.startswith("output/"):
-         filename = os.path.join("output", os.path.basename(filename))
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
          
     visible_indices = np.where(mask == 0)[0]
     VPos_sub = pos[visible_indices]

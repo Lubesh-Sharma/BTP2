@@ -27,7 +27,7 @@ def sinkhorn(cost, eps=0.05, n_iter=100):
 # Load ASMAE
 # -------------------------------------------------
 def load_model(config, feature_dim, device):
-    model_cfg = config.get('model', {})
+    model_cfg = config.get('student_model', config.get('model', {}))
     model = ASMAE(
         feature_dim=feature_dim,
         embed_dim=model_cfg['embed_dim'],
