@@ -1,5 +1,5 @@
 data_dir: "input/diffusion_knn_k=5/FAUST_Dataset"
-output_dir: "p2p_results_old"
+output_dir: "p2p_results_st_te"
 
 shape1: "tr_reg_076.obj"
 shape2: "tr_reg_079.obj"
@@ -12,7 +12,7 @@ correspondence:
   device: "cuda"
   eps: 0.05
   n_iter: 100
-  checkpoint_path: "checkpoints/trained_old_model.pth"
+  checkpoint_path: "checkpoints/st_te_model.pth"
 
 model:
   embed_dim: 128

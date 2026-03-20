@@ -8,7 +8,6 @@ import argparse
 from core.preprocessing import process_geometry
 from models.asmae import ASMAE
 from core.consistency_loss import compute_consistency_loss
-from core.contrastive_loss import compute_contrastive_loss
 
 def update_teacher_ema(student, teacher, alpha=0.999):
     """
@@ -78,8 +77,6 @@ def train_model(student, teacher, train_shapes, config):
     # Loss configs
     ema_alpha = config['training'].get('ema_alpha', 0.999)
     cons_weight = config['training'].get('consistency_weight', 1.0)
-    contr_weight = config['training'].get('contrastive_weight', 1.0)
-    contr_temp = config['training'].get('contrastive_temperature', 0.5)
     
     print(f"\n{'='*60}")
     print("STUDENT-TEACHER TRAINING PHASE")
@@ -88,7 +85,7 @@ def train_model(student, teacher, train_shapes, config):
     print(f"  Device: {device}")
     print(f"  Student Masking Ratio (Nodes/Feats): {student_mask_ratio} / {student_feat_ratio}")
     print(f"  Teacher Masking Ratio (Nodes/Feats): {teacher_mask_ratio} / {teacher_feat_ratio}")
-    print(f"  EMA Alpha: {ema_alpha} | Consist. Weight: {cons_weight} | Contr. Weight: {contr_weight} | Contr. Temp: {contr_temp}")
+    print(f"  EMA Alpha: {ema_alpha} | Consist. Weight: {cons_weight}")
     print(f"{'='*60}\n")
     
     optimizer = torch.optim.Adam(student.parameters(), lr=lr)
@@ -104,7 +101,6 @@ def train_model(student, teacher, train_shapes, config):
         epoch_loss = 0
         epoch_rec_loss = 0
         epoch_cons_loss = 0
-        epoch_contr_loss = 0
         num_pairs = 0
         indices = np.random.permutation(len(train_shapes))
         
@@ -131,8 +127,6 @@ def train_model(student, teacher, train_shapes, config):
                 
             loss1_rec = criterion(pred1_s[mask1_s], f1[mask1_s]) if mask1_s.sum() > 0 else criterion(pred1_s, f1)
             loss1_cons = compute_consistency_loss(pred1_s, pred1_t)
-            # Contrastive loss using the target encoder features (could also use pred_source natively)
-            loss1_contr = compute_contrastive_loss(pred1_s, pred1_t, temperature=contr_temp)
             
             # -----------------------------------------------------------------
             # Forward Pass 2 (S2 -> S1)
@@ -143,16 +137,14 @@ def train_model(student, teacher, train_shapes, config):
                 
             loss2_rec = criterion(pred2_s[mask2_s], f2[mask2_s]) if mask2_s.sum() > 0 else criterion(pred2_s, f2)
             loss2_cons = compute_consistency_loss(pred2_s, pred2_t)
-            loss2_contr = compute_contrastive_loss(pred2_s, pred2_t, temperature=contr_temp)
             
             # -----------------------------------------------------------------
             # Combine and Backdrop
             # -----------------------------------------------------------------
             loss_rec = loss1_rec + loss2_rec
             loss_cons = loss1_cons + loss2_cons
-            loss_contr = loss1_contr + loss2_contr
             
-            loss = loss_rec + (cons_weight * loss_cons) + (contr_weight * loss_contr)
+            loss = loss_rec + (cons_weight * loss_cons)
             
             optimizer.zero_grad()
             loss.backward()
@@ -164,16 +156,14 @@ def train_model(student, teacher, train_shapes, config):
             epoch_loss += loss.item()
             epoch_rec_loss += loss_rec.item()
             epoch_cons_loss += loss_cons.item()
-            epoch_contr_loss += loss_contr.item()
             num_pairs += 1
             
         avg_loss = epoch_loss / num_pairs if num_pairs > 0 else 0
         avg_rec = epoch_rec_loss / num_pairs if num_pairs > 0 else 0
         avg_cons = epoch_cons_loss / num_pairs if num_pairs > 0 else 0
-        avg_contr = epoch_contr_loss / num_pairs if num_pairs > 0 else 0
         
         if (epoch + 1) % 10 == 0 or epoch == 0:
-            print(f"Epoch {epoch+1:3d}/{num_epochs} | Total: {avg_loss:.4f} | Rec: {avg_rec:.4f} | Cons: {avg_cons:.4f} | Contr: {avg_contr:.4f}")
+            print(f"Epoch {epoch+1:3d}/{num_epochs} | Total: {avg_loss:.8f} | Rec: {avg_rec:.8f} | Cons: {avg_cons:.8f}")
             
     print("\nTraining complete!")
     return student

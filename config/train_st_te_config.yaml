@@ -11,15 +11,12 @@ geometry:
 # do not change the following parameters
 training:
   epochs: 1200
-  lr: 0.0003
+  lr: 0.0002
   device: "cuda"
   student_mask_ratio: 0.7
   student_feature_ratio: 0.5
-  teacher_mask_ratio: 0.16
-  teacher_feature_ratio: 0.1
-  consistency_weight: 2.0
-  contrastive_weight: 2.1
-  contrastive_temperature: 0.3
+  teacher_mask_ratio: 0.15
+  teacher_feature_ratio: 0.2
   ema_alpha: 0.945
   checkpoint_dir: "checkpoints"
   checkpoint_name: "st_te_model.pth"
