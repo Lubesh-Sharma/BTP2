@@ -4,7 +4,7 @@ import torch
 import argparse
 import numpy as np
 from utils.training_utils import set_seed
-from utils.mesh import load_off, save_obj, build_knn_faces
+from utils.mesh import load_off, save_obj, build_knn_edges
 
 def main():
     parser = argparse.ArgumentParser(description="OFF to OBJ Conversion")
@@ -52,14 +52,14 @@ def main():
             # Use utility functions from utils.mesh
             VPos, VColors, ITris = load_off(in_path)
             
-            # Rebuild connectivity via kNN
-            V, F = build_knn_faces(VPos, k=k)
+            # Build kNN edge-based connectivity graph (Algorithm from coe_old_embedding/export_embedding_mesh.py)
+            V, Edges = build_knn_edges(VPos, k=k)
             
             out_name = os.path.splitext(off_file)[0] + ".obj"
             out_path = os.path.join(output_folder, out_name)
             
-            # Save using utility function
-            save_obj(out_path, V, np.array([]), F)
+            # Save as OBJ with lines (l)
+            save_obj(out_path, V, np.array([]), Edges)
             print(f"  ✓ {off_file} processed")
             
         except Exception as e:

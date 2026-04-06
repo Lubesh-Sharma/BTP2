@@ -383,12 +383,21 @@ def get_edges(VPos, ITris):
     return L.nonzero()
 
 from sklearn.neighbors import NearestNeighbors
-def build_knn_faces(VPos, k=12):
-    knn = NearestNeighbors(n_neighbors=k).fit(VPos)
-    idx = knn.kneighbors(VPos, return_distance=False)
-    faces = []
+def build_knn_edges(VPos, k=5):
+    """
+    Builds a k-nearest neighbor graph based on vertices.
+    Algorithm matches coe_old_embedding/export_embedding_mesh.py logic.
+    """
+    from sklearn.neighbors import NearestNeighbors
+    # Find k+1 neighbors (including self)
+    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='ball_tree').fit(VPos)
+    distances, indices = nbrs.kneighbors(VPos)
+    
+    edges = []
     for i in range(len(VPos)):
-        n = idx[i, 1:4]
-        faces.append([i, n[0], n[1]])
-        faces.append([i, n[1], n[2]])
-    return VPos, np.asarray(faces)
+        neighbors = indices[i, 1:]  # Skip self
+        for neighbor_idx in neighbors:
+            if i < neighbor_idx:  # Avoid duplicate edges [i, j] and [j, i]
+                edges.append([i, neighbor_idx])
+    
+    return VPos, np.array(edges)
