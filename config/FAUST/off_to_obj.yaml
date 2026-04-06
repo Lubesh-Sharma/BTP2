@@ -1,0 +1,7 @@
+input_folder: "input/FAUST/off"
+output_folder_path: "input/FAUST/obj"
+train_size: 60
+test_size: 40
+k: 10
+seed: 42
+n_gpu: 1

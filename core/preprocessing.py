@@ -7,40 +7,60 @@ from utils.files import save_pp_file
 
 def compute_fps(VPos, k):
     """
-    Performs Farthest Point Sampling (FPS).
+    Performs Farthest Point Sampling (FPS) smoothly on the GPU via PyTorch.
     """
-    N = VPos.shape[0]
+    import torch
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    VPos_tensor = torch.tensor(VPos, dtype=torch.float32, device=device)
+    
+    N = VPos_tensor.shape[0]
     if k > N: k = N
     selected_indices = [0]
-    dists = np.linalg.norm(VPos - VPos[0], axis=1)
+    
+    dists = torch.norm(VPos_tensor - VPos_tensor[0], dim=1)
+    
     for _ in range(1, k):
-        next_idx = np.argmax(dists)
+        next_idx = torch.argmax(dists).item()
         selected_indices.append(next_idx)
-        new_dists = np.linalg.norm(VPos - VPos[next_idx], axis=1)
-        dists = np.minimum(dists, new_dists)
+        new_dists = torch.norm(VPos_tensor - VPos_tensor[next_idx], dim=1)
+        dists = torch.minimum(dists, new_dists)
+        
     return np.array(selected_indices)
 
 def compute_hks_features(VPos, Elements, k_indices, t, neigvecs=300):
     """
-    Computes HKS features.
+    Computes HKS features efficiently by performing dense eigenvalue decomposition natively on the GPU.
     """
+    import torch
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
     is_graph = (Elements.shape[1] == 2)
     if is_graph: L = get_graph_laplacian(VPos, Elements)
     else: L = get_cotan_laplacian(VPos, Elements)
-    n_eigs = min(VPos.shape[0] - 1, neigvecs)
-    vals, vecs = eigsh(L, k=n_eigs, which='SM')
     
-
-    # norms = np.linalg.norm(vecs, axis=0)
-    # print("Eigenvector norms:", norms[:10])
-
-    vals_t = np.exp(-vals * t)
-    ScaledVecs = vecs * vals_t[None, :]
-    Sources = vecs[k_indices, :]
-    HKS_matrix = ScaledVecs.dot(Sources.T)
-    # print(HKS_matrix[1:].shape)
-    # exit()
-    return HKS_matrix
+    n_eigs = min(VPos.shape[0] - 1, neigvecs)
+    
+    # Convert sparse Laplacian directly to dense GPU tensor
+    L_dense = torch.tensor(L.toarray(), dtype=torch.float32, device=device)
+    vals, vecs = torch.linalg.eigh(L_dense)
+    
+    # Sort purely by absolute magnitude to perfectly simulate ARPACK's 'which=SM' (Smallest Magnitude)
+    abs_vals = torch.abs(vals)
+    sorted_indices = torch.argsort(abs_vals)
+    vals = vals[sorted_indices][:n_eigs]
+    vecs = vecs[:, sorted_indices][:, :n_eigs]
+    
+    # Perform math on GPU
+    vals_t = torch.exp(-vals * t)
+    ScaledVecs = vecs * vals_t.unsqueeze(0)
+    
+    k_idx_tensor = torch.tensor(k_indices, dtype=torch.long, device=device)
+    Sources = vecs[k_idx_tensor, :]
+    
+    # Fast matrix multiplication on the GPU
+    HKS_matrix = torch.matmul(ScaledVecs, Sources.transpose(0, 1))
+    
+    return HKS_matrix.cpu().numpy()
 
 def normalize_pc(points):
     """

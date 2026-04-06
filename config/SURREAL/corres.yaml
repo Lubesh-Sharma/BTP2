@@ -1,0 +1,21 @@
+data_dir: "input/SURREAL/obj/k_10"
+output_dir: "p2p_results_st_te_SURREAL"
+
+geometry:
+  k: 50
+  t: 100
+
+correspondence:
+  device: "cuda"
+  eps: 0.05
+  n_iter: 100
+  checkpoint_path: "checkpoints/st_te_model_SURREAL.pth"
+
+model:
+  embed_dim: 128
+  depth: 4
+  num_heads: 4
+  decoder_embed_dim: 64
+  decoder_depth: 2
+  decoder_num_heads: 4
+  mlk_ratio: 2.0

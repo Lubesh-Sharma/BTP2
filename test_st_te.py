@@ -168,12 +168,26 @@ def main():
     print("Checkpoint loaded successfully")
     
     data_dir = config['data_dir']
+    
+    obj_files = sorted([f for f in os.listdir(data_dir) if f.endswith('.obj')])
+    total_files = len(obj_files)
+    
+    config_train_size = config.get('train_size', 60)
+    config_test_size = config.get('test_size', 40)
+    
+    if total_files < config_train_size + config_test_size:
+        train_size = int(total_files * config_train_size / (config_train_size + config_test_size))
+        test_size = total_files - train_size
+        print(f"\nDataset too small ({total_files} files). Adjusted to ratio: {train_size} train, {test_size} test")
+    else:
+        train_size = config_train_size
+        test_size = config_test_size
+        print(f"\nUsing absolute split: {train_size} train, {test_size} test")
+
     output_dir = config['output_dir']
     k = config['geometry']['k']
     t = config['geometry']['t']
     neigvecs = config['geometry'].get('neigvecs', 300)
-    train_size = config['train_size']
-    test_size = config['test_size']
     
     test_shapes = load_test_shapes(data_dir, k, t, neigvecs, start_idx=train_size, num_shapes=test_size, output_dir=output_dir)
     if len(test_shapes) < 2:

@@ -8,6 +8,9 @@ import argparse
 from core.preprocessing import process_geometry
 from models.asmae import ASMAE
 from core.consistency_loss import compute_consistency_loss
+from core.contrastive_loss import compute_contrastive_loss
+from core.cycle_loss import compute_cycle_loss
+from core.lgo_loss import compute_lgo_loss
 
 def update_teacher_ema(student, teacher, alpha=0.999):
     """
@@ -77,6 +80,13 @@ def train_model(student, teacher, train_shapes, config):
     # Loss configs
     ema_alpha = config['training'].get('ema_alpha', 0.999)
     cons_weight = config['training'].get('consistency_weight', 1.0)
+    contra_margin = config['training'].get('contrastive_margin', 0.5)
+    contra_weight = config['training'].get('contrastive_weight', 1.0)
+    cycle_eps = config['training'].get('cycle_eps', 0.05)
+    cycle_n_iter = config['training'].get('cycle_n_iter', 15)
+    cycle_weight = config['training'].get('cycle_weight', 1.0)
+    lgo_eps = config['training'].get('lgo_eps', 0.02)
+    lgo_weight = config['training'].get('lgo_weight', 500.0)
     
     print(f"\n{'='*60}")
     print("STUDENT-TEACHER TRAINING PHASE")
@@ -97,73 +107,111 @@ def train_model(student, teacher, train_shapes, config):
     student.train()
     teacher.eval() # Teacher does not get trained by backprop natively
     
-    for epoch in range(num_epochs):
-        epoch_loss = 0
-        epoch_rec_loss = 0
-        epoch_cons_loss = 0
-        num_pairs = 0
-        indices = np.random.permutation(len(train_shapes))
-        
-        for i in range(0, len(indices)-1, 2):
-            idx1 = indices[i]
-            idx2 = indices[i+1]
-            s1 = train_shapes[idx1]
-            s2 = train_shapes[idx2]
+    epoch = 0
+    try:
+        for epoch in range(num_epochs):
+            epoch_loss = 0
+            epoch_rec_loss = 0
+            epoch_cons_loss = 0
+            epoch_contra_loss = 0
+            epoch_cycle_loss = 0
+            epoch_lgo_loss = 0
+            num_pairs = 0
+            indices = np.random.permutation(len(train_shapes))
             
-            p1 = torch.tensor((s1['pos']).copy()).float().unsqueeze(0).to(device)
-            f1 = torch.tensor(s1['feat']).float().unsqueeze(0).to(device)
-            p2 = torch.tensor((s2['pos']).copy()).float().unsqueeze(0).to(device)
-            f2 = torch.tensor(s2['feat']).float().unsqueeze(0).to(device)
-            
-            # -----------------------------------------------------------------
-            # Forward Pass 1 (S1 -> S2)
-            # -----------------------------------------------------------------
-            # Student predicts deeply masked graph
-            pred1_s, _, _, _, enc_t1_s, mask1_s = student(f1, p1, f2, p2, mask_ratio=student_mask_ratio, feature_ratio=student_feat_ratio)
-            
-            # Teacher predicts lightly masked/unmasked graph
-            with torch.no_grad():
-                pred1_t, _, _, _, enc_t1_t, _ = teacher(f1, p1, f2, p2, mask_ratio=teacher_mask_ratio, feature_ratio=teacher_feat_ratio)
+            for i in range(0, len(indices)-1, 2):
+                idx1 = indices[i]
+                idx2 = indices[i+1]
+                s1 = train_shapes[idx1]
+                s2 = train_shapes[idx2]
                 
-            loss1_rec = criterion(pred1_s[mask1_s], f1[mask1_s]) if mask1_s.sum() > 0 else criterion(pred1_s, f1)
-            loss1_cons = compute_consistency_loss(pred1_s, pred1_t)
-            
-            # -----------------------------------------------------------------
-            # Forward Pass 2 (S2 -> S1)
-            # -----------------------------------------------------------------
-            pred2_s, _, _, _, enc_t2_s, mask2_s = student(f2, p2, f1, p1, mask_ratio=student_mask_ratio, feature_ratio=student_feat_ratio)
-            with torch.no_grad():
-                pred2_t, _, _, _, enc_t2_t, _ = teacher(f2, p2, f1, p1, mask_ratio=teacher_mask_ratio, feature_ratio=teacher_feat_ratio)
+                p1 = torch.tensor((s1['pos']).copy()).float().unsqueeze(0).to(device)
+                f1 = torch.tensor(s1['feat']).float().unsqueeze(0).to(device)
+                p2 = torch.tensor((s2['pos']).copy()).float().unsqueeze(0).to(device)
+                f2 = torch.tensor(s2['feat']).float().unsqueeze(0).to(device)
                 
-            loss2_rec = criterion(pred2_s[mask2_s], f2[mask2_s]) if mask2_s.sum() > 0 else criterion(pred2_s, f2)
-            loss2_cons = compute_consistency_loss(pred2_s, pred2_t)
+                # -----------------------------------------------------------------
+                # Forward Pass 1 (S1 -> S2)
+                # -----------------------------------------------------------------
+                # Student predicts deeply masked graph
+                pred1_s, _, _, _, enc_t1_s, mask1_s = student(f1, p1, f2, p2, mask_ratio=student_mask_ratio, feature_ratio=student_feat_ratio)
+                
+                # Teacher predicts lightly masked/unmasked graph
+                with torch.no_grad():
+                    pred1_t, _, _, _, enc_t1_t, _ = teacher(f1, p1, f2, p2, mask_ratio=teacher_mask_ratio, feature_ratio=teacher_feat_ratio)
+                    
+                loss1_rec = criterion(pred1_s[mask1_s], f1[mask1_s]) if mask1_s.sum() > 0 else criterion(pred1_s, f1)
+                loss1_cons = compute_consistency_loss(pred1_s, pred1_t)
+                
+                # -----------------------------------------------------------------
+                # Forward Pass 2 (S2 -> S1)
+                # -----------------------------------------------------------------
+                pred2_s, _, _, _, enc_t2_s, mask2_s = student(f2, p2, f1, p1, mask_ratio=student_mask_ratio, feature_ratio=student_feat_ratio)
+                with torch.no_grad():
+                    pred2_t, _, _, _, enc_t2_t, _ = teacher(f2, p2, f1, p1, mask_ratio=teacher_mask_ratio, feature_ratio=teacher_feat_ratio)
+                    
+                loss2_rec = criterion(pred2_s[mask2_s], f2[mask2_s]) if mask2_s.sum() > 0 else criterion(pred2_s, f2)
+                loss2_cons = compute_consistency_loss(pred2_s, pred2_t)
+                
+                # -----------------------------------------------------------------
+                # Combine and Backdrop
+                # -----------------------------------------------------------------
+                loss_rec = loss1_rec + loss2_rec
+                loss_cons = loss1_cons + loss2_cons
+                
+                # Extract unmasked full features for the alignment and cycle loss
+                z1_s = student.extract_features(f1, p1)
+                z2_s = student.extract_features(f2, p2)
+                
+                # Contrastive Loss
+                loss_contra1 = compute_contrastive_loss(z1_s, margin=contra_margin)
+                loss_contra2 = compute_contrastive_loss(z2_s, margin=contra_margin)
+                loss_contra = loss_contra1 + loss_contra2
+                
+                # Cycle Consistency Loss
+                loss_cycle1 = compute_cycle_loss(z1_s, z2_s, p1, eps=cycle_eps, n_iter=cycle_n_iter)
+                loss_cycle2 = compute_cycle_loss(z2_s, z1_s, p2, eps=cycle_eps, n_iter=cycle_n_iter)
+                loss_cycle = loss_cycle1 + loss_cycle2
+                
+                # Global Optimization Loss (L_go)
+                loss_lgo1 = compute_lgo_loss(z1_s, z2_s, eps=lgo_eps, n_iter=cycle_n_iter)
+                loss_lgo2 = compute_lgo_loss(z2_s, z1_s, eps=lgo_eps, n_iter=cycle_n_iter)
+                loss_lgo = loss_lgo1 + loss_lgo2
+                
+                # We add all losses together using weights from config
+                loss = loss_rec + (cons_weight * loss_cons) + (contra_weight * loss_contra) + (cycle_weight * loss_cycle) + (lgo_weight * loss_lgo)
+                
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                
+                # Update EMA of the teacher model natively after student steps forwards
+                update_teacher_ema(student, teacher, alpha=ema_alpha)
+                
+                epoch_loss += loss.item()
+                epoch_rec_loss += loss_rec.item()
+                epoch_cons_loss += loss_cons.item()
+                epoch_contra_loss += loss_contra.item()
+                epoch_cycle_loss += loss_cycle.item()
+                epoch_lgo_loss += loss_lgo.item()
+                num_pairs += 1
+                
+            avg_loss = epoch_loss / num_pairs if num_pairs > 0 else 0
+            avg_rec = epoch_rec_loss / num_pairs if num_pairs > 0 else 0
+            avg_cons = epoch_cons_loss / num_pairs if num_pairs > 0 else 0
+            avg_contra = epoch_contra_loss / num_pairs if num_pairs > 0 else 0
+            avg_cycle = epoch_cycle_loss / num_pairs if num_pairs > 0 else 0
+            avg_lgo = epoch_lgo_loss / num_pairs if num_pairs > 0 else 0
             
-            # -----------------------------------------------------------------
-            # Combine and Backdrop
-            # -----------------------------------------------------------------
-            loss_rec = loss1_rec + loss2_rec
-            loss_cons = loss1_cons + loss2_cons
-            
-            loss = loss_rec + (cons_weight * loss_cons)
-            
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            
-            # Update EMA of the teacher model natively after student steps forwards
-            update_teacher_ema(student, teacher, alpha=ema_alpha)
-            
-            epoch_loss += loss.item()
-            epoch_rec_loss += loss_rec.item()
-            epoch_cons_loss += loss_cons.item()
-            num_pairs += 1
-            
-        avg_loss = epoch_loss / num_pairs if num_pairs > 0 else 0
-        avg_rec = epoch_rec_loss / num_pairs if num_pairs > 0 else 0
-        avg_cons = epoch_cons_loss / num_pairs if num_pairs > 0 else 0
+            if (epoch + 1) % 10 == 0 or epoch == 0:
+                print(f"Epoch {epoch+1:3d}/{num_epochs} | Tot: {avg_loss:.4f} | Rec: {avg_rec:.4f} | Cons: {avg_cons:.4f} | Contra: {avg_contra:.4f} | Cycle: {avg_cycle:.4f} | Lgo: {avg_lgo:.4f}")
         
-        if (epoch + 1) % 10 == 0 or epoch == 0:
-            print(f"Epoch {epoch+1:3d}/{num_epochs} | Total: {avg_loss:.8f} | Rec: {avg_rec:.8f} | Cons: {avg_cons:.8f}")
+    except KeyboardInterrupt:
+        if epoch >= 100:
+            print(f"\nTraining interrupted at epoch {epoch+1}. Saving progress as requested...")
+        else:
+            print(f"\nTraining interrupted at epoch {epoch+1}. Not saving because < 100 epochs were completed.")
+            raise
             
     print("\nTraining complete!")
     return student
@@ -178,8 +226,22 @@ def main():
         
     os.makedirs(config['training']['checkpoint_dir'], exist_ok=True)
     
-    train_size = config['train_size']
+    config_train_size = config.get('train_size', 60)
+    config_test_size = config.get('test_size', 40)
     data_dir = config['data_dir']
+    
+    obj_files = sorted([f for f in os.listdir(data_dir) if f.endswith('.obj')])
+    total_files = len(obj_files)
+    
+    if total_files < config_train_size + config_test_size:
+        train_size = int(total_files * config_train_size / (config_train_size + config_test_size))
+        test_size = total_files - train_size
+        print(f"\nDataset too small ({total_files} files). Adjusted to ratio: {train_size} train, {test_size} test")
+    else:
+        train_size = config_train_size
+        test_size = config_test_size
+        print(f"\nUsing absolute split: {train_size} train, {test_size} test")
+
     output_dir = config['output_dir']
     k = config['geometry']['k']
     t = config['geometry']['t']

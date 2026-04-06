@@ -1,0 +1,60 @@
+data_dir: "input/FAUST/obj/k_10"
+output_dir: "output_st_te_FAUST"
+train_size: 60
+test_size: 40
+
+geometry:
+  k: 50
+  t: 100
+  neigvecs: 300
+  
+# do not change the following parameters
+training:
+  epochs: 1500
+  lr: 0.0002
+  device: "cuda"
+  student_mask_ratio: 0.7
+  student_feature_ratio: 0.5
+  teacher_mask_ratio: 0.15
+  teacher_feature_ratio: 0.2
+  ema_alpha: 0.999
+  checkpoint_dir: "checkpoints"
+  checkpoint_name: "st_te_model_FAUST.pth"
+  consistency_weight: 150.0
+  contrastive_margin: 0.2
+  contrastive_weight: 10.0
+  cycle_eps: 0.02
+  cycle_n_iter: 15
+  cycle_weight: 100.0
+  lgo_eps: 0.1
+  lgo_weight: 50.0
+
+student_model:
+  embed_dim: 128
+  depth: 4
+  num_heads: 4
+  decoder_embed_dim: 64
+  decoder_depth: 2
+  decoder_num_heads: 4
+  mlk_ratio: 2.0
+  num_mask_queries: 5000
+  encoder_k: 20
+  aamg_k: 10
+  aamg_emb_dim: 64
+  pos_embed_dim: 64
+  temperature: 0.1
+
+teacher_model:
+  embed_dim: 128
+  depth: 4
+  num_heads: 4
+  decoder_embed_dim: 64
+  decoder_depth: 2
+  decoder_num_heads: 4
+  mlk_ratio: 2.0
+  num_mask_queries: 5000
+  encoder_k: 20
+  aamg_k: 10
+  aamg_emb_dim: 64
+  pos_embed_dim: 64
+  temperature: 0.1

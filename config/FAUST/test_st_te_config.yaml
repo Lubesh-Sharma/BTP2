@@ -1,0 +1,31 @@
+data_dir: "input/FAUST/obj/k_10"
+output_dir: "output_st_te_FAUST"
+train_size: 60
+test_size: 20
+
+geometry:
+  k: 50
+  t: 100
+  neigvecs: 300
+
+testing:
+  device: "cuda"
+  mask_ratio: 0.7
+  feature_ratio: 0.5
+  checkpoint_dir: "checkpoints"
+  checkpoint_name: "st_te_model_FAUST.pth"
+
+student_model:
+  embed_dim: 128
+  depth: 4
+  num_heads: 4
+  decoder_embed_dim: 64
+  decoder_depth: 2
+  decoder_num_heads: 4
+  mlk_ratio: 2.0
+  num_mask_queries: 5000
+  encoder_k: 20
+  aamg_k: 10
+  aamg_emb_dim: 64
+  pos_embed_dim: 64
+  temperature: 1.0

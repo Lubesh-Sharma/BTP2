@@ -381,3 +381,14 @@ def get_edges(VPos, ITris):
         J[shift*M*2+M:shift*M*2+2*M] = ITris[:, i] 
     L = sparse.coo_matrix((V, (I, J)), shape=(N, N)).tocsr()
     return L.nonzero()
+
+from sklearn.neighbors import NearestNeighbors
+def build_knn_faces(VPos, k=12):
+    knn = NearestNeighbors(n_neighbors=k).fit(VPos)
+    idx = knn.kneighbors(VPos, return_distance=False)
+    faces = []
+    for i in range(len(VPos)):
+        n = idx[i, 1:4]
+        faces.append([i, n[0], n[1]])
+        faces.append([i, n[1], n[2]])
+    return VPos, np.asarray(faces)
