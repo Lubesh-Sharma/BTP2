@@ -1,8 +1,5 @@
 *.mat
 */mat/
 mat/*
-colored_output/FAUST/*
-*/colored_output/FAUST/*
-
 colored_output/SHREC/*
 */colored_output/SHREC/*
