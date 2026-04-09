@@ -1,5 +1,3 @@
 *.mat
 */mat/
 mat/*
-colored_output/SHREC/*
-*/colored_output/SHREC/*
