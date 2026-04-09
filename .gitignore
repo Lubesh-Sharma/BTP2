@@ -1,4 +1,5 @@
 *.mat
-output*/
 */mat/
 mat/*
+colored_output/*
+*/colored_output

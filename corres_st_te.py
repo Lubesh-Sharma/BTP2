@@ -82,6 +82,11 @@ def main():
     
     # 1. Scan for all shapes
     all_files = sorted([f for f in os.listdir(data_dir) if f.endswith('.obj') or f.endswith('.off')])
+    
+    # # Process only the last 20 files, or all if fewer than 20
+    # commment out this line in case of the shrec_19
+    # all_files = all_files[-20:]
+    
     if not all_files:
         print(f"No .obj or .off files found in {data_dir}")
         return
