@@ -1,5 +1,5 @@
-data_dir: "input/SHREC/obj/k_10"
-output_dir: "p2p_results_st_te_SHREC"
+data_dir: "input/SCAPE/obj/k_10"
+output_dir: "p2p_results_st_te_SHREC_to_SCAPE"
 
 geometry:
   k: 50

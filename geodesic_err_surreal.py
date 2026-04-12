@@ -14,7 +14,7 @@ def get_quality_label(error):
 # ====== PATH CONFIGURATION ======
 off_dir = './input/SURREAL/off/'
 mat_dir = './input/SURREAL/mat/'
-p2p_dir = './p2p_results_st_te_SURREAL/'
+p2p_dir = './p2p_results_st_te_SHREC_to_SURREAL/'
 
 # 1. Get the last 20 files to define our test set
 all_off_files = sorted([f for f in os.listdir(off_dir) if f.endswith('.off')])

@@ -15,7 +15,7 @@ def get_quality_label(error):
 off_dir = './input/SCAPE/off/'
 mat_dir = './input/SCAPE/mat/'
 vts_dir = './input/SCAPE/corres/'
-p2p_dir = './p2p_results_st_te_SCAPE/'
+p2p_dir = './p2p_results_st_te_SHREC_to_SCAPE/'
 
 # 1. Get the last 20 files for the test set
 all_off_files = sorted([f for f in os.listdir(off_dir) if f.endswith('.off')])
@@ -92,12 +92,12 @@ if results_log:
     sorted_results = sorted(results_log, key=lambda x: x['error'])
     
     print("\n" + "="*55)
-    print(f"FAUST MEAN GEODESIC ERROR (Over {len(results_log)} pairs)")
+    print(f"SCAPE MEAN GEODESIC ERROR (Over {len(results_log)} pairs)")
     print(f"OVERALL AVERAGE: {total_avg:.6f}")
     print(f"Overall Quality: {get_quality_label(total_avg)}")
     print("="*55)
     
-    print("\nTOP 5 BEST FAUST MATCHES (Minimum Error):")
+    print("\nTOP 5 BEST SCAPE MATCHES (Minimum Error):")
     print(f"{'Rank':<5} | {'Error':<10} | {'Pair (Src -> Tgt)':<20} | {'Target .mat'}")
     print("-" * 65)
     for idx, res in enumerate(sorted_results[:5]):

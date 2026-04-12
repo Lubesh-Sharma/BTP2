@@ -85,7 +85,7 @@ def main():
     
     # # Process only the last 20 files, or all if fewer than 20
     # commment out this line in case of the shrec_19
-    # all_files = all_files[-20:]
+    all_files = all_files[-20:]
     
     if not all_files:
         print(f"No .obj or .off files found in {data_dir}")

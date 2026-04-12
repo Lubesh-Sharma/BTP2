@@ -1,5 +1,5 @@
-data_dir: "input/SURREAL/obj/k_10"
-output_dir: "p2p_results_st_te_SURREAL"
+data_dir: "input/FAUST/obj/k_10"
+output_dir: "p2p_results_st_te_SURREAL_to_FAUST"
 
 geometry:
   k: 50
