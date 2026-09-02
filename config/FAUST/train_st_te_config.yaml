@@ -10,7 +10,7 @@ geometry:
   
 # do not change the following parameters
 training:
-  epochs: 1500
+  epochs: 1
   lr: 0.0002
   device: "cuda"
   student_mask_ratio: 0.7

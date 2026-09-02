@@ -9,7 +9,7 @@ correspondence:
   device: "cuda"
   eps: 0.05
   n_iter: 100
-  checkpoint_path: "checkpoints/st_te_model_SCAPE.pth"
+  checkpoint_path: "/data/home/user/Lubesh_22CS30065/btp2/st_te_model_SCAPE.pth"
 
 model:
   embed_dim: 128

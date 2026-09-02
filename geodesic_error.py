@@ -15,7 +15,7 @@ def get_quality_label(error):
 off_dir = './input/SCAPE/off/'
 mat_dir = './input/SCAPE/mat/'
 vts_dir = './input/SCAPE/corres/'
-p2p_dir = './p2p_results_st_te_SHREC_to_SCAPE/'
+p2p_dir = './p2p_results_st_te_SCAPE/'
 
 # 1. Get the last 20 files for the test set
 all_off_files = sorted([f for f in os.listdir(off_dir) if f.endswith('.off')])

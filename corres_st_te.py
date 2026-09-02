@@ -60,7 +60,7 @@ def load_model(config, feature_dim, device):
 # -------------------------------------------------
 def main():
     parser = argparse.ArgumentParser(description="ASMAE All-Pairs Correspondence")
-    parser.add_argument('--config', type=str, default='config/corres.yaml', help='Path to corres config file')
+    parser.add_argument('--config', type=str, default='config/SCAPE/corres.yaml', help='Path to corres config file')
     args = parser.parse_args()
     
     with open(args.config, 'r') as f:
