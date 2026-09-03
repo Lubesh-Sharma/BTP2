@@ -1,0 +1,130 @@
+(btp2) user@dellprec:~/Lubesh_22CS30065/btp2$ conda install -c conda-forge mesalib
+pip install pyopengl
+Retrieving notices: ...working... done
+Channels:
+ - conda-forge
+ - defaults
+ - nvidia
+ - pytorch
+Platform: linux-64
+Collecting package metadata (repodata.json): done
+Solving environment: done
+
+## Package Plan ##
+
+  environment location: /data/home/user/anaconda3/envs/btp2
+
+  added / updated specs:
+    - mesalib
+
+
+The following packages will be downloaded:
+
+    package                    |            build
+    ---------------------------|-----------------
+    aom-3.3.0                  |       h27087fc_1         2.6 MB  conda-forge
+    cffi-2.0.0                 |  py310h34a4b09_0         239 KB  conda-forge
+    elfutils-0.191             |       h924a536_0         1.1 MB  conda-forge
+    ffmpeg-4.4.2               |       habc3f16_0         9.9 MB  conda-forge
+    libarchive-3.7.4           |       hfca40fe_0         851 KB  conda-forge
+    libcurl-8.8.0              |       hca28451_1         401 KB  conda-forge
+    libev-4.33                 |       h280c20c_3          42 KB  conda-forge
+    libidn2-2.3.8              |       hfac485b_1         136 KB  conda-forge
+    libllvm18-18.1.7           |       hb77312f_0        36.6 MB  conda-forge
+    libmicrohttpd-1.0.1        |       h97afed2_0         251 KB  conda-forge
+    libtasn1-4.21.0            |       hb03c661_1         116 KB  conda-forge
+    libva-2.23.0               |       he1eb515_0         216 KB  conda-forge
+    libvpx-1.11.0              |       h9c3ff4c_3         1.1 MB  conda-forge
+    libwebp-1.2.2              |       h3452ae3_0          85 KB  conda-forge
+    libwebp-base-1.2.2         |       h7f98852_1         824 KB  conda-forge
+    libxcb-1.17.0              |       hb83e432_2         386 KB  conda-forge
+    lzo-2.10                   |    hebe6cf0_1003         187 KB  conda-forge
+    mesalib-24.1.1             |       hc520c20_0         3.8 MB  conda-forge
+    openssl-3.6.4              |       h781a0a9_0         3.1 MB  conda-forge
+    svt-av1-1.1.0              |       h27087fc_1         3.3 MB  conda-forge
+    wayland-1.24.0             |       h3e06ad9_0         323 KB  conda-forge
+    wayland-protocols-1.49     |       hd8ed1ab_0         144 KB  conda-forge
+    xorg-glproto-1.4.17        |    hb9d3cd8_1003          23 KB  conda-forge
+    xorg-xf86vidmodeproto-2.3.1|    hb9d3cd8_1005          26 KB  conda-forge
+    zeromq-4.3.5               |       h387f397_9         303 KB  conda-forge
+    ------------------------------------------------------------
+                                           Total:        66.0 MB
+
+The following NEW packages will be INSTALLED:
+
+  aom                conda-forge/linux-64::aom-3.3.0-h27087fc_1 
+  c-ares             conda-forge/linux-64::c-ares-1.34.8-hebe6cf0_2 
+  elfutils           conda-forge/linux-64::elfutils-0.191-h924a536_0 
+  libarchive         conda-forge/linux-64::libarchive-3.7.4-hfca40fe_0 
+  libcurl            conda-forge/linux-64::libcurl-8.8.0-hca28451_1 
+  libdrm             conda-forge/linux-64::libdrm-2.4.129-h7cc23a3_0 
+  libegl             conda-forge/linux-64::libegl-1.7.0-ha4b6fd6_5 
+  libev              conda-forge/linux-64::libev-4.33-h280c20c_3 
+  libgl              conda-forge/linux-64::libgl-1.7.0-ha4b6fd6_5 
+  libglvnd           conda-forge/linux-64::libglvnd-1.7.0-ha4b6fd6_5 
+  libglx             conda-forge/linux-64::libglx-1.7.0-ha4b6fd6_5 
+  libidn2            conda-forge/linux-64::libidn2-2.3.8-hfac485b_1 
+  libllvm18          conda-forge/linux-64::libllvm18-18.1.7-hb77312f_0 
+  libmicrohttpd      conda-forge/linux-64::libmicrohttpd-1.0.1-h97afed2_0 
+  libnghttp2         conda-forge/linux-64::libnghttp2-1.58.0-h47da74e_1 
+  libpciaccess       conda-forge/linux-64::libpciaccess-0.19-hb03c661_1 
+  libssh2            conda-forge/linux-64::libssh2-1.11.0-h0841786_0 
+  libtasn1           conda-forge/linux-64::libtasn1-4.21.0-hb03c661_1 
+  libunistring       conda-forge/linux-64::libunistring-0.9.10-h7f98852_0 
+  libva              conda-forge/linux-64::libva-2.23.0-he1eb515_0 
+  libvpx             conda-forge/linux-64::libvpx-1.11.0-h9c3ff4c_3 
+  libxml2            conda-forge/linux-64::libxml2-2.12.7-hc051c1a_1 
+  lz4-c              conda-forge/linux-64::lz4-c-1.9.4-hcb278e6_0 
+  lzo                conda-forge/linux-64::lzo-2.10-hebe6cf0_1003 
+  mesalib            conda-forge/linux-64::mesalib-24.1.1-hc520c20_0 
+  olefile            conda-forge/noarch::olefile-0.47-pyhd8ed1ab_1 
+  p11-kit            conda-forge/linux-64::p11-kit-0.24.1-hc5aa10d_0 
+  svt-av1            conda-forge/linux-64::svt-av1-1.1.0-h27087fc_1 
+  wayland            conda-forge/linux-64::wayland-1.24.0-h3e06ad9_0 
+  wayland-protocols  conda-forge/noarch::wayland-protocols-1.49-hd8ed1ab_0 
+  x264               conda-forge/linux-64::x264-1!161.3030-h7f98852_1 
+  x265               conda-forge/linux-64::x265-3.5-h924138e_3 
+  xorg-glproto       conda-forge/linux-64::xorg-glproto-1.4.17-hb9d3cd8_1003 
+  xorg-libx11        conda-forge/linux-64::xorg-libx11-1.8.13-he1eb515_1 
+  xorg-libxdamage    conda-forge/linux-64::xorg-libxdamage-1.1.6-hb9d3cd8_0 
+  xorg-libxext       conda-forge/linux-64::xorg-libxext-1.3.7-h7cc23a3_1 
+  xorg-libxfixes     conda-forge/linux-64::xorg-libxfixes-6.0.2-h7cc23a3_1 
+  xorg-libxrandr     conda-forge/linux-64::xorg-libxrandr-1.5.5-h7cc23a3_1 
+  xorg-libxrender    conda-forge/linux-64::xorg-libxrender-0.9.12-hb03c661_1 
+  xorg-xextproto     conda-forge/linux-64::xorg-xextproto-7.3.0-hb9d3cd8_1004 
+  xorg-xf86vidmodep~ conda-forge/linux-64::xorg-xf86vidmodeproto-2.3.1-hb9d3cd8_1005 
+
+The following packages will be UPDATED:
+
+  ca-certificates                      2026.2.25-hbd8a1cb_0 --> 2026.7.22-hbd8a1cb_0 
+  certifi                            2026.2.25-pyhd8ed1ab_0 --> 2026.7.22-pyhd8ed1ab_0 
+  ffmpeg                     pytorch::ffmpeg-4.3-hf484d3e_0 --> conda-forge::ffmpeg-4.4.2-habc3f16_0 
+  gnutls                                  3.6.13-h85f3911_1 --> 3.7.9-hb077bed_0 
+  libxcb                                 1.13-h7f98852_1004 --> 1.17.0-hb83e432_2 
+  nettle                                     3.6-he412f7d_0 --> 3.9.1-h7ab15ed_0 
+  openssl                                  3.6.1-h35e630c_1 --> 3.6.4-h781a0a9_0 
+
+The following packages will be DOWNGRADED:
+
+  cffi                                2.0.0-py310he7384ee_1 --> 2.0.0-py310h34a4b09_0 
+  icu                                       78.2-h33c6efd_0 --> 73.2-h59595ed_0 
+  krb5                                    1.22.2-ha1258a1_0 --> 1.21.3-h659f571_0 
+  lcms2                                     2.15-hfd0df8a_0 --> 2.12-hddcbb42_0 
+  lerc                                     4.0.0-h0aef613_1 --> 3.0-h9c3ff4c_0 
+  libffi                                   3.5.2-h9ec8514_0 --> 3.4.6-h2dba641_1 
+  libsodium                               1.0.21-h280c20c_3 --> 1.0.20-h4ab18f5_0 
+  libtiff                                  4.5.0-h6adf6a1_2 --> 4.3.0-h0fcbabc_4 
+  libwebp                                  1.2.4-h1daa5a0_1 --> 1.2.2-h3452ae3_0 
+  libwebp-base                             1.2.4-h166bdaf_0 --> 1.2.2-h7f98852_1 
+  openjpeg                                 2.5.0-hfec8fc6_2 --> 2.5.0-h7d73246_0 
+  pillow                              9.4.0-py310h023d228_1 --> 8.4.0-py310h07f4688_0 
+  zeromq                                  4.3.5-h41580af_10 --> 4.3.5-h387f397_9 
+
+
+Proceed ([y]/n)? 
+
+Hey I have talked with my mentor
+By visulaize he did not mean to for the correspondance
+
+he asked me something like, visulaize means I have to visulaize the feature vectors, I guess after the we concate the features of the encoder with dinov2, we have to take them
+and he was telling me that we should have to visualize in a way that each column represents the same thing for all shapes or something like that do you understand what is he saying?

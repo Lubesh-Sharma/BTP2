@@ -171,22 +171,22 @@ def train_model(student, teacher, train_shapes, config):
     
                 # Generate optimal mapping planner T* using Sinkhorn
                 # T_star = sinkhorn_pytorch(cost, eps=eps, n_iter=n_iter).detach()
-                with torch.no_grad():
-                    print("\n--- Feature Stats ---")
-                    
-                    # z1 statistics
-                    print("z1 mean:", z1_norm.mean().item())
-                    print("z1 std :", z1_norm.std().item())
-                    
-                    # similarity matrix S
-                    print("\nS mean:", S.mean().item())
-                    print("S std :", S.std().item())
-                    print("S min/max:", S.min().item(), S.max().item())
-                    
-                    # cost matrix
-                    print("\nCost mean:", cost.mean().item())
-                    print("Cost std :", cost.std().item())
-                    print("Cost min/max:", cost.min().item(), cost.max().item())
+                # with torch.no_grad():
+                #     print("\n--- Feature Stats ---")
+                #     
+                #     # z1 statistics
+                #     print("z1 mean:", z1_norm.mean().item())
+                #     print("z1 std :", z1_norm.std().item())
+                #     
+                #     # similarity matrix S
+                #     print("\nS mean:", S.mean().item())
+                #     print("S std :", S.std().item())
+                #     print("S min/max:", S.min().item(), S.max().item())
+                #     
+                #     # cost matrix
+                #     print("\nCost mean:", cost.mean().item())
+                #     print("Cost std :", cost.std().item())
+                #     print("Cost min/max:", cost.min().item(), cost.max().item())
                 # Contrastive Loss
                 loss_contra1 = compute_contrastive_loss(z1_s, margin=contra_margin)
                 loss_contra2 = compute_contrastive_loss(z2_s, margin=contra_margin)

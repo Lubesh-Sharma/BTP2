@@ -105,6 +105,21 @@ def process_geometry(obj_path, k, t, neigvecs=300, output_dir="output"):
     features = compute_hks_features(VPos, Elements, fps_idx, t, neigvecs=neigvecs)
     features = normalize_descriptors(features)
     features = np.log(np.abs(features) + 1e-10)
+
+    # ---------------------------------------------------------------
+    # Append normalized XYZ coordinates as the last 3 feature dims.
+    # Each axis is independently min-max scaled to [0, 1] so that the
+    # positional features are on a comparable scale to the HKS values.
+    # Feature layout after concat: [hks_0, ..., hks_{k-1}, x, y, z]
+    # ---------------------------------------------------------------
+    pos_min = VPos.min(axis=0)
+    pos_max = VPos.max(axis=0)
+    pos_range = pos_max - pos_min
+    pos_range[pos_range == 0] = 1.0          # avoid divide-by-zero on flat axis
+    pos_norm = (VPos - pos_min) / pos_range  # [N, 3], each axis in [0, 1]
+    features = np.concatenate([features, pos_norm], axis=1)  # [N, k+3]
+
     mat_path = os.path.join(output_dir, "matrix_" + base_name + ".txt")
     np.savetxt(mat_path, features)
+    print(f"[{obj_path}] Feature dim after XYZ append: {features.shape[1]} ({features.shape[1]-3} HKS + 3 XYZ)")
     return VPos, Elements, features, fps_idx
