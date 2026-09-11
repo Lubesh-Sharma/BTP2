@@ -61,6 +61,7 @@ def load_model(config, feature_dim, device):
 def main():
     parser = argparse.ArgumentParser(description="ASMAE All-Pairs Correspondence")
     parser.add_argument('--config', type=str, default='config/SCAPE/corres.yaml', help='Path to corres config file')
+    parser.add_argument('--normalize_pc', action='store_true', default=False, help='Apply normalize_pc to coordinates (default: False, to match train_st_te.py)')
     args = parser.parse_args()
     
     with open(args.config, 'r') as f:
@@ -107,17 +108,17 @@ def main():
         
         print(f"  -> Caching: {filename}")
         V, El, feat, _ = process_geometry(path, k=k, t=t, output_dir=out_dir)
-        V_norm = normalize_pc(V)
+        p_coords = normalize_pc(V.copy()) if args.normalize_pc else V.copy()
         
         with torch.no_grad():
             f_torch = torch.tensor(feat, dtype=torch.float32, device=device).unsqueeze(0)
-            p_torch = torch.tensor(V_norm, dtype=torch.float32, device=device).unsqueeze(0)
+            p_torch = torch.tensor(p_coords, dtype=torch.float32, device=device).unsqueeze(0)
             z = model.extract_features(f_torch, p_torch).squeeze(0).cpu().numpy()
             
         z /= np.linalg.norm(z, axis=1, keepdims=True) + 1e-8
         
         cached_shapes[filename] = {
-            'V': V_norm,
+            'V': V,
             'El': El,
             'Z': z,
             'name': name

@@ -1,7 +1,16 @@
 import os
+import argparse
 import scipy.io as sio
 import numpy as np
 from pyFM.mesh import TriMesh
+
+parser = argparse.ArgumentParser(description="Evaluate Geodesic Error on Shape Correspondences")
+parser.add_argument('--dataset', type=str, default='SCAPE', choices=['SCAPE', 'FAUST'], help='Dataset to evaluate (default: SCAPE)')
+parser.add_argument('--p2p_dir', type=str, default=None, help='Directory with predicted p2p .txt files')
+parser.add_argument('--n_test', type=int, default=20, help='Number of test shapes to evaluate (last N files, default: 20)')
+args = parser.parse_args()
+
+dataset = args.dataset.upper()
 
 def get_quality_label(error):
     """Standard DV-Matcher / Princeton scale for sqrt(Area) normalization."""
@@ -12,14 +21,18 @@ def get_quality_label(error):
     else: return "Poor"
 
 # ====== PATH CONFIGURATION ======
-off_dir = './input/SCAPE/off/'
-mat_dir = './input/SCAPE/mat/'
-vts_dir = './input/SCAPE/corres/'
-p2p_dir = './p2p_results_st_te_SCAPE/'
+off_dir = f'./input/{dataset}/off/'
+mat_dir = f'./input/{dataset}/mat/'
+vts_dir = f'./input/{dataset}/corres/'
 
-# 1. Get the last 20 files for the test set
+if args.p2p_dir:
+    p2p_dir = args.p2p_dir
+else:
+    p2p_dir = f'./p2p_results_st_te_{dataset}/'
+
+# 1. Get the last N files for the test set
 all_off_files = sorted([f for f in os.listdir(off_dir) if f.endswith('.off')])
-test_files = all_off_files[-20:] 
+test_files = all_off_files[-args.n_test:] if args.n_test > 0 else all_off_files
 mesh_names = [os.path.splitext(f)[0] for f in test_files]
 
 results_log = []
@@ -92,12 +105,12 @@ if results_log:
     sorted_results = sorted(results_log, key=lambda x: x['error'])
     
     print("\n" + "="*55)
-    print(f"SCAPE MEAN GEODESIC ERROR (Over {len(results_log)} pairs)")
+    print(f"{dataset} MEAN GEODESIC ERROR (Over {len(results_log)} pairs)")
     print(f"OVERALL AVERAGE: {total_avg:.6f}")
     print(f"Overall Quality: {get_quality_label(total_avg)}")
     print("="*55)
     
-    print("\nTOP 5 BEST SCAPE MATCHES (Minimum Error):")
+    print(f"\nTOP 5 BEST {dataset} MATCHES (Minimum Error):")
     print(f"{'Rank':<5} | {'Error':<10} | {'Pair (Src -> Tgt)':<20} | {'Target .mat'}")
     print("-" * 65)
     for idx, res in enumerate(sorted_results[:5]):

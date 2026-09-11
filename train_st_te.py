@@ -117,11 +117,11 @@ def train_model(student, teacher, train_shapes, config):
             epoch_cycle_loss = 0
             epoch_lgo_loss = 0
             num_pairs = 0
-            indices = np.random.permutation(len(train_shapes))
+            # All N x N pairs (all pairs i != j)
+            pair_indices = [(i, j) for i in range(len(train_shapes)) for j in range(len(train_shapes)) if i != j]
+            np.random.shuffle(pair_indices)
             
-            for i in range(0, len(indices)-1, 2):
-                idx1 = indices[i]
-                idx2 = indices[i+1]
+            for idx1, idx2 in pair_indices:
                 s1 = train_shapes[idx1]
                 s2 = train_shapes[idx2]
                 
@@ -154,52 +154,28 @@ def train_model(student, teacher, train_shapes, config):
                 loss2_cons = compute_consistency_loss(pred2_s, pred2_t)
                 
                 # -----------------------------------------------------------------
-                # Combine and Backdrop
+                # Combine and Backprop
                 # -----------------------------------------------------------------
                 loss_rec = loss1_rec + loss2_rec
                 loss_cons = loss1_cons + loss2_cons
                 
-                # Extract unmasked full features for the alignment and cycle loss
-                z1_s = student.extract_features(f1, p1)
-                z2_s = student.extract_features(f2, p2)
-                z1_norm = torch.nn.functional.normalize(z1_s, dim=-1)
-                z2_norm = torch.nn.functional.normalize(z2_s, dim=-1)
+                # Extract clean features for Shape 1 (N1) and Shape 2 (N2)
+                enc1_s = student.extract_features(f1, p1)
+                enc2_s = student.extract_features(f2, p2)
                 
-                # Cosine similarity matrix S: [B, N, N]
-                S = torch.bmm(z1_norm, z2_norm.transpose(1, 2))
-                cost = (1.0 - S).detach()
-    
-                # Generate optimal mapping planner T* using Sinkhorn
-                # T_star = sinkhorn_pytorch(cost, eps=eps, n_iter=n_iter).detach()
-                # with torch.no_grad():
-                #     print("\n--- Feature Stats ---")
-                #     
-                #     # z1 statistics
-                #     print("z1 mean:", z1_norm.mean().item())
-                #     print("z1 std :", z1_norm.std().item())
-                #     
-                #     # similarity matrix S
-                #     print("\nS mean:", S.mean().item())
-                #     print("S std :", S.std().item())
-                #     print("S min/max:", S.min().item(), S.max().item())
-                #     
-                #     # cost matrix
-                #     print("\nCost mean:", cost.mean().item())
-                #     print("Cost std :", cost.std().item())
-                #     print("Cost min/max:", cost.min().item(), cost.max().item())
                 # Contrastive Loss
-                loss_contra1 = compute_contrastive_loss(z1_s, margin=contra_margin)
-                loss_contra2 = compute_contrastive_loss(z2_s, margin=contra_margin)
+                loss_contra1 = compute_contrastive_loss(enc1_s, margin=contra_margin)
+                loss_contra2 = compute_contrastive_loss(enc2_s, margin=contra_margin)
                 loss_contra = loss_contra1 + loss_contra2
                 
-                # Cycle Consistency Loss
-                loss_cycle1 = compute_cycle_loss(z1_s, z2_s, p1, eps=cycle_eps, n_iter=cycle_n_iter)
-                loss_cycle2 = compute_cycle_loss(z2_s, z1_s, p2, eps=cycle_eps, n_iter=cycle_n_iter)
+                # Cycle Loss (requires matching coordinate tensors p1 [N1] and p2 [N2])
+                loss_cycle1 = compute_cycle_loss(enc1_s, enc2_s, p1, eps=cycle_eps, n_iter=cycle_n_iter)
+                loss_cycle2 = compute_cycle_loss(enc2_s, enc1_s, p2, eps=cycle_eps, n_iter=cycle_n_iter)
                 loss_cycle = loss_cycle1 + loss_cycle2
                 
                 # Global Optimization Loss (L_go)
-                loss_lgo1 = compute_lgo_loss(z1_s, z2_s, eps=lgo_eps, n_iter=cycle_n_iter)
-                loss_lgo2 = compute_lgo_loss(z2_s, z1_s, eps=lgo_eps, n_iter=cycle_n_iter)
+                loss_lgo1 = compute_lgo_loss(enc1_s, enc2_s, eps=lgo_eps, n_iter=cycle_n_iter)
+                loss_lgo2 = compute_lgo_loss(enc2_s, enc1_s, eps=lgo_eps, n_iter=cycle_n_iter)
                 loss_lgo = loss_lgo1 + loss_lgo2
                 
                 # We add all losses together using weights from config
@@ -227,14 +203,14 @@ def train_model(student, teacher, train_shapes, config):
             avg_cycle = epoch_cycle_loss / num_pairs if num_pairs > 0 else 0
             avg_lgo = epoch_lgo_loss / num_pairs if num_pairs > 0 else 0
             
-            if (epoch + 1) % 10 == 0 or epoch == 0:
+            if num_epochs <= 50 or (epoch + 1) % 10 == 0 or epoch == 0:
                 print(f"Epoch {epoch+1:3d}/{num_epochs} | Tot: {avg_loss:.4f} | Rec: {avg_rec:.4f} | Cons: {avg_cons:.4f} | Contra: {avg_contra:.4f} | Cycle: {avg_cycle:.4f} | Lgo: {avg_lgo:.4f}")
         
     except KeyboardInterrupt:
-        if epoch >= 100:
+        if epoch >= 1:
             print(f"\nTraining interrupted at epoch {epoch+1}. Saving progress as requested...")
         else:
-            print(f"\nTraining interrupted at epoch {epoch+1}. Not saving because < 100 epochs were completed.")
+            print(f"\nTraining interrupted at epoch {epoch+1}. Not saving because < 1 epoch was completed.")
             raise
             
     print("\nTraining complete!")
@@ -243,6 +219,7 @@ def train_model(student, teacher, train_shapes, config):
 def main():
     parser = argparse.ArgumentParser(description="ASMAE Student-Teacher Training")
     parser.add_argument('--config', type=str, default='config/FAUST/train_st_te_config.yaml', help='Path to config file')
+    parser.add_argument('--fresh', action='store_true', help='Force training from scratch ignoring existing checkpoint')
     args = parser.parse_args()
     
     with open(args.config, 'r') as f:
@@ -318,6 +295,21 @@ def main():
     
     # Initialize teacher exactly with student's weights initially
     teacher.load_state_dict(student.state_dict())
+    
+    # Check if a checkpoint exists and load weights unless --fresh flag is passed
+    checkpoint_path = os.path.join(config['training']['checkpoint_dir'], config['training']['checkpoint_name'])
+    if not args.fresh and os.path.exists(checkpoint_path):
+        print(f"\n[RESUME TRAINING] Found existing checkpoint at: {checkpoint_path}")
+        ckpt = torch.load(checkpoint_path, map_location='cpu')
+        if 'model_state_dict' in ckpt:
+            student.load_state_dict(ckpt['model_state_dict'])
+            teacher.load_state_dict(ckpt['model_state_dict'])
+            print("Successfully restored student and teacher weights from checkpoint.")
+    else:
+        if args.fresh:
+            print(f"\n[FRESH START] --fresh flag set. Ignoring existing checkpoint and training from scratch.")
+        else:
+            print(f"\n[NEW TRAINING] No existing checkpoint found. Starting from scratch.")
     
     # Lock teacher parameters against standard backprop
     for param in teacher.parameters():

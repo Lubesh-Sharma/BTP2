@@ -122,9 +122,3 @@ The following packages will be DOWNGRADED:
 
 
 Proceed ([y]/n)? 
-
-Hey I have talked with my mentor
-By visulaize he did not mean to for the correspondance
-
-he asked me something like, visulaize means I have to visulaize the feature vectors, I guess after the we concate the features of the encoder with dinov2, we have to take them
-and he was telling me that we should have to visualize in a way that each column represents the same thing for all shapes or something like that do you understand what is he saying?
