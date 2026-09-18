@@ -18,6 +18,10 @@ class LocalSelfAttentionBlock(nn.Module):
         self.proj_drop = nn.Dropout(drop)
         self.norm2 = nn.LayerNorm(dim)
         self.mlp = Mlp(dim, int(dim*mlp_ratio))
+        # Complex Phase Directional Projection (Method A from Complex Functional Maps)
+        # Encodes tangent angle (cos theta, sin theta); sin(theta) flips sign under reflection
+        self.phase_proj = nn.Linear(2, num_heads, bias=False)
+        nn.init.zeros_(self.phase_proj.weight)
 
     def forward(self, x, pos=None):
         B, N, C = x.shape
@@ -45,7 +49,32 @@ class LocalSelfAttentionBlock(nn.Module):
         
         q_curr = q_curr.permute(0, 2, 1, 3) 
         k_neigh_T = k_neigh.permute(0, 2, 3, 1)
-        attn = (q_curr @ k_neigh_T) * self.scale
+        
+        # Method A: Complex Phase Tangent Directional Attention
+        if pos is not None and self.k >= 3:
+            pos_flat = pos.reshape(B * N, 3)
+            pos_neigh = pos_flat[idx_global].view(B, N, self.k, 3)
+            delta_p = pos_neigh - pos.unsqueeze(2)  # [B, N, k, 3]
+            
+            # Local tangent basis using nearest spatial neighbors
+            e1 = torch.nn.functional.normalize(delta_p[:, :, 1, :], dim=-1, eps=1e-8)
+            cross_12 = torch.cross(e1, delta_p[:, :, 2, :], dim=-1)
+            n_loc = torch.nn.functional.normalize(cross_12, dim=-1, eps=1e-8)
+            e2 = torch.cross(n_loc, e1, dim=-1)
+            
+            # Project displacements onto local tangent frame (u, v)
+            u = torch.sum(delta_p * e1.unsqueeze(2), dim=-1)  # [B, N, k]
+            v = torch.sum(delta_p * e2.unsqueeze(2), dim=-1)  # [B, N, k]
+            r = torch.sqrt(u**2 + v**2 + 1e-12)
+            cos_theta = u / r
+            sin_theta = v / r
+            
+            phase_feat = torch.stack([cos_theta, sin_theta], dim=-1)  # [B, N, k, 2]
+            phase_bias = self.phase_proj(phase_feat).permute(0, 1, 3, 2).unsqueeze(3).reshape(B * N, self.num_heads, 1, self.k)
+            attn = (q_curr @ k_neigh_T) * self.scale + phase_bias
+        else:
+            attn = (q_curr @ k_neigh_T) * self.scale
+            
         attn = attn.softmax(dim=-1)
         attn = self.attn_drop(attn)
         

@@ -26,9 +26,28 @@ class ASMAE(nn.Module):
             nn.GELU(),
             nn.Linear(pos_embed_dim, embed_dim)
         )
+        
+        # Multi-scale hierarchical receptive fields across encoder layers:
+        # Breaks local receptive field symmetry blindness by expanding from local (k=16) to global (k=128)
+        if isinstance(encoder_k, (list, tuple)):
+            k_list = list(encoder_k)
+            if len(k_list) < depth:
+                k_list = k_list + [k_list[-1]] * (depth - len(k_list))
+        elif encoder_k == 20 or encoder_k is None:
+            # Default hierarchical progression for depth 4: [16, 32, 64, 128]
+            k_list = [min(128, 16 * (2 ** i)) for i in range(depth)]
+            # Localized hierarchical progression for depth 4: [16, 24, 32, 48]
+            # Keeps receptive fields tightly focused on limb geometry and prevents hand-to-leg feature leakage
+            default_k = [16, 24, 32, 48]
+            k_list = default_k if depth == 4 else [min(48, 16 + i * 8) for i in range(depth)]
+        else:
+            k_list = [min(128, max(8, int(encoder_k * (2 ** (i - 1))))) if i > 0 else encoder_k for i in range(depth)]
+            k_list = [min(48, max(8, int(encoder_k * (1.2 ** i)))) for i in range(depth)]
+            
+        self.encoder_k_list = k_list
         self.encoder_blocks = nn.ModuleList([
-            LocalSelfAttentionBlock(embed_dim, num_heads, mlk_ratio, k=encoder_k)
-            for _ in range(depth)
+            LocalSelfAttentionBlock(embed_dim, num_heads, mlk_ratio, k=k_list[i])
+            for i in range(depth)
         ])
         self.encoder_norm = nn.LayerNorm(embed_dim)
         

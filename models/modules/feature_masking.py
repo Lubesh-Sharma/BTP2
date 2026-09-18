@@ -5,76 +5,65 @@ def get_feature_mask_indices(x, mask_ratio):
     """
     Computes indices of features to mask based on similarity-based clustering.
 
-    Strategy: "Antipodal Similarity Masking" + Forced Positional Masking
+    Strategy: "Antipodal Similarity Masking" on Geometric Descriptors.
     
-    Assumes the last 3 feature dimensions are XYZ vertex positions (appended
-    by preprocessing.py). The strategy is:
-    1. ALWAYS mask one random positional dim (x, y, or z) so the model learns
-       to predict spatial placement from HKS context.
-    2. Use the remaining masking budget on HKS dims via Antipodal strategy:
-       - Select Random HKS Feature A.
-       - Select HKS Feature B that is maximally dissimilar to A.
-       - Select clusters of HKS features correlated to A and B respectively.
-    3. Union of HKS cluster + forced positional dim = final mask.
+    The last 3 feature dimensions are XYZ vertex coordinates (appended
+    by preprocessing.py). Positional coordinates act as spatial conditioning
+    tokens and are NEVER masked, ensuring the network always knows lateral
+    placement (preventing bilateral symmetry flip).
+
+    The entire masking budget is applied to the descriptor channels
+    (0 .. C-4, which include HKS and Chirality features) via Antipodal strategy:
+      1. Select Random Descriptor Feature A.
+      2. Select Descriptor Feature B that is maximally dissimilar to A.
+      3. Select clusters of features correlated to A and B respectively.
+      4. Union of clusters A and B = final mask indices.
 
     Args:
         x: [B, N, C] Input features. Last 3 dims are XYZ positions.
-        mask_ratio: Float, fraction of C features to mask.
+        mask_ratio: Float, fraction of descriptor features to mask.
 
     Returns:
-        mask_indices: LongTensor [m] indices of features to zero out.
+        mask_indices: LongTensor [m] indices of features to zero out (strictly < C-3).
     """
     B, N, C = x.shape
     device = x.device
 
-    m = int(C * mask_ratio)
+    desc_C = C - 3  # descriptor dims (e.g. HKS + Chirality)
+    if desc_C <= 0:
+        return torch.tensor([], dtype=torch.long, device=device)
 
+    m = int(desc_C * mask_ratio)
     if m == 0:
         return torch.tensor([], dtype=torch.long, device=device)
 
     # ---------------------------------------------------------------
-    # STEP 1: Always force-mask one positional dimension (x, y, or z).
-    # The last 3 feature dims (indices C-3, C-2, C-1) are XYZ.
+    # Antipodal masking restricted strictly to descriptor dims (0 .. desc_C - 1).
+    # Positional coordinates (C-3, C-2, C-1) remain 100% visible at all times.
     # ---------------------------------------------------------------
-    forced_pos_dim = torch.randint(C - 3, C, (1,), device=device)  # one of {C-3, C-2, C-1}
-
-    # Reserve 1 slot for the forced positional dim; rest goes to HKS masking
-    m_hks = m - 1
-    if m_hks <= 0:
-        # Edge case: mask_ratio so small only 1 dim fits → just mask positional
-        return forced_pos_dim
-
-    # ---------------------------------------------------------------
-    # STEP 2: Antipodal masking restricted to HKS dims (0 .. C-4).
-    # ---------------------------------------------------------------
-    hks_C = C - 3  # number of pure HKS dimensions
-
-    # Correlation matrix over HKS dims only [hks_C, hks_C]
-    features_flat = x[:, :, :hks_C].reshape(-1, hks_C)
+    features_flat = x[:, :, :desc_C].reshape(-1, desc_C)
     features_norm = F.normalize(features_flat, dim=0)
-    sim_matrix = features_norm.t() @ features_norm  # [hks_C, hks_C]
+    sim_matrix = features_norm.t() @ features_norm  # [desc_C, desc_C]
 
-    # Seed A: random HKS dim
-    idx_a = torch.randint(0, hks_C, (1,), device=device).item()
+    # Seed A: random descriptor dim
+    idx_a = torch.randint(0, desc_C, (1,), device=device).item()
 
-    # Seed B: most dissimilar HKS dim to A
+    # Seed B: most dissimilar descriptor dim to A
     idx_b = torch.argmin(sim_matrix[idx_a]).item()
 
-    # Split remaining budget between clusters A and B
-    m_b = m_hks // 2
-    m_a = m_hks - m_b
+    # Split budget between clusters A and B
+    m_b = m // 2
+    m_a = m - m_b
 
-    # Clamp k to available dims (safety for small hks_C)
-    k_a = min(m_a, hks_C)
-    k_b = min(m_b, hks_C)
+    # Clamp k to available dims
+    k_a = min(m_a, desc_C)
+    k_b = min(m_b, desc_C)
 
     _, cluster_a_indices = torch.topk(sim_matrix[idx_a], k=k_a)
     _, cluster_b_indices = torch.topk(sim_matrix[idx_b], k=k_b)
 
-    # ---------------------------------------------------------------
-    # STEP 3: Combine HKS cluster indices + forced positional dim
-    # ---------------------------------------------------------------
-    combined_indices = torch.cat([cluster_a_indices, cluster_b_indices, forced_pos_dim])
+    # Combine clusters
+    combined_indices = torch.cat([cluster_a_indices, cluster_b_indices])
     combined_indices = torch.unique(combined_indices)
 
     return combined_indices
