@@ -1,3 +1,3 @@
 *.mat
 */mat/
-mat/*
+mat/*.vscode/settings.json

@@ -1,4 +1,8 @@
 {
     "python-envs.defaultEnvManager": "ms-python.python:conda",
-    "python-envs.defaultPackageManager": "ms-python.python:conda"
+    "python-envs.defaultPackageManager": "ms-python.python:conda",
+    "cmake.sourceDirectory": "/data/home/user/Lubesh_22CS30065/DV-Matcher/mesh/mesh",
+    "terminal.integrated.env.linux": {
+        "GEMINI_API_KEY": "AQ.Ab8RN6IQAEKkuiC1XmlGEGPPB8C35iDbVwiLgydyXWpTW4Eazw"
+    }
 }
