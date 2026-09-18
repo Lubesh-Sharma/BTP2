@@ -28,6 +28,8 @@ training:
   cycle_weight: 100.0
   lgo_eps: 0.1
   lgo_weight: 50.0
+  distortion_weight: 120.0
+  orientation_weight: 60.0
 
 student_model:
   embed_dim: 128

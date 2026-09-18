@@ -29,7 +29,9 @@ def get_feature_mask_indices(x, mask_ratio):
     B, N, C = x.shape
     device = x.device
 
-    desc_C = C - 3  # descriptor dims (e.g. HKS + Chirality)
+    # Protect the last 6 channels (3 coordinates + 3 outward normals) from masking
+    # Positional coordinates and surface normals act as permanent spatial conditioning tokens
+    desc_C = C - 6 if C >= 10 else max(1, C - 3)
     if desc_C <= 0:
         return torch.tensor([], dtype=torch.long, device=device)
 

@@ -5,7 +5,7 @@ import sys
 import yaml
 import argparse
 
-from core.preprocessing import process_geometry
+from core.preprocessing import process_geometry, normalize_pc
 from models.asmae import ASMAE
 from core.consistency_loss import compute_consistency_loss
 from core.contrastive_loss import compute_contrastive_loss
@@ -48,12 +48,15 @@ def load_train_shapes(data_dir, k, t, neigvecs, max_shapes, output_dir):
                 continue
             if El is None or len(El) == 0:
                 El = np.array([])
+            pos_norm = normalize_pc(VPos.copy()).astype(np.float32)
             shapes.append({
                 'name': name,
-                'pos': VPos,
+                'pos': pos_norm,
+                'raw_pos': VPos,
                 'el': El,
                 'feat': Feat,
-                'eigvecs': eigvecs
+                'eigvecs': eigvecs,
+                'normals': Feat[:, -3:] if Feat.shape[1] >= 6 else np.zeros((len(VPos), 3), dtype=np.float32)
             })
             print(f"OK ({len(VPos)} vertices, {Feat.shape[1]} features)")
         except Exception as e:
@@ -140,8 +143,10 @@ def train_model(student, teacher, train_shapes, config):
                 
                 p1 = torch.tensor((s1['pos']).copy()).float().unsqueeze(0).to(device)
                 f1 = torch.tensor(s1['feat']).float().unsqueeze(0).to(device)
+                n1 = torch.tensor(s1['normals']).float().unsqueeze(0).to(device)
                 p2 = torch.tensor((s2['pos']).copy()).float().unsqueeze(0).to(device)
                 f2 = torch.tensor(s2['feat']).float().unsqueeze(0).to(device)
+                n2 = torch.tensor(s2['normals']).float().unsqueeze(0).to(device)
                 
                 # -----------------------------------------------------------------
                 # Forward Pass 1 (S1 -> S2)
@@ -196,10 +201,9 @@ def train_model(student, teacher, train_shapes, config):
                 loss_dist2 = compute_distortion_loss(enc2_s, enc1_s, p2, p1, num_samples=dist_samples, tau=dist_tau)
                 loss_dist = loss_dist1 + loss_dist2
                 
-                # Signed Area / Orientation Consistency Loss (Method B from Complex Functional Maps)
-                # Directly penalizes local normal flips / reflection symmetry errors
-                loss_orient1 = compute_orientation_loss(enc1_s, enc2_s, p1, p2, num_samples=500, tau=dist_tau)
-                loss_orient2 = compute_orientation_loss(enc2_s, enc1_s, p2, p1, num_samples=500, tau=dist_tau)
+                # Outward Normal Compatibility Loss (eliminates front-back reflection symmetry)
+                loss_orient1 = compute_orientation_loss(enc1_s, enc2_s, n1, n2, tau=dist_tau)
+                loss_orient2 = compute_orientation_loss(enc2_s, enc1_s, n2, n1, tau=dist_tau)
                 loss_orient = (loss_orient1 + loss_orient2) / 2.0
                 
                 # Total loss with doubled lambda for symmetry/Lgo minimization

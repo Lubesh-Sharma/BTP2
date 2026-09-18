@@ -5,7 +5,7 @@ import sys
 import yaml
 import argparse
 
-from core.preprocessing import process_geometry
+from core.preprocessing import process_geometry, normalize_pc
 from models.asmae import ASMAE
 from utils.files import save_masked_matrix
 
@@ -34,9 +34,11 @@ def load_test_shapes(data_dir, k, t, neigvecs, start_idx, num_shapes, output_dir
                 continue
             if El is None or len(El) == 0:
                 El = np.array([])
+            pos_norm = normalize_pc(VPos.copy()).astype(np.float32)
             shapes.append({
                 'name': name,
-                'pos': VPos,
+                'pos': pos_norm,
+                'raw_pos': VPos,
                 'el': El,
                 'feat': Feat,
                 'eigvecs': eigvecs

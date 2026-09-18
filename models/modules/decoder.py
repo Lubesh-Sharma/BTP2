@@ -14,12 +14,17 @@ class CrossAttentionBlock(nn.Module):
     def forward(self, x, context):
         # 1. Cross Attention
         residual = x
-        cross_out, _ = self.cross_attn(query=x, key=context, value=context)
+        cross_out, _ = self.cross_attn(query=x, key=context, value=context, need_weights=False)
         x = self.norm_cross(residual + cross_out)
         
         # 2. Self Attention
         residual = x
-        attn_out, _ = self.self_attn(x, x, x)
+        attn_out, _ = self.self_attn(x, x, x, need_weights=False)
         x = self.norm1(residual + attn_out)
+        
+        # 3. Feed-forward MLP
+        residual = x
+        mlp_out = self.mlp(x)
+        x = self.norm2(residual + mlp_out)
         
         return x

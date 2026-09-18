@@ -95,8 +95,13 @@ class ASMAE(nn.Module):
         pos_emb = self.pos_embed(pos)
         x_emb = x_emb + pos_emb
         
+        # Extract outward point normals from features if available (last 3 channels)
+        normals = None
+        if x.shape[-1] >= 6:
+            normals = F.normalize(x[:, :, -3:], dim=-1)
+
         for blk in self.encoder_blocks:
-            x_emb = blk(x_emb, pos=pos)
+            x_emb = blk(x_emb, pos=pos, normals=normals)
         x_emb = self.encoder_norm(x_emb)
         return x_emb
 

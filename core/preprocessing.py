@@ -2,6 +2,7 @@ import os
 import numpy as np
 import torch
 from scipy.sparse.linalg import eigsh
+from sklearn.neighbors import NearestNeighbors
 from utils.mesh import load_obj, load_off
 from utils.hks import get_graph_laplacian, get_cotan_laplacian
 from utils.files import save_pp_file
@@ -27,9 +28,68 @@ def compute_fps(VPos, k):
         
     return np.array(selected_indices)
 
-def compute_hks_features(VPos, Elements, k_indices, t, neigvecs=300, return_vecs=False):
+def compute_point_normals(VPos, k=15):
     """
-    Computes HKS features efficiently by performing dense eigenvalue decomposition natively on the GPU.
+    Computes outward-oriented surface normal vectors on an unstructured 3D point cloud
+    using local neighborhood PCA (covariance analysis).
+
+    Guarantees outward orientation relative to the shape center of mass,
+    resolving front-back and inside-outside reflection ambiguity without requiring mesh faces.
+
+    Args:
+        VPos: np.ndarray [N, 3] Point coordinates.
+        k: int, number of nearest neighbors for covariance estimation.
+
+    Returns:
+        normals: np.ndarray [N, 3] Outward unit normal vectors.
+    """
+    N = VPos.shape[0]
+    k_nn = min(k, N)
+    nn = NearestNeighbors(n_neighbors=k_nn).fit(VPos)
+    _, idxs = nn.kneighbors(VPos)
+    
+    # [N, k, 3]
+    neighbors = VPos[idxs]
+    means = neighbors.mean(axis=1, keepdims=True)
+    diffs = neighbors - means
+    
+    # Covariance matrices: [N, 3, 3] = diffs.T @ diffs / k
+    covs = np.matmul(diffs.transpose(0, 2, 1), diffs) / k_nn
+    
+    # Eigenvalues and eigenvectors for symmetric 3x3 matrices (sorted ascending)
+    _, vecs = np.linalg.eigh(covs)
+    normals = vecs[:, :, 0]  # [N, 3] Smallest eigenvector = normal axis
+    
+    # Outward orientation relative to center of mass
+    centroid = VPos.mean(axis=0, keepdims=True)
+    outward_ref = VPos - centroid
+    dots = np.sum(normals * outward_ref, axis=-1, keepdims=True)
+    normals = np.where(dots < 0, -normals, normals)
+    
+    # Normalize unit length
+    norms = np.linalg.norm(normals, axis=1, keepdims=True) + 1e-8
+    return (normals / norms).astype(np.float32)
+
+def compute_hks_wks_features(VPos, Elements, k_indices, t, neigvecs=300, n_wks=50, sigma=0.06):
+    """
+    Computes both Heat Kernel Signatures (HKS) and Wave Kernel Signatures (WKS)
+    efficiently on the GPU in a single eigen-decomposition pass.
+
+    - HKS captures smooth diffusion / geometry at scale t.
+    - WKS evaluates energy frequencies, separating thin extremities (hands) from thick limbs (legs).
+
+    Args:
+        VPos: [N, 3] Point cloud coordinates.
+        Elements: [M, 2 or 3] Connectivity (Lines or Faces).
+        k_indices: [k] Anchor point indices for HKS.
+        t: float, diffusion time parameter for HKS.
+        neigvecs: int, number of eigenvectors to use.
+        n_wks: int, number of WKS energy bands.
+        sigma: float, WKS Gaussian variance width.
+
+    Returns:
+        hks: np.ndarray [N, len(k_indices)]
+        wks: np.ndarray [N, n_wks]
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
@@ -49,135 +109,49 @@ def compute_hks_features(VPos, Elements, k_indices, t, neigvecs=300, return_vecs
         vals = torch.tensor(vals_np, dtype=torch.float32, device=device)
         vecs = torch.tensor(vecs_np, dtype=torch.float32, device=device)
     
-    # Sort purely by absolute magnitude to perfectly simulate ARPACK's 'which=SM' (Smallest Magnitude)
+    # Sort by absolute magnitude
     abs_vals = torch.abs(vals)
     sorted_indices = torch.argsort(abs_vals)
     vals = vals[sorted_indices][:n_eigs]
     vecs = vecs[:, sorted_indices][:, :n_eigs]
     
-    # Perform math on GPU
+    # 1. HKS computation on GPU
     vals_t = torch.exp(-vals * t)
     ScaledVecs = vecs * vals_t.unsqueeze(0)
-    
     k_idx_tensor = torch.tensor(k_indices, dtype=torch.long, device=device)
     Sources = vecs[k_idx_tensor, :]
-    
-    # Fast matrix multiplication on the GPU
     HKS_matrix = torch.matmul(ScaledVecs, Sources.transpose(0, 1))
-    
     hks_np = HKS_matrix.cpu().numpy()
-    if return_vecs:
-        return hks_np, vecs.cpu().numpy()
-    return hks_np
-
-def compute_chirality_features(VPos, Elements, vecs, pairs=((1, 2), (1, 3), (2, 3))):
-    """
-    Computes Laplace-Beltrami Eigenfunction Chirality / Cross-Gradient features
-    (Property A) on a triangle surface mesh.
-
-    For each triangle face f:
-      1. Gradient of eigenfunction phi_i on face f:
-         grad(phi_i)|_f = (1 / (2 * Area_f)) * sum_{k=1}^3 phi_i(v_k) (n_f x e_k)
-      2. Face chirality:
-         chi_{i,j}|_f = n_f . (grad(phi_i)|_f x grad(phi_j)|_f)
-      3. Project face chirality back to vertices using area-weighted accumulation.
-      4. Scale-normalize each channel to [-1, 1].
-
-    Under reflection symmetry across the sagittal plane (an orientation-reversing map):
-      chi_{i,j}(sigma(x)) = - chi_{i,j}(x)
-    This breaks the bilateral symmetry ambiguity inherent to HKS.
-
-    Args:
-        VPos: np.ndarray [N, 3] vertex positions.
-        Elements: np.ndarray [M, 3] triangle face vertex indices.
-        vecs: np.ndarray [N, K] LBO eigenvectors (sorted by increasing eigenvalue magnitude).
-        pairs: tuple of pairs of eigenvector indices (e.g. (1, 2), (1, 3), (2, 3)).
-
-    Returns:
-        chirality: np.ndarray [N, len(pairs)] float32 chirality descriptors in [-1, 1].
-    """
-    N = VPos.shape[0]
-    n_pairs = len(pairs)
-    if Elements.shape[1] != 3 or vecs.shape[1] < 3:
-        return np.zeros((N, n_pairs), dtype=np.float32)
-
-    # Face vertex positions
-    v1 = VPos[Elements[:, 0]]
-    v2 = VPos[Elements[:, 1]]
-    v3 = VPos[Elements[:, 2]]
-
-    # Directed edges opposite to vertices 1, 2, 3
-    e1 = v3 - v2  # opposite v1
-    e2 = v1 - v3  # opposite v2
-    e3 = v2 - v1  # opposite v3
-
-    # Face normal and area
-    face_cross = np.cross(v2 - v1, v3 - v1)
-    face_areas = 0.5 * np.linalg.norm(face_cross, axis=1)
-    face_areas_safe = np.maximum(face_areas, 1e-12)
-    face_normals = face_cross / (2.0 * face_areas_safe[:, None])
-
-    # Rotated in-plane vectors: n_f x e_k
-    n_cross_e1 = np.cross(face_normals, e1)
-    n_cross_e2 = np.cross(face_normals, e2)
-    n_cross_e3 = np.cross(face_normals, e3)
-
-    # Helper to compute constant gradient of a scalar field across all faces [M, 3]
-    def face_gradient(phi):
-        p1 = phi[Elements[:, 0], None]
-        p2 = phi[Elements[:, 1], None]
-        p3 = phi[Elements[:, 2], None]
-        return (p1 * n_cross_e1 + p2 * n_cross_e2 + p3 * n_cross_e3) / (2.0 * face_areas_safe[:, None])
-
-    # Accumulate vertex total area for area-weighted averaging
-    vert_areas = np.zeros(N, dtype=np.float64)
-    for k in range(3):
-        np.add.at(vert_areas, Elements[:, k], face_areas)
-    vert_areas_safe = np.maximum(vert_areas, 1e-12)
-
-    chirality = np.zeros((N, n_pairs), dtype=np.float32)
-
-    # Cache gradients of requested eigenvectors
-    unique_indices = sorted(list({idx for pair in pairs for idx in pair}))
-    grad_cache = {}
-    for idx in unique_indices:
-        if idx < vecs.shape[1]:
-            grad_cache[idx] = face_gradient(vecs[:, idx])
-
-    for p_idx, (i, j) in enumerate(pairs):
-        if i in grad_cache and j in grad_cache:
-            grad_i = grad_cache[i]
-            grad_j = grad_cache[j]
-            # Face chirality = n_f . (grad_i x grad_j)
-            face_chi = np.sum(face_normals * np.cross(grad_i, grad_j), axis=1)
-
-            # Area-weighted vertex accumulation
-            weighted_face_chi = face_chi * face_areas
-            vert_chi = np.zeros(N, dtype=np.float64)
-            for k in range(3):
-                np.add.at(vert_chi, Elements[:, k], weighted_face_chi)
-            vert_chi = vert_chi / vert_areas_safe
-
-            # Robust scale normalization to [-1, 1] using 99th percentile
-            scale_val = np.percentile(np.abs(vert_chi), 99.0)
-            if scale_val < 1e-8:
-                scale_val = np.max(np.abs(vert_chi))
-            if scale_val > 1e-8:
-                vert_chi = np.clip(vert_chi / scale_val, -1.0, 1.0)
-
-            chirality[:, p_idx] = vert_chi.astype(np.float32)
-
-    return chirality
+    
+    # 2. WKS computation on GPU (using positive eigenvalues)
+    pos_mask = vals > 1e-6
+    if pos_mask.sum() > 5:
+        vals_pos = vals[pos_mask]
+        vecs_pos = vecs[:, pos_mask]
+        log_vals = torch.log(vals_pos)
+        e_steps = torch.linspace(log_vals[0], log_vals[-1], n_wks, device=device)
+        diff = e_steps.unsqueeze(1) - log_vals.unsqueeze(0)
+        weights = torch.exp(- (diff ** 2) / (2.0 * (sigma ** 2)))
+        wks_gpu = torch.matmul(vecs_pos ** 2, weights.transpose(0, 1))
+        # Normalize per vertex so row sums to 1
+        wks_gpu = wks_gpu / (torch.sum(wks_gpu, dim=1, keepdim=True) + 1e-12)
+        wks_np = wks_gpu.cpu().numpy()
+    else:
+        wks_np = np.zeros((VPos.shape[0], n_wks), dtype=np.float32)
+        
+    return hks_np, wks_np
 
 def normalize_pc(points):
     """
-    Centers and rescales a point cloud.
+    Zero-centers and uniformly rescales a point cloud by its maximum radius.
+    Preserves true anatomical coordinate centers (z=0 is coronal center).
     """
-    centroid = np.mean(points, axis=0)
-    points -= centroid
-    scale = np.max(np.linalg.norm(points, axis=1))
-    if scale > 0: points /= scale
-    return points
+    centroid = np.mean(points, axis=0, keepdims=True)
+    points_centered = points - centroid
+    scale = np.max(np.linalg.norm(points_centered, axis=1))
+    if scale > 0:
+        points_centered = points_centered / scale
+    return points_centered
     
 def normalize_descriptors(features, eps=1e-12):
     """
@@ -190,7 +164,17 @@ def normalize_descriptors(features, eps=1e-12):
 
 def process_geometry(obj_path, k, t, neigvecs=300, output_dir="output"):
     """
-    Orchestrates the geometric preprocessing.
+    Orchestrates geometric preprocessing for 3D point clouds without mesh dependence:
+      1. FPS sampling of k anchor points.
+      2. Joint HKS (50) + WKS (50) multi-energy spectral feature extraction.
+      3. Outward-oriented PCA point normals (3) to break front-back reflection.
+      4. Centered & radially normalized coordinates (3).
+    
+    Combined Feature Layout [N, 106]:
+      [0 : 50]    -> HKS features (50)
+      [50 : 100]  -> WKS features (50)
+      [100 : 103] -> Centered XYZ coordinates (3)
+      [103 : 106] -> Outward PCA Normals (3)
     """
     print(f"[{obj_path}] Loading...")
     input_path = obj_path
@@ -208,23 +192,22 @@ def process_geometry(obj_path, k, t, neigvecs=300, output_dir="output"):
     pp_path = os.path.join(output_dir, base_name + ".pp")
     save_pp_file(pp_path, VPos, fps_idx)
     
-    print(f"[{obj_path}] Computing HKS (t={t})...")
-    features = compute_hks_features(VPos, Elements, fps_idx, t, neigvecs=neigvecs, return_vecs=False)
-    features = normalize_descriptors(features)
-    features = np.log(np.abs(features) + 1e-10)
+    print(f"[{obj_path}] Computing HKS & WKS (t={t})...")
+    hks, wks = compute_hks_wks_features(VPos, Elements, fps_idx, t, neigvecs=neigvecs, n_wks=50)
+    hks = normalize_descriptors(hks)
+    hks = np.log(np.abs(hks) + 1e-10)
+    wks = normalize_descriptors(wks)
 
-    # ---------------------------------------------------------------
-    # Append normalized XYZ coordinates as the last 3 feature dims.
-    # Feature layout: [hks_0, ..., hks_{k-1}, x, y, z] (50 HKS + 3 XYZ = 53)
-    # ---------------------------------------------------------------
-    pos_min = VPos.min(axis=0)
-    pos_max = VPos.max(axis=0)
-    pos_range = pos_max - pos_min
-    pos_range[pos_range == 0] = 1.0          # avoid divide-by-zero on flat axis
-    pos_norm = (VPos - pos_min) / pos_range  # [N, 3], each axis in [0, 1]
-    features = np.concatenate([features, pos_norm], axis=1)  # [N, k + 3]
+    print(f"[{obj_path}] Computing outward PCA normals...")
+    normals = compute_point_normals(VPos, k=15)
+    
+    # Centered and scaled coordinates
+    pos_norm = normalize_pc(VPos.copy()).astype(np.float32)
+
+    # Combine into 106-dim feature matrix
+    features = np.concatenate([hks, wks, pos_norm, normals], axis=1).astype(np.float32)
 
     mat_path = os.path.join(output_dir, "matrix_" + base_name + ".txt")
     np.savetxt(mat_path, features)
-    print(f"[{obj_path}] Feature dim after append: {features.shape[1]} ({features.shape[1]-3} HKS + 3 XYZ)")
+    print(f"[{obj_path}] Feature dim: {features.shape[1]} (50 HKS + 50 WKS + 3 XYZ + 3 Normals)")
     return VPos, Elements, features, fps_idx

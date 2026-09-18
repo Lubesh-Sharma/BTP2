@@ -61,7 +61,7 @@ def load_model(config, feature_dim, device):
 def main():
     parser = argparse.ArgumentParser(description="ASMAE All-Pairs Correspondence")
     parser.add_argument('--config', type=str, default='config/SCAPE/corres.yaml', help='Path to corres config file')
-    parser.add_argument('--normalize_pc', action='store_true', default=False, help='Apply normalize_pc to coordinates (default: False, to match train_st_te.py)')
+    parser.add_argument('--normalize_pc', action='store_true', default=True, help='Apply normalize_pc to coordinates (default: True, matching train_st_te.py)')
     args = parser.parse_args()
     
     with open(args.config, 'r') as f:

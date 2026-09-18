@@ -4,7 +4,8 @@ from .layers import Mlp, knn
 
 class LocalSelfAttentionBlock(nn.Module):
     """
-    Local Self-Attention Block using k-Nearest Neighbors.
+    Local Self-Attention Block using k-Nearest Neighbors with
+    chiral tangent phase attention.
     """
     def __init__(self, dim, num_heads, mlp_ratio=4., qkv_bias=False, drop=0., attn_drop=0., k=20):
         super().__init__()
@@ -21,9 +22,9 @@ class LocalSelfAttentionBlock(nn.Module):
         # Complex Phase Directional Projection (Method A from Complex Functional Maps)
         # Encodes tangent angle (cos theta, sin theta); sin(theta) flips sign under reflection
         self.phase_proj = nn.Linear(2, num_heads, bias=False)
-        nn.init.zeros_(self.phase_proj.weight)
+        nn.init.normal_(self.phase_proj.weight, std=0.02)
 
-    def forward(self, x, pos=None):
+    def forward(self, x, pos=None, normals=None):
         B, N, C = x.shape
         shortcut = x
         x_norm = self.norm1(x)
@@ -56,11 +57,23 @@ class LocalSelfAttentionBlock(nn.Module):
             pos_neigh = pos_flat[idx_global].view(B, N, self.k, 3)
             delta_p = pos_neigh - pos.unsqueeze(2)  # [B, N, k, 3]
             
-            # Local tangent basis using nearest spatial neighbors
-            e1 = torch.nn.functional.normalize(delta_p[:, :, 1, :], dim=-1, eps=1e-8)
-            cross_12 = torch.cross(e1, delta_p[:, :, 2, :], dim=-1)
-            n_loc = torch.nn.functional.normalize(cross_12, dim=-1, eps=1e-8)
-            e2 = torch.cross(n_loc, e1, dim=-1)
+            if normals is not None:
+                # Use true outward point normals to guarantee correct right-handed chirality
+                n_loc = torch.nn.functional.normalize(normals, dim=-1, eps=1e-8)  # [B, N, 3]
+                n_expand = n_loc.unsqueeze(2)  # [B, N, 1, 3]
+                proj_n = torch.sum(delta_p * n_expand, dim=-1, keepdim=True)
+                v_tan = delta_p - proj_n * n_expand  # [B, N, k, 3]
+                
+                # e1 along 1st neighbor tangent projection
+                e1 = torch.nn.functional.normalize(v_tan[:, :, 1, :], dim=-1, eps=1e-8)
+                # e2 = n x e1 (strictly right-handed)
+                e2 = torch.cross(n_loc, e1, dim=-1)
+            else:
+                # Fallback to local neighbor cross-product
+                e1 = torch.nn.functional.normalize(delta_p[:, :, 1, :], dim=-1, eps=1e-8)
+                cross_12 = torch.cross(e1, delta_p[:, :, 2, :], dim=-1)
+                n_loc = torch.nn.functional.normalize(cross_12, dim=-1, eps=1e-8)
+                e2 = torch.cross(n_loc, e1, dim=-1)
             
             # Project displacements onto local tangent frame (u, v)
             u = torch.sum(delta_p * e1.unsqueeze(2), dim=-1)  # [B, N, k]
