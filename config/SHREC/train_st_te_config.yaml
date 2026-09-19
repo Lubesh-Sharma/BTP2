@@ -29,8 +29,6 @@ training:
   lgo_eps: 0.05
   lgo_target_eps: 0.035
   lgo_weight: 50.0
-  distortion_weight: 50.0
-  orientation_weight: 10.0
 
 student_model:
   embed_dim: 128

@@ -11,8 +11,6 @@ from core.consistency_loss import compute_consistency_loss
 from core.contrastive_loss import compute_contrastive_loss
 from core.cycle_loss import compute_cycle_loss
 from core.lgo_loss import compute_lgo_loss
-from core.distortion_loss import compute_distortion_loss
-from core.orientation_loss import compute_orientation_loss
 
 def update_teacher_ema(student, teacher, alpha=0.999):
     """
@@ -95,10 +93,6 @@ def train_model(student, teacher, train_shapes, config):
     student_lgo_eps = config['training'].get('lgo_eps', 0.05)
     target_lgo_eps = config['training'].get('lgo_target_eps', 0.035)
     lgo_weight = config['training'].get('lgo_weight', 50.0)
-    orient_weight = config['training'].get('orientation_weight', 10.0)
-    dist_weight = config['training'].get('distortion_weight', 50.0)
-    dist_tau = config['training'].get('distortion_tau', 0.05)
-    dist_samples = config['training'].get('distortion_samples', 256)
     
     print(f"\n{'='*60}")
     print("STUDENT-TEACHER TRAINING PHASE")
@@ -108,7 +102,6 @@ def train_model(student, teacher, train_shapes, config):
     print(f"  Student Masking Ratio (Nodes/Feats): {student_mask_ratio} / {student_feat_ratio}")
     print(f"  Teacher Masking Ratio (Nodes/Feats): {teacher_mask_ratio} / {teacher_feat_ratio}")
     print(f"  EMA Alpha: {ema_alpha} | Consist. Weight: {cons_weight}")
-    print(f"  Cycle Weight: {cycle_weight} | LGO Weight: {lgo_weight} | Dist. Weight: {dist_weight} | Orient Weight: {orient_weight}")
     print(f"  Cycle Weight: {cycle_weight} | LGO Weight: {lgo_weight}")
     print(f"  LGO Temperatures: student_eps={student_lgo_eps}, target_eps={target_lgo_eps}")
     print(f"{'='*60}\n")
@@ -197,25 +190,11 @@ def train_model(student, teacher, train_shapes, config):
                 loss_lgo2 = compute_lgo_loss(enc2_s, enc1_s, eps=student_lgo_eps, target_eps=target_lgo_eps, n_iter=cycle_n_iter)
                 loss_lgo = (loss_lgo1 + loss_lgo2) / 2.0
                 
-                # Metric Distortion Loss (L_dist)
-                loss_dist1 = compute_distortion_loss(enc1_s, enc2_s, p1, p2, num_samples=dist_samples, tau=dist_tau)
-                loss_dist2 = compute_distortion_loss(enc2_s, enc1_s, p2, p1, num_samples=dist_samples, tau=dist_tau)
-                loss_dist = loss_dist1 + loss_dist2
-                
-                # Global Orientation Preservation Loss (Kabsch determinant - penalizes reflection symmetry)
-                loss_orient1 = compute_orientation_loss(enc1_s, enc2_s, p1, p2, tau=dist_tau)
-                loss_orient2 = compute_orientation_loss(enc2_s, enc1_s, p2, p1, tau=dist_tau)
-                loss_orient = (loss_orient1 + loss_orient2) / 2.0
-                
-                # Total loss with doubled lambda for symmetry/Lgo minimization
                 # Total loss
                 loss = (loss_rec + 
                         (cons_weight * loss_cons) + 
                         (contra_weight * loss_contra) + 
                         (cycle_weight * loss_cycle) + 
-                        (lgo_weight * loss_lgo) + 
-                        (dist_weight * loss_dist) +
-                        (orient_weight * loss_orient))
                         (lgo_weight * loss_lgo))
                 
                 optimizer.zero_grad()
@@ -231,8 +210,6 @@ def train_model(student, teacher, train_shapes, config):
                 epoch_contra_loss += loss_contra.item()
                 epoch_cycle_loss += loss_cycle.item()
                 epoch_lgo_loss += loss_lgo.item()
-                epoch_dist_loss += loss_dist.item()
-                epoch_orient_loss = epoch_orient_loss + loss_orient.item() if 'epoch_orient_loss' in locals() else loss_orient.item()
                 num_pairs += 1
                 
             avg_loss = epoch_loss / num_pairs if num_pairs > 0 else 0
@@ -241,11 +218,8 @@ def train_model(student, teacher, train_shapes, config):
             avg_contra = epoch_contra_loss / num_pairs if num_pairs > 0 else 0
             avg_cycle = epoch_cycle_loss / num_pairs if num_pairs > 0 else 0
             avg_lgo = epoch_lgo_loss / num_pairs if num_pairs > 0 else 0
-            avg_dist = epoch_dist_loss / num_pairs if num_pairs > 0 else 0
-            avg_orient = epoch_orient_loss / num_pairs if num_pairs > 0 else 0
             
             if num_epochs <= 50 or (epoch + 1) % 10 == 0 or epoch == 0:
-                print(f"Epoch {epoch+1:3d}/{num_epochs} | Tot: {avg_loss:.4f} | Rec: {avg_rec:.4f} | Cons: {avg_cons:.4f} | Contra: {avg_contra:.4f} | Cycle: {avg_cycle:.4f} | Lgo: {avg_lgo:.4f} | Dist: {avg_dist:.4f} | Orient: {avg_orient:.4f}")
                 print(f"Epoch {epoch+1:3d}/{num_epochs} | Tot: {avg_loss:.4f} | Rec: {avg_rec:.4f} | Cons: {avg_cons:.4f} | Contra: {avg_contra:.4f} | Cycle: {avg_cycle:.4f} | Lgo: {avg_lgo:.4f}")
         
     except KeyboardInterrupt:
