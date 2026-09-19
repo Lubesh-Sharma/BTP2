@@ -109,6 +109,7 @@ def train_model(student, teacher, train_shapes, config):
     print(f"  Teacher Masking Ratio (Nodes/Feats): {teacher_mask_ratio} / {teacher_feat_ratio}")
     print(f"  EMA Alpha: {ema_alpha} | Consist. Weight: {cons_weight}")
     print(f"  Cycle Weight: {cycle_weight} | LGO Weight: {lgo_weight} | Dist. Weight: {dist_weight} | Orient Weight: {orient_weight}")
+    print(f"  Cycle Weight: {cycle_weight} | LGO Weight: {lgo_weight}")
     print(f"  LGO Temperatures: student_eps={student_lgo_eps}, target_eps={target_lgo_eps}")
     print(f"{'='*60}\n")
     
@@ -207,6 +208,7 @@ def train_model(student, teacher, train_shapes, config):
                 loss_orient = (loss_orient1 + loss_orient2) / 2.0
                 
                 # Total loss with doubled lambda for symmetry/Lgo minimization
+                # Total loss
                 loss = (loss_rec + 
                         (cons_weight * loss_cons) + 
                         (contra_weight * loss_contra) + 
@@ -214,6 +216,7 @@ def train_model(student, teacher, train_shapes, config):
                         (lgo_weight * loss_lgo) + 
                         (dist_weight * loss_dist) +
                         (orient_weight * loss_orient))
+                        (lgo_weight * loss_lgo))
                 
                 optimizer.zero_grad()
                 loss.backward()
@@ -243,6 +246,7 @@ def train_model(student, teacher, train_shapes, config):
             
             if num_epochs <= 50 or (epoch + 1) % 10 == 0 or epoch == 0:
                 print(f"Epoch {epoch+1:3d}/{num_epochs} | Tot: {avg_loss:.4f} | Rec: {avg_rec:.4f} | Cons: {avg_cons:.4f} | Contra: {avg_contra:.4f} | Cycle: {avg_cycle:.4f} | Lgo: {avg_lgo:.4f} | Dist: {avg_dist:.4f} | Orient: {avg_orient:.4f}")
+                print(f"Epoch {epoch+1:3d}/{num_epochs} | Tot: {avg_loss:.4f} | Rec: {avg_rec:.4f} | Cons: {avg_cons:.4f} | Contra: {avg_contra:.4f} | Cycle: {avg_cycle:.4f} | Lgo: {avg_lgo:.4f}")
         
     except KeyboardInterrupt:
         if epoch >= 1:
