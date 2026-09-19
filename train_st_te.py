@@ -91,12 +91,12 @@ def train_model(student, teacher, train_shapes, config):
     cycle_n_iter = config['training'].get('cycle_n_iter', 15)
     cycle_weight = config['training'].get('cycle_weight', 1.0)
     
-    # Asymmetric distillation temperatures to drive Lgo down to ~3.5 - 4.0
+    # Distillation and geometric loss weights
     student_lgo_eps = config['training'].get('lgo_eps', 0.05)
     target_lgo_eps = config['training'].get('lgo_target_eps', 0.035)
-    lgo_weight = config['training'].get('lgo_weight', 50.0)
-    orient_weight = config['training'].get('orientation_weight', 60.0)
-    dist_weight = config['training'].get('distortion_weight', 120.0)
+    lgo_weight = config['training'].get('lgo_weight', 10.0)
+    orient_weight = config['training'].get('orientation_weight', 100.0)
+    dist_weight = config['training'].get('distortion_weight', 50.0)
     dist_tau = config['training'].get('distortion_tau', 0.05)
     dist_samples = config['training'].get('distortion_samples', 256)
     

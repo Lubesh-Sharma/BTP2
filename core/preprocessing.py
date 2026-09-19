@@ -31,18 +31,17 @@ def compute_fps(VPos, k):
 def compute_point_normals(VPos, k=15):
     """
     Computes outward-oriented surface normal vectors on an unstructured 3D point cloud
-    using local neighborhood PCA (covariance analysis).
-
-    Guarantees outward orientation relative to the shape center of mass,
-    resolving front-back and inside-outside reflection ambiguity without requiring mesh faces.
-
-    Args:
-        VPos: np.ndarray [N, 3] Point coordinates.
-        k: int, number of nearest neighbors for covariance estimation.
-
-    Returns:
-        normals: np.ndarray [N, 3] Outward unit normal vectors.
+    using local covariance analysis with BFS normal propagation.
+    
+    1. Computes local covariance eigenvectors on k-NN neighborhoods (k=15).
+    2. Seeds outward direction at the extreme point furthest from the shape center of mass.
+    3. Propagates orientation across the k-NN graph ensuring neighboring normals align (n_i . n_j > 0).
+    4. Verifies global outwardness.
+    
+    Guarantees seamless outward orientation across limbs (arms/legs/quadruped legs),
+    torso, and head without flipping.
     """
+    from collections import deque
     N = VPos.shape[0]
     k_nn = min(k, N)
     nn = NearestNeighbors(n_neighbors=k_nn).fit(VPos)
@@ -58,17 +57,55 @@ def compute_point_normals(VPos, k=15):
     
     # Eigenvalues and eigenvectors for symmetric 3x3 matrices (sorted ascending)
     _, vecs = np.linalg.eigh(covs)
-    normals = vecs[:, :, 0]  # [N, 3] Smallest eigenvector = normal axis
+    normals = vecs[:, :, 0].copy()  # [N, 3] Smallest eigenvector = normal axis
     
-    # Outward orientation relative to center of mass
-    centroid = VPos.mean(axis=0, keepdims=True)
-    outward_ref = VPos - centroid
-    dots = np.sum(normals * outward_ref, axis=-1, keepdims=True)
-    normals = np.where(dots < 0, -normals, normals)
-    
-    # Normalize unit length
+    # Normalize initial normals
     norms = np.linalg.norm(normals, axis=1, keepdims=True) + 1e-8
-    return (normals / norms).astype(np.float32)
+    normals = normals / norms
+    
+    # Global centroid and radial distances
+    centroid = VPos.mean(axis=0, keepdims=True)
+    dists_from_center = np.linalg.norm(VPos - centroid, axis=1)
+    
+    # Seed point: the extreme point furthest from centroid (e.g. top of head or fingertip)
+    # The normal at the extreme point unequivocally points outward (away from centroid)
+    seed_idx = int(np.argmax(dists_from_center))
+    seed_vec = VPos[seed_idx] - centroid[0]
+    if np.dot(normals[seed_idx], seed_vec) < 0:
+        normals[seed_idx] = -normals[seed_idx]
+        
+    # BFS propagation across k-NN graph to orient all normals consistently
+    visited = np.zeros(N, dtype=bool)
+    visited[seed_idx] = True
+    queue = deque([seed_idx])
+    
+    # Build adjacency list from k-NN
+    adj = idxs[:, 1:]  # exclude self
+    
+    while queue:
+        curr = queue.popleft()
+        n_curr = normals[curr]
+        for neighbor in adj[curr]:
+            if not visited[neighbor]:
+                # If neighbor normal opposes current normal, flip it
+                if np.dot(normals[neighbor], n_curr) < 0:
+                    normals[neighbor] = -normals[neighbor]
+                visited[neighbor] = True
+                queue.append(neighbor)
+                
+    # Handle any disconnected components
+    unvisited = np.where(~visited)[0]
+    for idx in unvisited:
+        ref_vec = VPos[idx] - centroid[0]
+        if np.dot(normals[idx], ref_vec) < 0:
+            normals[idx] = -normals[idx]
+            
+    # Final global check: total outward flux must be positive
+    outward_ref = VPos - centroid
+    if np.sum(normals * outward_ref) < 0:
+        normals = -normals
+        
+    return normals.astype(np.float32)
 
 def compute_hks_wks_features(VPos, Elements, k_indices, t, neigvecs=300, n_wks=50, sigma=0.06):
     """
@@ -194,17 +231,25 @@ def process_geometry(obj_path, k, t, neigvecs=300, output_dir="output"):
     
     print(f"[{obj_path}] Computing HKS & WKS (t={t})...")
     hks, wks = compute_hks_wks_features(VPos, Elements, fps_idx, t, neigvecs=neigvecs, n_wks=50)
-    hks = normalize_descriptors(hks)
-    hks = np.log(np.abs(hks) + 1e-10)
-    wks = normalize_descriptors(wks)
+    
+    # Scale-harmonize HKS to [0, 1] per channel (prevents log scale from drowning other features)
+    hks_min = hks.min(axis=0, keepdims=True)
+    hks_max = hks.max(axis=0, keepdims=True)
+    hks = (hks - hks_min) / (hks_max - hks_min + 1e-8)
+    
+    # Scale-harmonize WKS to [0, 1] per channel (elevates limb-distinguishing frequencies)
+    wks_min = wks.min(axis=0, keepdims=True)
+    wks_max = wks.max(axis=0, keepdims=True)
+    wks = (wks - wks_min) / (wks_max - wks_min + 1e-8)
 
     print(f"[{obj_path}] Computing outward PCA normals...")
     normals = compute_point_normals(VPos, k=15)
     
-    # Centered and scaled coordinates
+    # Centered and radially normalized coordinates [-1, 1]
     pos_norm = normalize_pc(VPos.copy()).astype(np.float32)
 
-    # Combine into 106-dim feature matrix
+    # Combine into 106-dim feature matrix with harmonized scales:
+    # [HKS in [0, 1], WKS in [0, 1], pos_norm in [-1, 1], normals in [-1, 1]]
     features = np.concatenate([hks, wks, pos_norm, normals], axis=1).astype(np.float32)
 
     mat_path = os.path.join(output_dir, "matrix_" + base_name + ".txt")

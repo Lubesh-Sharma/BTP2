@@ -61,7 +61,7 @@ def load_model(config, feature_dim, device):
 def main():
     parser = argparse.ArgumentParser(description="ASMAE All-Pairs Correspondence")
     parser.add_argument('--config', type=str, default='config/SCAPE/corres.yaml', help='Path to corres config file')
-    parser.add_argument('--normalize_pc', action='store_true', default=True, help='Apply normalize_pc to coordinates (default: True, matching train_st_te.py)')
+    parser.add_argument('--all', action='store_true', default=False, help='Process all shapes instead of just the last 20')
     args = parser.parse_args()
     
     with open(args.config, 'r') as f:
@@ -84,9 +84,9 @@ def main():
     # 1. Scan for all shapes
     all_files = sorted([f for f in os.listdir(data_dir) if f.endswith('.obj') or f.endswith('.off')])
     
-    # # Process only the last 20 files, or all if fewer than 20
-    # commment out this line in case of the shrec_19
-    all_files = all_files[-20:]
+    # Process all files if requested or if running SHREC; otherwise last 20 files
+    if not args.all and 'SHREC' not in data_dir and len(all_files) > 20:
+        all_files = all_files[-20:]
     
     if not all_files:
         print(f"No .obj or .off files found in {data_dir}")
@@ -108,7 +108,7 @@ def main():
         
         print(f"  -> Caching: {filename}")
         V, El, feat, _ = process_geometry(path, k=k, t=t, output_dir=out_dir)
-        p_coords = normalize_pc(V.copy()) if args.normalize_pc else V.copy()
+        p_coords = normalize_pc(V.copy()).astype(np.float32)
         
         with torch.no_grad():
             f_torch = torch.tensor(feat, dtype=torch.float32, device=device).unsqueeze(0)

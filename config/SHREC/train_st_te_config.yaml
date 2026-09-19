@@ -20,17 +20,17 @@ training:
   ema_alpha: 0.999
   checkpoint_dir: "checkpoints"
   checkpoint_name: "st_te_model_SHREC.pth"
-  consistency_weight: 150.0
+  consistency_weight: 50.0
   contrastive_margin: 0.2
   contrastive_weight: 10.0
   cycle_eps: 0.02
   cycle_n_iter: 15
-  cycle_weight: 100.0
+  cycle_weight: 50.0
   lgo_eps: 0.05
   lgo_target_eps: 0.035
-  lgo_weight: 50.0
-  distortion_weight: 120.0
-  orientation_weight: 60.0
+  lgo_weight: 10.0
+  distortion_weight: 50.0
+  orientation_weight: 100.0
 
 student_model:
   embed_dim: 128
