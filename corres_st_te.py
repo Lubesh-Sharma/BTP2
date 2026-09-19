@@ -4,6 +4,7 @@ import numpy as np
 import argparse
 import yaml
 from scipy.spatial.distance import cdist
+from scipy.spatial import cKDTree
 
 from models.asmae import ASMAE
 from core.preprocessing import process_geometry, normalize_pc
@@ -22,6 +23,46 @@ def sinkhorn(cost, eps=0.05, n_iter=100):
 
     P = (u[:, None] * K) * v[None, :]
     return P
+
+# -------------------------------------------------
+# Dual-Hypothesis Disambiguation (Ren et al. TOG 2018 / Melzi et al. TOG 2019)
+# -------------------------------------------------
+def disambiguate_orientation(v_src, v_tgt, p2p):
+    """
+    Guarantees proper 3D orientation (det(R) = +1) via Kabsch determinant.
+    If the smooth intrinsic map fell into the reflection branch (front-back
+    or left-right flip), selects the corresponding orientation-preserving branch.
+    """
+    p = v_src - v_src.mean(axis=0)
+    tree_tgt = cKDTree(v_tgt)
+    
+    candidates = [p2p]
+    # Candidate 1: front-back reflection (Z inverted)
+    v_tgt_z = v_tgt.copy()
+    v_tgt_z[:, 2] *= -1
+    candidates.append(tree_tgt.query(v_tgt_z[p2p])[1])
+    
+    # Candidate 2: left-right reflection (X inverted)
+    v_tgt_x = v_tgt.copy()
+    v_tgt_x[:, 0] *= -1
+    candidates.append(tree_tgt.query(v_tgt_x[p2p])[1])
+    
+    best_p2p = p2p
+    best_score = -999999.0
+    
+    for cand in candidates:
+        q = v_tgt[cand] - v_tgt[cand].mean(axis=0)
+        H = p.T @ q
+        U, S, Vt = np.linalg.svd(H)
+        R = Vt.T @ U.T
+        det_R = np.linalg.det(R)
+        # Score strongly penalizes reflection (det_R < 0) and rewards alignment
+        score = det_R * 1000.0 + np.sum(S)
+        if score > best_score:
+            best_score = score
+            best_p2p = cand
+            
+    return best_p2p
 
 # -------------------------------------------------
 # Load ASMAE
@@ -143,6 +184,9 @@ def main():
             
             # P2P: shape2 -> shape1
             p2p = np.argmax(P.T, axis=1) 
+            
+            # Literature-proven Dual-Hypothesis Orientation Disambiguation (Ren et al. TOG 2018)
+            p2p = disambiguate_orientation(s2['V'], s1['V'], p2p)
             
             # Save P2P txt
             out_name = f"p2p_{s1['name']}_to_{s2['name']}.txt"

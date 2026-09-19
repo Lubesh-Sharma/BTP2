@@ -242,17 +242,14 @@ def process_geometry(obj_path, k, t, neigvecs=300, output_dir="output"):
     wks_max = wks.max(axis=0, keepdims=True)
     wks = (wks - wks_min) / (wks_max - wks_min + 1e-8)
 
-    print(f"[{obj_path}] Computing outward PCA normals...")
-    normals = compute_point_normals(VPos, k=15)
-    
     # Centered and radially normalized coordinates [-1, 1]
     pos_norm = normalize_pc(VPos.copy()).astype(np.float32)
 
-    # Combine into 106-dim feature matrix with harmonized scales:
-    # [HKS in [0, 1], WKS in [0, 1], pos_norm in [-1, 1], normals in [-1, 1]]
-    features = np.concatenate([hks, wks, pos_norm, normals], axis=1).astype(np.float32)
+    # Combine into 103-dim clean, smooth feature matrix:
+    # [50 HKS in [0, 1], 50 WKS in [0, 1], 3 pos_norm in [-1, 1]]
+    features = np.concatenate([hks, wks, pos_norm], axis=1).astype(np.float32)
 
     mat_path = os.path.join(output_dir, "matrix_" + base_name + ".txt")
     np.savetxt(mat_path, features)
-    print(f"[{obj_path}] Feature dim: {features.shape[1]} (50 HKS + 50 WKS + 3 XYZ + 3 Normals)")
+    print(f"[{obj_path}] Feature dim: {features.shape[1]} (50 HKS + 50 WKS + 3 XYZ)")
     return VPos, Elements, features, fps_idx

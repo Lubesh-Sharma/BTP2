@@ -94,8 +94,8 @@ def train_model(student, teacher, train_shapes, config):
     # Distillation and geometric loss weights
     student_lgo_eps = config['training'].get('lgo_eps', 0.05)
     target_lgo_eps = config['training'].get('lgo_target_eps', 0.035)
-    lgo_weight = config['training'].get('lgo_weight', 10.0)
-    orient_weight = config['training'].get('orientation_weight', 100.0)
+    lgo_weight = config['training'].get('lgo_weight', 50.0)
+    orient_weight = config['training'].get('orientation_weight', 10.0)
     dist_weight = config['training'].get('distortion_weight', 50.0)
     dist_tau = config['training'].get('distortion_tau', 0.05)
     dist_samples = config['training'].get('distortion_samples', 256)
@@ -201,9 +201,9 @@ def train_model(student, teacher, train_shapes, config):
                 loss_dist2 = compute_distortion_loss(enc2_s, enc1_s, p2, p1, num_samples=dist_samples, tau=dist_tau)
                 loss_dist = loss_dist1 + loss_dist2
                 
-                # Outward Normal Compatibility Loss (eliminates front-back reflection symmetry)
-                loss_orient1 = compute_orientation_loss(enc1_s, enc2_s, n1, n2, tau=dist_tau)
-                loss_orient2 = compute_orientation_loss(enc2_s, enc1_s, n2, n1, tau=dist_tau)
+                # Global Orientation Preservation Loss (Kabsch determinant - penalizes reflection symmetry)
+                loss_orient1 = compute_orientation_loss(enc1_s, enc2_s, p1, p2, tau=dist_tau)
+                loss_orient2 = compute_orientation_loss(enc2_s, enc1_s, p2, p1, tau=dist_tau)
                 loss_orient = (loss_orient1 + loss_orient2) / 2.0
                 
                 # Total loss with doubled lambda for symmetry/Lgo minimization
