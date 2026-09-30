@@ -119,10 +119,16 @@ class ASMAE(nn.Module):
         pos_target, _ = self.orientation_module.align(pos_target)
         if x_source.shape[-1] >= 3:
             x_source = x_source.clone()
-            x_source[:, :, -3:] = pos_source
+            p_min_s = pos_source.min(dim=1, keepdim=True)[0]
+            p_max_s = pos_source.max(dim=1, keepdim=True)[0]
+            p_range_s = torch.clamp(p_max_s - p_min_s, min=1e-6)
+            x_source[:, :, -3:] = (pos_source - p_min_s) / p_range_s
         if x_target.shape[-1] >= 3:
             x_target = x_target.clone()
-            x_target[:, :, -3:] = pos_target
+            p_min_t = pos_target.min(dim=1, keepdim=True)[0]
+            p_max_t = pos_target.max(dim=1, keepdim=True)[0]
+            p_range_t = torch.clamp(p_max_t - p_min_t, min=1e-6)
+            x_target[:, :, -3:] = (pos_target - p_min_t) / p_range_t
 
         active_queries = None
         if mask_ratio is not None:
@@ -145,11 +151,17 @@ class ASMAE(nn.Module):
         source_recon = self.forward_decoder(source_enc, pos_source, target_encoded)
         pred_source = self.pred_head(source_recon)
         
-        return pred_source, mask_binary, loss_div, x_source_corrupted, target_encoded, final_mask
+        return pred_source, mask_binary, loss_div, x_source, target_encoded, final_mask
 
-    def extract_features(self, x, pos):
-        pos, _ = self.orientation_module.align(pos)
+    def extract_features(self, x, pos, return_aligned_pos=False):
+        pos_align, R = self.orientation_module.align(pos)
         if x.shape[-1] >= 3:
             x = x.clone()
-            x[:, :, -3:] = pos
-        return self.forward_encoder(x, pos, mask_binary=None)
+            p_min = pos_align.min(dim=1, keepdim=True)[0]
+            p_max = pos_align.max(dim=1, keepdim=True)[0]
+            p_range = torch.clamp(p_max - p_min, min=1e-6)
+            x[:, :, -3:] = (pos_align - p_min) / p_range
+        feat = self.forward_encoder(x, pos_align, mask_binary=None)
+        if return_aligned_pos:
+            return feat, pos_align, R
+        return feat

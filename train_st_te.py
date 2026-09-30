@@ -92,8 +92,9 @@ def train_model(student, teacher, train_shapes, config):
     student_lgo_eps = config['training'].get('lgo_eps', 0.05)
     target_lgo_eps = config['training'].get('lgo_target_eps', 0.035)
     lgo_weight = config['training'].get('lgo_weight', 50.0)
-    orient_weight = config['training'].get('orientation_weight', 60.0)
-    dist_weight = config['training'].get('distortion_weight', 120.0)
+    orient_weight = config['training'].get('orientation_weight', 50.0)
+    orient_lr = config['training'].get('orientation_lr', 0.001)
+    dist_weight = config['training'].get('distortion_weight', 10.0)
     dist_tau = config['training'].get('distortion_tau', 0.05)
     dist_samples = config['training'].get('distortion_samples', 256)
     
@@ -105,11 +106,18 @@ def train_model(student, teacher, train_shapes, config):
     print(f"  Student Masking Ratio (Nodes/Feats): {student_mask_ratio} / {student_feat_ratio}")
     print(f"  Teacher Masking Ratio (Nodes/Feats): {teacher_mask_ratio} / {teacher_feat_ratio}")
     print(f"  EMA Alpha: {ema_alpha} | Consist. Weight: {cons_weight}")
-    print(f"  Cycle Weight: {cycle_weight} | LGO Weight: {lgo_weight} | Dist. Weight: {dist_weight} | Orient Weight: {orient_weight}")
+    print(f"  Cycle Weight: {cycle_weight} | LGO Weight: {lgo_weight} | Dist. Weight: {dist_weight} | Orient Weight: {orient_weight} (lr: {orient_lr})")
     print(f"  LGO Temperatures: student_eps={student_lgo_eps}, target_eps={target_lgo_eps}")
     print(f"{'='*60}\n")
     
-    optimizer = torch.optim.Adam(student.parameters(), lr=lr)
+    # Dedicated learning rate for SE-ORNet Orientation Module
+    ori_params = list(student.orientation_module.parameters())
+    ori_ids = set(id(p) for p in ori_params)
+    base_params = [p for p in student.parameters() if id(p) not in ori_ids]
+    optimizer = torch.optim.Adam([
+        {'params': base_params, 'lr': lr},
+        {'params': ori_params, 'lr': orient_lr}
+    ])
     criterion = torch.nn.L1Loss()
     
     student.to(device)
@@ -147,23 +155,23 @@ def train_model(student, teacher, train_shapes, config):
                 # Forward Pass 1 (S1 -> S2)
                 # -----------------------------------------------------------------
                 # Student predicts deeply masked graph
-                pred1_s, _, _, _, enc_t1_s, mask1_s = student(f1, p1, f2, p2, mask_ratio=student_mask_ratio, feature_ratio=student_feat_ratio)
+                pred1_s, _, _, clean_f1_s, enc_t1_s, mask1_s = student(f1, p1, f2, p2, mask_ratio=student_mask_ratio, feature_ratio=student_feat_ratio)
                 
                 # Teacher predicts lightly masked/unmasked graph
                 with torch.no_grad():
-                    pred1_t, _, _, _, enc_t1_t, _ = teacher(f1, p1, f2, p2, mask_ratio=teacher_mask_ratio, feature_ratio=teacher_feat_ratio)
+                    pred1_t, _, _, clean_f1_t, enc_t1_t, _ = teacher(f1, p1, f2, p2, mask_ratio=teacher_mask_ratio, feature_ratio=teacher_feat_ratio)
                     
-                loss1_rec = criterion(pred1_s[mask1_s], f1[mask1_s]) if mask1_s.sum() > 0 else criterion(pred1_s, f1)
+                loss1_rec = criterion(pred1_s[mask1_s], clean_f1_s[mask1_s]) if mask1_s.sum() > 0 else criterion(pred1_s, clean_f1_s)
                 loss1_cons = compute_consistency_loss(pred1_s, pred1_t)
                 
                 # -----------------------------------------------------------------
                 # Forward Pass 2 (S2 -> S1)
                 # -----------------------------------------------------------------
-                pred2_s, _, _, _, enc_t2_s, mask2_s = student(f2, p2, f1, p1, mask_ratio=student_mask_ratio, feature_ratio=student_feat_ratio)
+                pred2_s, _, _, clean_f2_s, enc_t2_s, mask2_s = student(f2, p2, f1, p1, mask_ratio=student_mask_ratio, feature_ratio=student_feat_ratio)
                 with torch.no_grad():
-                    pred2_t, _, _, _, enc_t2_t, _ = teacher(f2, p2, f1, p1, mask_ratio=teacher_mask_ratio, feature_ratio=teacher_feat_ratio)
+                    pred2_t, _, _, clean_f2_t, enc_t2_t, _ = teacher(f2, p2, f1, p1, mask_ratio=teacher_mask_ratio, feature_ratio=teacher_feat_ratio)
                     
-                loss2_rec = criterion(pred2_s[mask2_s], f2[mask2_s]) if mask2_s.sum() > 0 else criterion(pred2_s, f2)
+                loss2_rec = criterion(pred2_s[mask2_s], clean_f2_s[mask2_s]) if mask2_s.sum() > 0 else criterion(pred2_s, clean_f2_s)
                 loss2_cons = compute_consistency_loss(pred2_s, pred2_t)
                 
                 # -----------------------------------------------------------------
@@ -172,18 +180,18 @@ def train_model(student, teacher, train_shapes, config):
                 loss_rec = loss1_rec + loss2_rec
                 loss_cons = loss1_cons + loss2_cons
                 
-                # Extract clean features for Shape 1 (N1) and Shape 2 (N2)
-                enc1_s = student.extract_features(f1, p1)
-                enc2_s = student.extract_features(f2, p2)
+                # Extract clean features and canonical coordinates for Shape 1 and Shape 2
+                enc1_s, p1_align, _ = student.extract_features(f1, p1, return_aligned_pos=True)
+                enc2_s, p2_align, _ = student.extract_features(f2, p2, return_aligned_pos=True)
                 
                 # Contrastive Loss
                 loss_contra1 = compute_contrastive_loss(enc1_s, margin=contra_margin)
                 loss_contra2 = compute_contrastive_loss(enc2_s, margin=contra_margin)
                 loss_contra = loss_contra1 + loss_contra2
                 
-                # Cycle Loss (requires matching coordinate tensors p1 [N1] and p2 [N2])
-                loss_cycle1 = compute_cycle_loss(enc1_s, enc2_s, p1, eps=cycle_eps, n_iter=cycle_n_iter)
-                loss_cycle2 = compute_cycle_loss(enc2_s, enc1_s, p2, eps=cycle_eps, n_iter=cycle_n_iter)
+                # Cycle Loss on canonically aligned coordinates
+                loss_cycle1 = compute_cycle_loss(enc1_s, enc2_s, p1_align, eps=cycle_eps, n_iter=cycle_n_iter)
+                loss_cycle2 = compute_cycle_loss(enc2_s, enc1_s, p2_align, eps=cycle_eps, n_iter=cycle_n_iter)
                 loss_cycle = loss_cycle1 + loss_cycle2
                 
                 # Global Optimization Loss (L_go) - asymmetric Sinkhorn pseudo-labels
@@ -191,16 +199,13 @@ def train_model(student, teacher, train_shapes, config):
                 loss_lgo2 = compute_lgo_loss(enc2_s, enc1_s, eps=student_lgo_eps, target_eps=target_lgo_eps, n_iter=cycle_n_iter)
                 loss_lgo = (loss_lgo1 + loss_lgo2) / 2.0
                 
-                # Metric Distortion Loss (L_dist)
-                loss_dist1 = compute_distortion_loss(enc1_s, enc2_s, p1, p2, num_samples=dist_samples, tau=dist_tau)
-                loss_dist2 = compute_distortion_loss(enc2_s, enc1_s, p2, p1, num_samples=dist_samples, tau=dist_tau)
+                # Metric Distortion Loss (L_dist) on canonical coordinates
+                loss_dist1 = compute_distortion_loss(enc1_s, enc2_s, p1_align, p2_align, num_samples=dist_samples, tau=dist_tau)
+                loss_dist2 = compute_distortion_loss(enc2_s, enc1_s, p2_align, p1_align, num_samples=dist_samples, tau=dist_tau)
                 loss_dist = loss_dist1 + loss_dist2
                 
-                # Signed Area / Orientation Consistency Loss (Method B from Complex Functional Maps)
-                # Directly penalizes local normal flips / reflection symmetry errors
-                loss_orient1 = compute_orientation_loss(enc1_s, enc2_s, p1, p2, num_samples=500, tau=dist_tau)
-                loss_orient2 = compute_orientation_loss(enc2_s, enc1_s, p2, p1, num_samples=500, tau=dist_tau)
-                loss_orient = (loss_orient1 + loss_orient2) / 2.0
+                # SE-ORNet Orientation Loss (Rotation Equivariance + Self-Ensembling Teacher Consistency)
+                loss_orient = compute_orientation_loss(student.orientation_module, teacher.orientation_module, p1, p2)
                 
                 # Total loss with doubled lambda for symmetry/Lgo minimization
                 loss = (loss_rec + 
@@ -225,7 +230,7 @@ def train_model(student, teacher, train_shapes, config):
                 epoch_cycle_loss += loss_cycle.item()
                 epoch_lgo_loss += loss_lgo.item()
                 epoch_dist_loss += loss_dist.item()
-                epoch_orient_loss = epoch_orient_loss + loss_orient.item() if 'epoch_orient_loss' in locals() else loss_orient.item()
+                epoch_orient_loss += loss_orient.item()
                 num_pairs += 1
                 
             avg_loss = epoch_loss / num_pairs if num_pairs > 0 else 0

@@ -50,8 +50,9 @@ class OrientationModule(nn.Module):
         self.fc3 = nn.Linear(64, 6)
         
         # Initialize to Identity transformation (R = I_3x3)
+        # Weight initialized with small std so gradients flow immediately to earlier layers from step 1
         # Bias [1, 0, 0, 0, 1, 0] produces x=[1, 0, 0], y=[0, 1, 0], z=[0, 0, 1] -> I
-        nn.init.constant_(self.fc3.weight, 0)
+        nn.init.normal_(self.fc3.weight, std=0.01)
         self.fc3.bias.data.copy_(torch.tensor([1.0, 0.0, 0.0, 0.0, 1.0, 0.0], dtype=torch.float32))
 
     def forward(self, p):
