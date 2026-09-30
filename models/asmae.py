@@ -5,6 +5,7 @@ from .modules.aamg import AAMG_Query
 from .modules.encoder import LocalSelfAttentionBlock
 from .modules.decoder import CrossAttentionBlock
 from .modules.feature_masking import get_feature_mask_indices, apply_feature_mask
+from .modules.orientation_module import OrientationModule
 
 class ASMAE(nn.Module):
     """
@@ -15,6 +16,9 @@ class ASMAE(nn.Module):
                  mlk_ratio=4., num_mask_queries=5000, encoder_k=20, aamg_k=10,
                  aamg_emb_dim=64, pos_embed_dim=64, temperature=1.0):
         super().__init__()
+        
+        # SE-ORNet Orientation Module: canonical 3D rotation alignment
+        self.orientation_module = OrientationModule()
         
         self.num_mask_queries = num_mask_queries 
         self.mask_generator = AAMG_Query(feature_dim, num_queries=self.num_mask_queries, embed_dim=aamg_emb_dim, k=aamg_k, temperature=temperature)
@@ -110,6 +114,16 @@ class ASMAE(nn.Module):
         return self.decoder_norm(base)
 
     def forward(self, x_source, pos_source, x_target, pos_target, mask_ratio=None, feature_ratio=0.2):
+        # SE-ORNet Canonical Orientation Alignment
+        pos_source, _ = self.orientation_module.align(pos_source)
+        pos_target, _ = self.orientation_module.align(pos_target)
+        if x_source.shape[-1] >= 3:
+            x_source = x_source.clone()
+            x_source[:, :, -3:] = pos_source
+        if x_target.shape[-1] >= 3:
+            x_target = x_target.clone()
+            x_target[:, :, -3:] = pos_target
+
         active_queries = None
         if mask_ratio is not None:
              B, N, _ = x_source.shape
@@ -134,4 +148,8 @@ class ASMAE(nn.Module):
         return pred_source, mask_binary, loss_div, x_source_corrupted, target_encoded, final_mask
 
     def extract_features(self, x, pos):
+        pos, _ = self.orientation_module.align(pos)
+        if x.shape[-1] >= 3:
+            x = x.clone()
+            x[:, :, -3:] = pos
         return self.forward_encoder(x, pos, mask_binary=None)
