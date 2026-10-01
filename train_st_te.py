@@ -92,9 +92,9 @@ def train_model(student, teacher, train_shapes, config):
     student_lgo_eps = config['training'].get('lgo_eps', 0.05)
     target_lgo_eps = config['training'].get('lgo_target_eps', 0.035)
     lgo_weight = config['training'].get('lgo_weight', 50.0)
-    orient_weight = config['training'].get('orientation_weight', 50.0)
-    orient_lr = config['training'].get('orientation_lr', 0.001)
-    dist_weight = config['training'].get('distortion_weight', 10.0)
+    orient_weight = config['training'].get('orientation_weight', 10.0)
+    orient_lr = config['training'].get('orientation_lr', 0.0003)
+    dist_weight = config['training'].get('distortion_weight', 5.0)
     dist_tau = config['training'].get('distortion_tau', 0.05)
     dist_samples = config['training'].get('distortion_samples', 256)
     
@@ -202,7 +202,7 @@ def train_model(student, teacher, train_shapes, config):
                 # Metric Distortion Loss (L_dist) on canonical coordinates
                 loss_dist1 = compute_distortion_loss(enc1_s, enc2_s, p1_align, p2_align, num_samples=dist_samples, tau=dist_tau)
                 loss_dist2 = compute_distortion_loss(enc2_s, enc1_s, p2_align, p1_align, num_samples=dist_samples, tau=dist_tau)
-                loss_dist = loss_dist1 + loss_dist2
+                loss_dist = (loss_dist1 + loss_dist2) / 2.0
                 
                 # SE-ORNet Orientation Loss (Rotation Equivariance + Self-Ensembling Teacher Consistency)
                 loss_orient = compute_orientation_loss(student.orientation_module, teacher.orientation_module, p1, p2)

@@ -20,17 +20,18 @@ training:
   ema_alpha: 0.999
   checkpoint_dir: "checkpoints"
   checkpoint_name: "st_te_model_FAUST.pth"
-  consistency_weight: 150.0
-  contrastive_margin: 0.2
-  contrastive_weight: 10.0
+  consistency_weight: 50.0
+  contrastive_margin: 0.5
+  contrastive_weight: 5.0
   cycle_eps: 0.02
   cycle_n_iter: 15
-  cycle_weight: 100.0
-  lgo_eps: 0.05
-  lgo_target_eps: 0.035
-  lgo_weight: 50.0
-  distortion_weight: 120.0
-  orientation_weight: 60.0
+  cycle_weight: 50.0
+  lgo_eps: 0.04
+  lgo_target_eps: 0.025
+  lgo_weight: 25.0
+  distortion_weight: 5.0
+  orientation_weight: 10.0
+  orientation_lr: 0.0003
 
 student_model:
   embed_dim: 128
