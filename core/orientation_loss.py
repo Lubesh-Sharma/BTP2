@@ -2,15 +2,14 @@ import math
 import torch
 import torch.nn.functional as F
 
-def sample_dataset_rotation(B, device, dtype=torch.float32, jitter_deg=10.0):
+def sample_orientation_perturbation(B, device, dtype=torch.float32, max_yaw_deg=20.0, jitter_deg=5.0):
     """
-    Samples physically realistic 3D rotations for upright humanoid/animal meshes:
-    - Continuous yaw rotation around the vertical (Y) axis in [-pi, pi], which
-      directly captures the bilateral front-back 180-degree flip ambiguity.
-    - Small jitter (pitch and roll) around horizontal axes (default +-10 degrees)
-      to ensure robustness to natural pose tilting.
+    Samples physically realistic 3D orientation perturbations for upright meshes:
+    - Bounded yaw perturbation around vertical (Y) axis within [-max_yaw_deg, +max_yaw_deg].
+    - Small pitch and roll jitter around horizontal axes within [-jitter_deg, +jitter_deg].
     """
-    theta = (torch.rand(B, device=device, dtype=dtype) * 2.0 - 1.0) * math.pi
+    max_yaw_rad = math.radians(max_yaw_deg)
+    theta = (torch.rand(B, device=device, dtype=dtype) * 2.0 - 1.0) * max_yaw_rad
     cos_t = torch.cos(theta)
     sin_t = torch.sin(theta)
     zero = torch.zeros_like(cos_t)
@@ -48,20 +47,22 @@ def sample_dataset_rotation(B, device, dtype=torch.float32, jitter_deg=10.0):
 
 def compute_orientation_loss(student_ori, teacher_ori, p1, p2):
     """
-    SE-ORNet Self-Supervised Orientation Loss (Deng et al., CVPR 2023).
+    SE-ORNet Orientation Loss (Deng et al., CVPR 2023).
     
-    Supervises the OrientationModule to resolve 3D spatial/reflection/180-degree
-    rotational ambiguity on upright meshes:
+    Supervises the OrientationModule to canonicalize 3D orientations
+    and maintain consistency across paired shapes and under perturbation:
     
-    1. Rotation Equivariance:
-       For realistic rotation Q (yaw in [-pi, pi] + pitch/roll jitter), if P_rot = (P - c) @ Q + c:
-       The module must predict R_rot such that:
-         Q @ R_rot = R_s  <=>  R_rot_target = Q.T @ R_s
-         || R_rot - Q.T @ R_s.detach() ||_F^2 -> 0
+    1. Cross-Shape Alignment:
+       Both shape 1 and shape 2 are guided to share the exact same canonical frame:
+         || R_1 - R_2 ||_F^2 -> 0
          
-    2. Self-Ensembling Consistency (Student-Teacher):
-       The student rotation is stabilized by penalizing deviation from the EMA teacher:
-         || R_student - R_teacher.detach() ||_F^2 -> 0
+    2. Perturbation Equivariance:
+       Under physical orientation perturbation Q, the module predicts R_rot such that:
+         Q @ R_rot = R_s  <=>  || R_rot - Q.T @ R_s.detach() ||_F^2 -> 0
+         
+    3. Self-Ensembling Consistency (Student-Teacher):
+       The student canonical rotation is stabilized by the smooth EMA teacher:
+         0.5 * (|| R_1 - R_1_teacher.detach() ||_F^2 + || R_2 - R_2_teacher.detach() ||_F^2) -> 0
     
     Args:
         student_ori: student.orientation_module (OrientationModule)
@@ -70,41 +71,39 @@ def compute_orientation_loss(student_ori, teacher_ori, p1, p2):
         p2: [B, N2, 3] coordinates of Shape 2
         
     Returns:
-        loss_orient: scalar orientation loss in [0, 1]
+        loss_orient: scalar orientation loss (~0.005 - 0.02)
     """
     B = p1.shape[0]
     device = p1.device
+    dtype = p1.dtype
     
-    total_loss = 0.0
-    shapes = [p1, p2]
+    # 1. Predict rotations for both shapes
+    R1 = student_ori(p1)
+    R2 = student_ori(p2)
     
-    for p in shapes:
+    # Cross-shape canonical frame alignment
+    loss_cross = F.mse_loss(R1, R2)
+    
+    # 2. Perturbation equivariance for both shapes
+    loss_equiv = 0.0
+    for p, R_s in [(p1, R1), (p2, R2)]:
         c = torch.mean(p, dim=1, keepdim=True)
         p_c = p - c
-        
-        # 1. Student rotation on original shape
-        R_s = student_ori(p)
-        
-        # 2. Sample realistic rotation containing yaw and 180-deg flip
-        Q = sample_dataset_rotation(B, device, dtype=p.dtype, jitter_deg=10.0)
+        Q = sample_orientation_perturbation(B, device, dtype=dtype, max_yaw_deg=20.0, jitter_deg=5.0)
         p_rot = torch.bmm(p_c, Q) + c
-        
-        # Student rotation on rotated shape
         R_rot = student_ori(p_rot)
-        
-        # Equivariance target: Q @ R_rot = R_s => R_rot_target = Q.T @ R_s
         R_target = torch.bmm(Q.transpose(1, 2), R_s.detach())
-        loss_rot = F.mse_loss(R_rot, R_target)
+        loss_equiv = loss_equiv + F.mse_loss(R_rot, R_target)
+    loss_equiv = loss_equiv / 2.0
+    
+    # 3. Student-Teacher consistency
+    if teacher_ori is not None:
+        with torch.no_grad():
+            R1_t = teacher_ori(p1)
+            R2_t = teacher_ori(p2)
+        loss_teacher = 0.5 * (F.mse_loss(R1, R1_t.detach()) + F.mse_loss(R2, R2_t.detach()))
+    else:
+        loss_teacher = 0.0
         
-        # 3. Student-Teacher consistency loss
-        if teacher_ori is not None:
-            with torch.no_grad():
-                R_t = teacher_ori(p)
-            loss_teacher = F.mse_loss(R_s, R_t.detach())
-        else:
-            loss_teacher = 0.0
-            
-        shape_loss = loss_rot + loss_teacher
-        total_loss = total_loss + shape_loss
-        
-    return total_loss / len(shapes)
+    total_loss = loss_cross + loss_equiv + loss_teacher
+    return total_loss

@@ -29,8 +29,8 @@ training:
   lgo_eps: 0.04
   lgo_target_eps: 0.025
   lgo_weight: 25.0
-  distortion_weight: 5.0
-  orientation_weight: 10.0
+  distortion_weight: 1.0
+  orientation_weight: 1.0
   orientation_lr: 0.0003
 
 student_model:
