@@ -2,14 +2,19 @@ import math
 import torch
 import torch.nn.functional as F
 
-def sample_orientation_perturbation(B, device, dtype=torch.float32, max_yaw_deg=20.0, jitter_deg=5.0):
+def sample_orientation_perturbation(B, device, dtype=torch.float32, max_yaw_deg=20.0, jitter_deg=5.0, flip_prob=0.5):
     """
     Samples physically realistic 3D orientation perturbations for upright meshes:
     - Bounded yaw perturbation around vertical (Y) axis within [-max_yaw_deg, +max_yaw_deg].
+    - Discrete 180-degree front/back flip with probability flip_prob to actively train the
+      OrientationModule to shatter the 180-degree bilateral/front-back ambiguity.
     - Small pitch and roll jitter around horizontal axes within [-jitter_deg, +jitter_deg].
     """
     max_yaw_rad = math.radians(max_yaw_deg)
     theta = (torch.rand(B, device=device, dtype=dtype) * 2.0 - 1.0) * max_yaw_rad
+    if flip_prob > 0:
+        flips = (torch.rand(B, device=device) < flip_prob).to(dtype) * math.pi
+        theta = theta + flips
     cos_t = torch.cos(theta)
     sin_t = torch.sin(theta)
     zero = torch.zeros_like(cos_t)
