@@ -32,8 +32,10 @@ training:
   distortion_weight: 75.0
   distortion_tau: 0.03
   distortion_samples: 512
-  orientation_weight: 180.0
-  orientation_lr: 0.0005
+  orientation_weight: 50.0
+  orientation_lr: 0.001
+  orientation_max_yaw: 45.0
+  orientation_flip_prob: 0.15
 
 student_model:
   embed_dim: 128
