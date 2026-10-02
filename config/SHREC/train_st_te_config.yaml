@@ -36,6 +36,7 @@ training:
   orientation_lr: 0.001
   orientation_max_yaw: 45.0
   orientation_flip_prob: 0.15
+  warmup_epochs: 15
 
 student_model:
   embed_dim: 128
