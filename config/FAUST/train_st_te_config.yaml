@@ -32,8 +32,8 @@ training:
   distortion_weight: 75.0
   distortion_tau: 0.03
   distortion_samples: 512
-  orientation_weight: 5.0
-  orientation_lr: 0.001
+  orientation_weight: 20.0
+  orientation_lr: 0.002
   orientation_max_yaw: 45.0
   orientation_flip_prob: 0.15
   warmup_epochs: 15

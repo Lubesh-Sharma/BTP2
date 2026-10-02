@@ -31,11 +31,11 @@ class OrientationModule(nn.Module):
         self.conv3 = nn.Conv1d(128, 256, 1)
         self.norm3 = nn.InstanceNorm1d(256)
         
-        # Feature Interaction Module (FIM): MLP on spatial position differences and features
+        # Feature Interaction Module (FIM): MLP on spatial position differences and feature differences
         # Edge spatial: (p_i, q_ij - p_i) -> 6 channels
-        # Edge feature: (F_s) -> 256 channels
+        # Edge feature: (F_s, F_t_gathered - F_s) -> 512 channels (Total: 518 channels)
         self.fim_mlp = nn.Sequential(
-            nn.Conv2d(6 + 256, 256, 1),
+            nn.Conv2d(6 + 512, 256, 1),
             nn.InstanceNorm2d(256),
             nn.LeakyReLU(0.2, inplace=True)
         )
@@ -59,9 +59,8 @@ class OrientationModule(nn.Module):
             nn.Linear(128, num_bins)
         )
         
-        # Initialize head bias to favor bin 0 (unrotated identity) initially
+        # Initialize head bias to zero for neutral uniform class probability initially
         self.head[-1].bias.data.zero_()
-        self.head[-1].bias.data[0] = 2.0
 
     def extract_point_features(self, p_c):
         """
@@ -127,7 +126,11 @@ class OrientationModule(nn.Module):
         # Edge spatial: (p_i, q_ij - p_i) -> [B, 6, N_sub_s, k]
         edge_spatial = torch.cat([p_s_exp, p_t_gathered - p_s_exp], dim=-1).permute(0, 3, 1, 2)
         f_s_exp = f_s.unsqueeze(-1).expand(-1, -1, -1, k)  # [B, 256, N_sub_s, k]
-        edge_feat = torch.cat([edge_spatial, f_s_exp], dim=1)  # [B, 262, N_sub_s, k]
+        
+        # Edge feature: (f_s, f_t_gathered - f_s) -> [B, 512, N_sub_s, k]
+        idx_f = knn_idx.unsqueeze(1).expand(-1, 256, -1, -1)
+        f_t_gathered = torch.gather(f_t.unsqueeze(2).expand(-1, -1, N_sub_s, -1), 3, idx_f)
+        edge_feat = torch.cat([edge_spatial, f_s_exp, f_t_gathered - f_s_exp], dim=1)  # [B, 518, N_sub_s, k]
         
         # FIM MLP and MaxPool
         e = self.fim_mlp(edge_feat)  # [B, 256, N_sub_s, k]
