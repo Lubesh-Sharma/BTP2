@@ -2,7 +2,7 @@ import math
 import torch
 import torch.nn.functional as F
 
-def sample_orientation_perturbation(B, device, dtype=torch.float32, max_yaw_deg=20.0, jitter_deg=5.0, flip_prob=0.5):
+def sample_orientation_perturbation(B, device, dtype=torch.float32, max_yaw_deg=45.0, jitter_deg=5.0, flip_prob=0.15):
     """
     Samples physically realistic 3D orientation perturbations for upright meshes:
     - Bounded yaw perturbation around vertical (Y) axis within [-max_yaw_deg, +max_yaw_deg].
@@ -50,7 +50,7 @@ def sample_orientation_perturbation(B, device, dtype=torch.float32, max_yaw_deg=
         Q = R_y
     return Q
 
-def compute_orientation_loss(student_ori, teacher_ori, p1, p2):
+def compute_orientation_loss(student_ori, teacher_ori, p1, p2, max_yaw_deg=45.0, jitter_deg=5.0, flip_prob=0.15):
     """
     SE-ORNet Orientation Loss (Deng et al., CVPR 2023).
     
@@ -66,7 +66,7 @@ def compute_orientation_loss(student_ori, teacher_ori, p1, p2):
          Q @ R_rot = R_s  <=>  || R_rot - Q.T @ R_s.detach() ||_F^2 -> 0
          
     3. Self-Ensembling Consistency (Student-Teacher):
-       The student canonical rotation is stabilized by the smooth EMA teacher:
+       The student canonical rotation is stabilized by the smooth EMA teacher (if provided):
          0.5 * (|| R_1 - R_1_teacher.detach() ||_F^2 + || R_2 - R_2_teacher.detach() ||_F^2) -> 0
     
     Args:
@@ -74,9 +74,12 @@ def compute_orientation_loss(student_ori, teacher_ori, p1, p2):
         teacher_ori: teacher.orientation_module (OrientationModule or None)
         p1: [B, N1, 3] coordinates of Shape 1
         p2: [B, N2, 3] coordinates of Shape 2
+        max_yaw_deg: maximum yaw perturbation in degrees
+        jitter_deg: horizontal jitter in degrees
+        flip_prob: probability of 180-degree front/back flip perturbation
         
     Returns:
-        loss_orient: scalar orientation loss (~0.005 - 0.02)
+        loss_orient: scalar orientation loss (~0.05 - 0.20)
     """
     B = p1.shape[0]
     device = p1.device
@@ -94,14 +97,14 @@ def compute_orientation_loss(student_ori, teacher_ori, p1, p2):
     for p, R_s in [(p1, R1), (p2, R2)]:
         c = torch.mean(p, dim=1, keepdim=True)
         p_c = p - c
-        Q = sample_orientation_perturbation(B, device, dtype=dtype, max_yaw_deg=20.0, jitter_deg=5.0)
+        Q = sample_orientation_perturbation(B, device, dtype=dtype, max_yaw_deg=max_yaw_deg, jitter_deg=jitter_deg, flip_prob=flip_prob)
         p_rot = torch.bmm(p_c, Q) + c
         R_rot = student_ori(p_rot)
         R_target = torch.bmm(Q.transpose(1, 2), R_s.detach())
         loss_equiv = loss_equiv + F.mse_loss(R_rot, R_target)
     loss_equiv = loss_equiv / 2.0
     
-    # 3. Student-Teacher consistency
+    # 3. Student-Teacher consistency (stabilization)
     if teacher_ori is not None:
         with torch.no_grad():
             R1_t = teacher_ori(p1)

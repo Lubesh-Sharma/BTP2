@@ -10,7 +10,7 @@ geometry:
   
 # do not change the following parameters
 training:
-  epochs: 30
+  epochs: 50
   lr: 0.0002
   device: "cuda"
   student_mask_ratio: 0.7
@@ -22,18 +22,21 @@ training:
   checkpoint_name: "st_te_model_FAUST.pth"
   consistency_weight: 50.0
   contrastive_margin: 0.5
-  contrastive_weight: 5.0
+  contrastive_weight: 10.0
   cycle_eps: 0.02
   cycle_n_iter: 15
   cycle_weight: 50.0
   lgo_eps: 0.04
   lgo_target_eps: 0.025
-  lgo_weight: 25.0
-  distortion_weight: 15.0
+  lgo_weight: 30.0
+  distortion_weight: 75.0
   distortion_tau: 0.03
   distortion_samples: 512
-  orientation_weight: 5.0
-  orientation_lr: 0.0005
+  orientation_weight: 50.0
+  orientation_lr: 0.001
+  orientation_max_yaw: 45.0
+  orientation_flip_prob: 0.15
+  warmup_epochs: 15
 
 student_model:
   embed_dim: 128

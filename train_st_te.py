@@ -91,22 +91,27 @@ def train_model(student, teacher, train_shapes, config):
     # Asymmetric distillation temperatures to drive Lgo down to ~3.5 - 4.0
     student_lgo_eps = config['training'].get('lgo_eps', 0.05)
     target_lgo_eps = config['training'].get('lgo_target_eps', 0.035)
-    lgo_weight = config['training'].get('lgo_weight', 25.0)
-    orient_weight = config['training'].get('orientation_weight', 5.0)
-    orient_lr = config['training'].get('orientation_lr', 0.0005)
-    dist_weight = config['training'].get('distortion_weight', 15.0)
+    lgo_weight = config['training'].get('lgo_weight', 30.0)
+    orient_weight = config['training'].get('orientation_weight', 50.0)
+    orient_lr = config['training'].get('orientation_lr', 0.001)
+    orient_max_yaw = config['training'].get('orientation_max_yaw', 45.0)
+    orient_jitter = config['training'].get('orientation_jitter', 5.0)
+    orient_flip_prob = config['training'].get('orientation_flip_prob', 0.15)
+    warmup_epochs = config['training'].get('warmup_epochs', 15)
+    dist_weight = config['training'].get('distortion_weight', 75.0)
     dist_tau = config['training'].get('distortion_tau', 0.03)
     dist_samples = config['training'].get('distortion_samples', 512)
     
     print(f"\n{'='*60}")
     print("STUDENT-TEACHER TRAINING PHASE")
     print(f"  Training shapes: {len(train_shapes)}")
-    print(f"  Epochs: {num_epochs}")
+    print(f"  Total Epochs: {num_epochs} (Phase 1 Warmup: 1-{warmup_epochs}, Phase 2 Matching: {warmup_epochs+1}-{num_epochs})")
     print(f"  Device: {device}")
     print(f"  Student Masking Ratio (Nodes/Feats): {student_mask_ratio} / {student_feat_ratio}")
     print(f"  Teacher Masking Ratio (Nodes/Feats): {teacher_mask_ratio} / {teacher_feat_ratio}")
     print(f"  EMA Alpha: {ema_alpha} | Consist. Weight: {cons_weight}")
     print(f"  Cycle Weight: {cycle_weight} | LGO Weight: {lgo_weight} | Dist. Weight: {dist_weight} | Orient Weight: {orient_weight} (lr: {orient_lr})")
+    print(f"  Orientation Config: max_yaw={orient_max_yaw}°, jitter={orient_jitter}°, flip_prob={orient_flip_prob}")
     print(f"  LGO Temperatures: student_eps={student_lgo_eps}, target_eps={target_lgo_eps}")
     print(f"{'='*60}\n")
     
@@ -129,6 +134,18 @@ def train_model(student, teacher, train_shapes, config):
     epoch = 0
     try:
         for epoch in range(num_epochs):
+            is_warmup = (epoch < warmup_epochs)
+            if epoch == 0:
+                print(f"{'='*60}")
+                print(f"--> PHASE 1: ORIENTATION CANONICALIZATION (Epochs 1 to {warmup_epochs})")
+                print("    Orientation module learning canonical frame; correspondence losses are off.")
+                print(f"{'='*60}")
+            elif epoch == warmup_epochs:
+                print(f"\n{'='*60}")
+                print(f"--> PHASE 2: DENSE POINT MATCHING (Epochs {warmup_epochs+1} to {num_epochs})")
+                print("    All dense correspondence losses (Lgo, Dist, Cycle, Contra) ACTIVATED!")
+                print(f"{'='*60}")
+
             epoch_loss = 0
             epoch_rec_loss = 0
             epoch_cons_loss = 0
@@ -180,41 +197,70 @@ def train_model(student, teacher, train_shapes, config):
                 loss_rec = loss1_rec + loss2_rec
                 loss_cons = loss1_cons + loss2_cons
                 
-                # Extract clean features and canonical coordinates for Shape 1 and Shape 2
-                enc1_s, p1_align, _ = student.extract_features(f1, p1, return_aligned_pos=True)
-                enc2_s, p2_align, _ = student.extract_features(f2, p2, return_aligned_pos=True)
-                
-                # Contrastive Loss
-                loss_contra1 = compute_contrastive_loss(enc1_s, margin=contra_margin)
-                loss_contra2 = compute_contrastive_loss(enc2_s, margin=contra_margin)
-                loss_contra = loss_contra1 + loss_contra2
-                
-                # Cycle Loss on canonically aligned coordinates
-                loss_cycle1 = compute_cycle_loss(enc1_s, enc2_s, p1_align, eps=cycle_eps, n_iter=cycle_n_iter)
-                loss_cycle2 = compute_cycle_loss(enc2_s, enc1_s, p2_align, eps=cycle_eps, n_iter=cycle_n_iter)
-                loss_cycle = loss_cycle1 + loss_cycle2
-                
-                # Global Optimization Loss (L_go) - asymmetric Sinkhorn pseudo-labels
-                loss_lgo1 = compute_lgo_loss(enc1_s, enc2_s, eps=student_lgo_eps, target_eps=target_lgo_eps, n_iter=cycle_n_iter)
-                loss_lgo2 = compute_lgo_loss(enc2_s, enc1_s, eps=student_lgo_eps, target_eps=target_lgo_eps, n_iter=cycle_n_iter)
-                loss_lgo = (loss_lgo1 + loss_lgo2) / 2.0
-                
-                # Metric Distortion Loss (L_dist) on canonical coordinates
-                loss_dist1 = compute_distortion_loss(enc1_s, enc2_s, p1_align, p2_align, num_samples=dist_samples, tau=dist_tau)
-                loss_dist2 = compute_distortion_loss(enc2_s, enc1_s, p2_align, p1_align, num_samples=dist_samples, tau=dist_tau)
-                loss_dist = (loss_dist1 + loss_dist2) / 2.0
-                
-                # SE-ORNet Orientation Loss (Rotation Equivariance + Self-Ensembling Teacher Consistency)
-                loss_orient = compute_orientation_loss(student.orientation_module, teacher.orientation_module, p1, p2)
-                
-                # Total loss with doubled lambda for symmetry/Lgo minimization
-                loss = (loss_rec + 
-                        (cons_weight * loss_cons) + 
-                        (contra_weight * loss_contra) + 
-                        (cycle_weight * loss_cycle) + 
-                        (lgo_weight * loss_lgo) + 
-                        (dist_weight * loss_dist) +
-                        (orient_weight * loss_orient))
+                if is_warmup:
+                    # Phase 1: Pure orientation canonicalization & feature reconstruction
+                    # Teacher orientation consistency is None during warmup so student can freely establish canonical frame
+                    loss_orient = compute_orientation_loss(
+                        student.orientation_module,
+                        None,
+                        p1,
+                        p2,
+                        max_yaw_deg=orient_max_yaw,
+                        jitter_deg=orient_jitter,
+                        flip_prob=orient_flip_prob
+                    )
+                    loss_contra = torch.tensor(0.0, device=device)
+                    loss_cycle = torch.tensor(0.0, device=device)
+                    loss_lgo = torch.tensor(0.0, device=device)
+                    loss_dist = torch.tensor(0.0, device=device)
+                    
+                    loss = (loss_rec + 
+                            (cons_weight * loss_cons) + 
+                            (orient_weight * loss_orient))
+                else:
+                    # Phase 2: Full dense point matching & canonical correspondence
+                    enc1_s, p1_align, _ = student.extract_features(f1, p1, return_aligned_pos=True)
+                    enc2_s, p2_align, _ = student.extract_features(f2, p2, return_aligned_pos=True)
+                    
+                    # Contrastive Loss
+                    loss_contra1 = compute_contrastive_loss(enc1_s, margin=contra_margin)
+                    loss_contra2 = compute_contrastive_loss(enc2_s, margin=contra_margin)
+                    loss_contra = loss_contra1 + loss_contra2
+                    
+                    # Cycle Loss on canonically aligned coordinates
+                    loss_cycle1 = compute_cycle_loss(enc1_s, enc2_s, p1_align, eps=cycle_eps, n_iter=cycle_n_iter)
+                    loss_cycle2 = compute_cycle_loss(enc2_s, enc1_s, p2_align, eps=cycle_eps, n_iter=cycle_n_iter)
+                    loss_cycle = loss_cycle1 + loss_cycle2
+                    
+                    # Global Optimization Loss (L_go) - asymmetric Sinkhorn pseudo-labels
+                    loss_lgo1 = compute_lgo_loss(enc1_s, enc2_s, eps=student_lgo_eps, target_eps=target_lgo_eps, n_iter=cycle_n_iter)
+                    loss_lgo2 = compute_lgo_loss(enc2_s, enc1_s, eps=student_lgo_eps, target_eps=target_lgo_eps, n_iter=cycle_n_iter)
+                    loss_lgo = (loss_lgo1 + loss_lgo2) / 2.0
+                    
+                    # Metric Distortion Loss (L_dist) on canonical coordinates
+                    loss_dist1 = compute_distortion_loss(enc1_s, enc2_s, p1_align, p2_align, num_samples=dist_samples, tau=dist_tau)
+                    loss_dist2 = compute_distortion_loss(enc2_s, enc1_s, p2_align, p1_align, num_samples=dist_samples, tau=dist_tau)
+                    loss_dist = (loss_dist1 + loss_dist2) / 2.0
+                    
+                    # SE-ORNet Orientation Loss (Rotation Equivariance + Self-Ensembling Teacher Consistency)
+                    loss_orient = compute_orientation_loss(
+                        student.orientation_module,
+                        teacher.orientation_module,
+                        p1,
+                        p2,
+                        max_yaw_deg=orient_max_yaw,
+                        jitter_deg=orient_jitter,
+                        flip_prob=orient_flip_prob
+                    )
+                    
+                    # Total loss with dense correspondence objectives
+                    loss = (loss_rec + 
+                            (cons_weight * loss_cons) + 
+                            (contra_weight * loss_contra) + 
+                            (cycle_weight * loss_cycle) + 
+                            (lgo_weight * loss_lgo) + 
+                            (dist_weight * loss_dist) +
+                            (orient_weight * loss_orient))
                 
                 optimizer.zero_grad()
                 loss.backward()
