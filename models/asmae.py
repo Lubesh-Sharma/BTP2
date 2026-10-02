@@ -114,9 +114,8 @@ class ASMAE(nn.Module):
         return self.decoder_norm(base)
 
     def forward(self, x_source, pos_source, x_target, pos_target, mask_ratio=None, feature_ratio=0.2):
-        # SE-ORNet Canonical Orientation Alignment
-        pos_source, _ = self.orientation_module.align(pos_source)
-        pos_target, _ = self.orientation_module.align(pos_target)
+        # SE-ORNet Relative Orientation Alignment: align source into target frame
+        pos_source, _ = self.orientation_module.align(pos_source, pos_target)
         if x_source.shape[-1] >= 3:
             x_source = x_source.clone()
             p_min_s = pos_source.min(dim=1, keepdim=True)[0]
@@ -153,8 +152,8 @@ class ASMAE(nn.Module):
         
         return pred_source, mask_binary, loss_div, x_source, target_encoded, final_mask
 
-    def extract_features(self, x, pos, return_aligned_pos=False):
-        pos_align, R = self.orientation_module.align(pos)
+    def extract_features(self, x, pos, target_pos=None, return_aligned_pos=False):
+        pos_align, R = self.orientation_module.align(pos, target_pos)
         if x.shape[-1] >= 3:
             x = x.clone()
             p_min = pos_align.min(dim=1, keepdim=True)[0]

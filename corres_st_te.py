@@ -100,7 +100,7 @@ def main():
     feature_dim = temp_feat.shape[1]
     model = load_model(config, feature_dim, device)
     
-    # 3. Cache Features (Pre-computing helps for N^2 pairs)
+    # 3. Cache Base Geometries & Self Features
     cached_shapes = {}
     for filename in all_files:
         path = os.path.join(data_dir, filename)
@@ -110,17 +110,19 @@ def main():
         V, El, feat, _ = process_geometry(path, k=k, t=t, output_dir=out_dir)
         p_coords = normalize_pc(V.copy()) if args.normalize_pc else V.copy()
         
-        with torch.no_grad():
-            f_torch = torch.tensor(feat, dtype=torch.float32, device=device).unsqueeze(0)
-            p_torch = torch.tensor(p_coords, dtype=torch.float32, device=device).unsqueeze(0)
-            z = model.extract_features(f_torch, p_torch).squeeze(0).cpu().numpy()
-            
-        z /= np.linalg.norm(z, axis=1, keepdims=True) + 1e-8
+        f_torch = torch.tensor(feat, dtype=torch.float32, device=device).unsqueeze(0)
+        p_torch = torch.tensor(p_coords, dtype=torch.float32, device=device).unsqueeze(0)
         
+        with torch.no_grad():
+            z_self = model.extract_features(f_torch, p_torch).squeeze(0)
+            z_self = (z_self / (torch.norm(z_self, dim=1, keepdim=True) + 1e-8)).cpu().numpy()
+            
         cached_shapes[filename] = {
             'V': V,
             'El': El,
-            'Z': z,
+            'f_torch': f_torch,
+            'p_torch': p_torch,
+            'Z_self': z_self,
             'name': name
         }
 
@@ -135,8 +137,16 @@ def main():
             # Skip diagonal? (Optional, user asked for all n*n including self-mapping)
             print(f"[{i*len(all_files) + j + 1}/{len(all_files)**2}] {file1} -> {file2}")
             
+            if file1 == file2:
+                z1 = s1['Z_self']
+            else:
+                with torch.no_grad():
+                    z1 = model.extract_features(s1['f_torch'], s1['p_torch'], target_pos=s2['p_torch']).squeeze(0)
+                    z1 = (z1 / (torch.norm(z1, dim=1, keepdim=True) + 1e-8)).cpu().numpy()
+            z2 = s2['Z_self']
+            
             # Compute Cost
-            cost = cdist(s1['Z'], s2['Z'], metric="sqeuclidean")
+            cost = cdist(z1, z2, metric="sqeuclidean")
             
             # Sinkhorn
             P = sinkhorn(cost, eps=eps, n_iter=n_iter)

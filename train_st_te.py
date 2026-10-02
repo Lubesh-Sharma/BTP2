@@ -198,16 +198,14 @@ def train_model(student, teacher, train_shapes, config):
                 loss_cons = loss1_cons + loss2_cons
                 
                 if is_warmup:
-                    # Phase 1: Pure orientation canonicalization & feature reconstruction
-                    # Teacher orientation consistency is None during warmup so student can freely establish canonical frame
+                    # Phase 1: Pure orientation learning & feature reconstruction
+                    # Orientation module learns relative rotation via synthetic angle cross-entropy
                     loss_orient = compute_orientation_loss(
                         student.orientation_module,
-                        None,
                         p1,
                         p2,
-                        max_yaw_deg=orient_max_yaw,
-                        jitter_deg=orient_jitter,
-                        flip_prob=orient_flip_prob
+                        teacher_ori=None,
+                        num_bins=8
                     )
                     loss_contra = torch.tensor(0.0, device=device)
                     loss_cycle = torch.tensor(0.0, device=device)
@@ -218,18 +216,19 @@ def train_model(student, teacher, train_shapes, config):
                             (cons_weight * loss_cons) + 
                             (orient_weight * loss_orient))
                 else:
-                    # Phase 2: Full dense point matching & canonical correspondence
-                    enc1_s, p1_align, _ = student.extract_features(f1, p1, return_aligned_pos=True)
-                    enc2_s, p2_align, _ = student.extract_features(f2, p2, return_aligned_pos=True)
+                    # Phase 2: Full dense point matching with pair-aligned coordinates
+                    # Align S1 into S2's frame so both share the exact same orientation
+                    enc1_s, p1_align, _ = student.extract_features(f1, p1, target_pos=p2, return_aligned_pos=True)
+                    enc2_s, p2_ref, _ = student.extract_features(f2, p2, target_pos=None, return_aligned_pos=True)
                     
                     # Contrastive Loss
                     loss_contra1 = compute_contrastive_loss(enc1_s, margin=contra_margin)
                     loss_contra2 = compute_contrastive_loss(enc2_s, margin=contra_margin)
                     loss_contra = loss_contra1 + loss_contra2
                     
-                    # Cycle Loss on canonically aligned coordinates
+                    # Cycle Loss on pair-aligned coordinates (both in S2's frame)
                     loss_cycle1 = compute_cycle_loss(enc1_s, enc2_s, p1_align, eps=cycle_eps, n_iter=cycle_n_iter)
-                    loss_cycle2 = compute_cycle_loss(enc2_s, enc1_s, p2_align, eps=cycle_eps, n_iter=cycle_n_iter)
+                    loss_cycle2 = compute_cycle_loss(enc2_s, enc1_s, p2_ref, eps=cycle_eps, n_iter=cycle_n_iter)
                     loss_cycle = loss_cycle1 + loss_cycle2
                     
                     # Global Optimization Loss (L_go) - asymmetric Sinkhorn pseudo-labels
@@ -237,20 +236,18 @@ def train_model(student, teacher, train_shapes, config):
                     loss_lgo2 = compute_lgo_loss(enc2_s, enc1_s, eps=student_lgo_eps, target_eps=target_lgo_eps, n_iter=cycle_n_iter)
                     loss_lgo = (loss_lgo1 + loss_lgo2) / 2.0
                     
-                    # Metric Distortion Loss (L_dist) on canonical coordinates
-                    loss_dist1 = compute_distortion_loss(enc1_s, enc2_s, p1_align, p2_align, num_samples=dist_samples, tau=dist_tau)
-                    loss_dist2 = compute_distortion_loss(enc2_s, enc1_s, p2_align, p1_align, num_samples=dist_samples, tau=dist_tau)
+                    # Metric Distortion Loss (L_dist) with both shapes in S2's reference frame
+                    loss_dist1 = compute_distortion_loss(enc1_s, enc2_s, p1_align, p2_ref, num_samples=dist_samples, tau=dist_tau)
+                    loss_dist2 = compute_distortion_loss(enc2_s, enc1_s, p2_ref, p1_align, num_samples=dist_samples, tau=dist_tau)
                     loss_dist = (loss_dist1 + loss_dist2) / 2.0
                     
-                    # SE-ORNet Orientation Loss (Rotation Equivariance + Self-Ensembling Teacher Consistency)
+                    # SE-ORNet Orientation Loss (Relative Angle Cross-Entropy)
                     loss_orient = compute_orientation_loss(
                         student.orientation_module,
-                        teacher.orientation_module,
                         p1,
                         p2,
-                        max_yaw_deg=orient_max_yaw,
-                        jitter_deg=orient_jitter,
-                        flip_prob=orient_flip_prob
+                        teacher_ori=teacher.orientation_module,
+                        num_bins=8
                     )
                     
                     # Total loss with dense correspondence objectives
