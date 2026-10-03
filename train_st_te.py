@@ -12,6 +12,7 @@ from core.contrastive_loss import compute_contrastive_loss
 from core.cycle_loss import compute_cycle_loss
 from core.lgo_loss import compute_lgo_loss
 from core.distortion_loss import compute_distortion_loss
+from core.signed_area_loss import compute_signed_area_loss
 from core.orientation_loss import compute_orientation_loss
 
 def update_teacher_ema(student, teacher, alpha=0.999):
@@ -92,25 +93,26 @@ def train_model(student, teacher, train_shapes, config):
     student_lgo_eps = config['training'].get('lgo_eps', 0.05)
     target_lgo_eps = config['training'].get('lgo_target_eps', 0.035)
     lgo_weight = config['training'].get('lgo_weight', 30.0)
-    orient_weight = config['training'].get('orientation_weight', 50.0)
+    orient_weight = config['training'].get('orientation_weight', 20.0)
+    area_weight = config['training'].get('area_weight', 60.0)
     orient_lr = config['training'].get('orientation_lr', 0.001)
     orient_max_yaw = config['training'].get('orientation_max_yaw', 45.0)
     orient_jitter = config['training'].get('orientation_jitter', 5.0)
     orient_flip_prob = config['training'].get('orientation_flip_prob', 0.15)
-    warmup_epochs = config['training'].get('warmup_epochs', 15)
-    dist_weight = config['training'].get('distortion_weight', 75.0)
+    dist_weight = config['training'].get('distortion_weight', 120.0)
     dist_tau = config['training'].get('distortion_tau', 0.03)
     dist_samples = config['training'].get('distortion_samples', 512)
     
     print(f"\n{'='*60}")
     print("STUDENT-TEACHER TRAINING PHASE")
     print(f"  Training shapes: {len(train_shapes)}")
-    print(f"  Total Epochs: {num_epochs} (Phase 1 Warmup: 1-{warmup_epochs}, Phase 2 Matching: {warmup_epochs+1}-{num_epochs})")
+    print(f"  Total Epochs: {num_epochs} (Full Joint Dense Matching & Orientation)")
     print(f"  Device: {device}")
     print(f"  Student Masking Ratio (Nodes/Feats): {student_mask_ratio} / {student_feat_ratio}")
     print(f"  Teacher Masking Ratio (Nodes/Feats): {teacher_mask_ratio} / {teacher_feat_ratio}")
     print(f"  EMA Alpha: {ema_alpha} | Consist. Weight: {cons_weight}")
-    print(f"  Cycle Weight: {cycle_weight} | LGO Weight: {lgo_weight} | Dist. Weight: {dist_weight} | Orient Weight: {orient_weight} (lr: {orient_lr})")
+    print(f"  Cycle Weight: {cycle_weight} | LGO Weight: {lgo_weight} | Dist. Weight: {dist_weight}")
+    print(f"  Area Weight: {area_weight} | Orient Weight: {orient_weight} (lr: {orient_lr})")
     print(f"  Orientation Config: max_yaw={orient_max_yaw}°, jitter={orient_jitter}°, flip_prob={orient_flip_prob}")
     print(f"  LGO Temperatures: student_eps={student_lgo_eps}, target_eps={target_lgo_eps}")
     print(f"{'='*60}\n")
@@ -134,18 +136,6 @@ def train_model(student, teacher, train_shapes, config):
     epoch = 0
     try:
         for epoch in range(num_epochs):
-            is_warmup = (epoch < warmup_epochs)
-            if epoch == 0:
-                print(f"{'='*60}")
-                print(f"--> PHASE 1: ORIENTATION CANONICALIZATION (Epochs 1 to {warmup_epochs})")
-                print("    Orientation module learning canonical frame; correspondence losses are off.")
-                print(f"{'='*60}")
-            elif epoch == warmup_epochs:
-                print(f"\n{'='*60}")
-                print(f"--> PHASE 2: DENSE POINT MATCHING (Epochs {warmup_epochs+1} to {num_epochs})")
-                print("    All dense correspondence losses (Lgo, Dist, Cycle, Contra) ACTIVATED!")
-                print(f"{'='*60}")
-
             epoch_loss = 0
             epoch_rec_loss = 0
             epoch_cons_loss = 0
@@ -153,6 +143,7 @@ def train_model(student, teacher, train_shapes, config):
             epoch_cycle_loss = 0
             epoch_lgo_loss = 0
             epoch_dist_loss = 0
+            epoch_area_loss = 0
             epoch_orient_loss = 0
             num_pairs = 0
             # All N x N pairs (all pairs i != j)
@@ -197,67 +188,57 @@ def train_model(student, teacher, train_shapes, config):
                 loss_rec = loss1_rec + loss2_rec
                 loss_cons = loss1_cons + loss2_cons
                 
-                if is_warmup:
-                    # Phase 1: Pure orientation learning & feature reconstruction
-                    # Orientation module learns relative rotation via synthetic angle cross-entropy
-                    loss_orient = compute_orientation_loss(
-                        student.orientation_module,
-                        p1,
-                        p2,
-                        teacher_ori=None,
-                        num_bins=8
-                    )
-                    loss_contra = torch.tensor(0.0, device=device)
-                    loss_cycle = torch.tensor(0.0, device=device)
-                    loss_lgo = torch.tensor(0.0, device=device)
-                    loss_dist = torch.tensor(0.0, device=device)
-                    
-                    loss = (loss_rec + 
-                            (cons_weight * loss_cons) + 
-                            (orient_weight * loss_orient))
-                else:
-                    # Phase 2: Full dense point matching with pair-aligned coordinates
-                    # Align S1 into S2's frame so both share the exact same orientation
-                    enc1_s, p1_align, _ = student.extract_features(f1, p1, target_pos=p2, return_aligned_pos=True)
-                    enc2_s, p2_ref, _ = student.extract_features(f2, p2, target_pos=None, return_aligned_pos=True)
-                    
-                    # Contrastive Loss
-                    loss_contra1 = compute_contrastive_loss(enc1_s, margin=contra_margin)
-                    loss_contra2 = compute_contrastive_loss(enc2_s, margin=contra_margin)
-                    loss_contra = loss_contra1 + loss_contra2
-                    
-                    # Cycle Loss on pair-aligned coordinates (both in S2's frame)
-                    loss_cycle1 = compute_cycle_loss(enc1_s, enc2_s, p1_align, eps=cycle_eps, n_iter=cycle_n_iter)
-                    loss_cycle2 = compute_cycle_loss(enc2_s, enc1_s, p2_ref, eps=cycle_eps, n_iter=cycle_n_iter)
-                    loss_cycle = loss_cycle1 + loss_cycle2
-                    
-                    # Global Optimization Loss (L_go) - asymmetric Sinkhorn pseudo-labels
-                    loss_lgo1 = compute_lgo_loss(enc1_s, enc2_s, eps=student_lgo_eps, target_eps=target_lgo_eps, n_iter=cycle_n_iter)
-                    loss_lgo2 = compute_lgo_loss(enc2_s, enc1_s, eps=student_lgo_eps, target_eps=target_lgo_eps, n_iter=cycle_n_iter)
-                    loss_lgo = (loss_lgo1 + loss_lgo2) / 2.0
-                    
-                    # Metric Distortion Loss (L_dist) with both shapes in S2's reference frame
-                    loss_dist1 = compute_distortion_loss(enc1_s, enc2_s, p1_align, p2_ref, num_samples=dist_samples, tau=dist_tau)
-                    loss_dist2 = compute_distortion_loss(enc2_s, enc1_s, p2_ref, p1_align, num_samples=dist_samples, tau=dist_tau)
-                    loss_dist = (loss_dist1 + loss_dist2) / 2.0
-                    
-                    # SE-ORNet Orientation Loss (Relative Angle Cross-Entropy)
-                    loss_orient = compute_orientation_loss(
-                        student.orientation_module,
-                        p1,
-                        p2,
-                        teacher_ori=teacher.orientation_module,
-                        num_bins=8
-                    )
-                    
-                    # Total loss with dense correspondence objectives
-                    loss = (loss_rec + 
-                            (cons_weight * loss_cons) + 
-                            (contra_weight * loss_contra) + 
-                            (cycle_weight * loss_cycle) + 
-                            (lgo_weight * loss_lgo) + 
-                            (dist_weight * loss_dist) +
-                            (orient_weight * loss_orient))
+                # -----------------------------------------------------------------
+                # Extract clean features with pair-aligned coordinates
+                # Align S1 into S2's frame so both share the exact same orientation
+                # -----------------------------------------------------------------
+                enc1_s, p1_align, _ = student.extract_features(f1, p1, target_pos=p2, return_aligned_pos=True)
+                enc2_s, p2_ref, _ = student.extract_features(f2, p2, target_pos=None, return_aligned_pos=True)
+                
+                # Contrastive Loss
+                loss_contra1 = compute_contrastive_loss(enc1_s, margin=contra_margin)
+                loss_contra2 = compute_contrastive_loss(enc2_s, margin=contra_margin)
+                loss_contra = loss_contra1 + loss_contra2
+                
+                # Cycle Loss on pair-aligned coordinates (both in S2's frame)
+                loss_cycle1 = compute_cycle_loss(enc1_s, enc2_s, p1_align, eps=cycle_eps, n_iter=cycle_n_iter)
+                loss_cycle2 = compute_cycle_loss(enc2_s, enc1_s, p2_ref, eps=cycle_eps, n_iter=cycle_n_iter)
+                loss_cycle = loss_cycle1 + loss_cycle2
+                
+                # Global Optimization Loss (L_go) - asymmetric Sinkhorn pseudo-labels
+                loss_lgo1 = compute_lgo_loss(enc1_s, enc2_s, eps=student_lgo_eps, target_eps=target_lgo_eps, n_iter=cycle_n_iter)
+                loss_lgo2 = compute_lgo_loss(enc2_s, enc1_s, eps=student_lgo_eps, target_eps=target_lgo_eps, n_iter=cycle_n_iter)
+                loss_lgo = (loss_lgo1 + loss_lgo2) / 2.0
+                
+                # Metric Distortion Loss (L_dist) with both shapes in S2's reference frame
+                loss_dist1 = compute_distortion_loss(enc1_s, enc2_s, p1_align, p2_ref, num_samples=dist_samples, tau=dist_tau)
+                loss_dist2 = compute_distortion_loss(enc2_s, enc1_s, p2_ref, p1_align, num_samples=dist_samples, tau=dist_tau)
+                loss_dist = (loss_dist1 + loss_dist2) / 2.0
+                
+                # Signed Area / Local Smoothness Loss on aligned coordinates
+                # Prevents salt-and-pepper tearing and strictly penalizes reflection symmetry
+                loss_area1 = compute_signed_area_loss(enc1_s, enc2_s, p1_align, p2_ref, num_samples=500, tau=dist_tau)
+                loss_area2 = compute_signed_area_loss(enc2_s, enc1_s, p2_ref, p1_align, num_samples=500, tau=dist_tau)
+                loss_area = (loss_area1 + loss_area2) / 2.0
+                
+                # SE-ORNet Orientation Loss (Relative Angle Cross-Entropy)
+                loss_orient = compute_orientation_loss(
+                    student.orientation_module,
+                    p1,
+                    p2,
+                    teacher_ori=teacher.orientation_module,
+                    num_bins=8
+                )
+                
+                # Total loss with dense correspondence objectives
+                loss = (loss_rec + 
+                        (cons_weight * loss_cons) + 
+                        (contra_weight * loss_contra) + 
+                        (cycle_weight * loss_cycle) + 
+                        (lgo_weight * loss_lgo) + 
+                        (dist_weight * loss_dist) + 
+                        (area_weight * loss_area) +
+                        (orient_weight * loss_orient))
                 
                 optimizer.zero_grad()
                 loss.backward()
@@ -273,6 +254,7 @@ def train_model(student, teacher, train_shapes, config):
                 epoch_cycle_loss += loss_cycle.item()
                 epoch_lgo_loss += loss_lgo.item()
                 epoch_dist_loss += loss_dist.item()
+                epoch_area_loss += loss_area.item()
                 epoch_orient_loss += loss_orient.item()
                 num_pairs += 1
                 
@@ -283,10 +265,11 @@ def train_model(student, teacher, train_shapes, config):
             avg_cycle = epoch_cycle_loss / num_pairs if num_pairs > 0 else 0
             avg_lgo = epoch_lgo_loss / num_pairs if num_pairs > 0 else 0
             avg_dist = epoch_dist_loss / num_pairs if num_pairs > 0 else 0
+            avg_area = epoch_area_loss / num_pairs if num_pairs > 0 else 0
             avg_orient = epoch_orient_loss / num_pairs if num_pairs > 0 else 0
             
             if num_epochs <= 50 or (epoch + 1) % 10 == 0 or epoch == 0:
-                print(f"Epoch {epoch+1:3d}/{num_epochs} | Tot: {avg_loss:.4f} | Rec: {avg_rec:.4f} | Cons: {avg_cons:.4f} | Contra: {avg_contra:.4f} | Cycle: {avg_cycle:.4f} | Lgo: {avg_lgo:.4f} | Dist: {avg_dist:.4f} | Orient: {avg_orient:.4f}")
+                print(f"Epoch {epoch+1:3d}/{num_epochs} | Tot: {avg_loss:.4f} | Rec: {avg_rec:.4f} | Cons: {avg_cons:.4f} | Contra: {avg_contra:.4f} | Cycle: {avg_cycle:.4f} | Lgo: {avg_lgo:.4f} | Dist: {avg_dist:.4f} | Area: {avg_area:.4f} | Orient: {avg_orient:.4f}")
         
     except KeyboardInterrupt:
         if epoch >= 1:
