@@ -50,14 +50,7 @@ def compute_orientation_loss(student_ori, p1, p2, teacher_ori=None, num_bins=8, 
     B = p1.shape[0]
     device = p1.device
     dtype = p1.dtype
-    
-    # 1. Sample synthetic relative rotation bin and angle
-    bin_target = torch.randint(0, num_bins, (B,), device=device)
     bin_width = 2.0 * math.pi / num_bins
-    # Add small jitter within the bin for continuous coverage
-    angle = bin_target.to(dtype) * bin_width + (torch.rand(B, device=device, dtype=dtype) - 0.5) * 0.4 * bin_width
-    
-    R = sample_rotation_around_axis(B, device, dtype, angle)
     
     # 1. Synthetically rotate Shape 1 by random angle bin1
     bin1 = torch.randint(0, num_bins, (B,), device=device)
@@ -97,12 +90,18 @@ def compute_orientation_loss(student_ori, p1, p2, teacher_ori=None, num_bins=8, 
     # Optional Teacher consistency (SE-ORNet self-ensembling)
     if teacher_ori is not None:
         with torch.no_grad():
-            teacher_logits = teacher_ori(p1_rot, p1)
-        loss_teacher = F.kl_div(
-            F.log_softmax(logits_self, dim=-1),
-            F.softmax(teacher_logits, dim=-1),
+            teacher_logits1 = teacher_ori(p1_rot, p1)
+            teacher_logits2 = teacher_ori(p2_rot, p2)
+        loss_teacher1 = F.kl_div(
+            F.log_softmax(logits1, dim=-1),
+            F.softmax(teacher_logits1, dim=-1),
             reduction='batchmean'
         )
-        total_loss = total_loss + 0.5 * loss_teacher
+        loss_teacher2 = F.kl_div(
+            F.log_softmax(logits2, dim=-1),
+            F.softmax(teacher_logits2, dim=-1),
+            reduction='batchmean'
+        )
+        total_loss = total_loss + 0.25 * (loss_teacher1 + loss_teacher2)
         
     return total_loss
