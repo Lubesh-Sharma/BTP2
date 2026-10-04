@@ -139,14 +139,30 @@ def main():
             
             if file1 == file2:
                 z1 = s1['Z_self']
+                z2 = s2['Z_self']
+                cost = cdist(z1, z2, metric="sqeuclidean")
             else:
                 with torch.no_grad():
-                    z1 = model.extract_features(s1['f_torch'], s1['p_torch'], target_pos=s2['p_torch']).squeeze(0)
-                    z1 = (z1 / (torch.norm(z1, dim=1, keepdim=True) + 1e-8)).cpu().numpy()
-            z2 = s2['Z_self']
-            
-            # Compute Cost
-            cost = cdist(z1, z2, metric="sqeuclidean")
+                    # Candidate 1: Model's predicted relative orientation
+                    feat1, _, R1 = model.extract_features(
+                        s1['f_torch'], s1['p_torch'], target_pos=s2['p_torch'], return_aligned_pos=True
+                    )
+                    z1_cand1 = (feat1.squeeze(0) / (torch.norm(feat1.squeeze(0), dim=1, keepdim=True) + 1e-8)).cpu().numpy()
+                    
+                    # Candidate 2: 180-deg flip around Y (strictly resolving bilateral front-back symmetry)
+                    R_180 = torch.tensor([[[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0]]], device=device)
+                    R2 = torch.bmm(R1, R_180)
+                    feat2, _, _ = model.extract_features(
+                        s1['f_torch'], s1['p_torch'], rotation_matrix=R2, return_aligned_pos=True
+                    )
+                    z1_cand2 = (feat2.squeeze(0) / (torch.norm(feat2.squeeze(0), dim=1, keepdim=True) + 1e-8)).cpu().numpy()
+
+                z2 = s2['Z_self']
+                cost1 = cdist(z1_cand1, z2, metric="sqeuclidean")
+                cost2 = cdist(z1_cand2, z2, metric="sqeuclidean")
+                
+                # Minimum matching energy selects the true orientation frame
+                cost = cost2 if cost2.min(axis=1).mean() < cost1.min(axis=1).mean() else cost1
             
             # Sinkhorn
             P = sinkhorn(cost, eps=eps, n_iter=n_iter)

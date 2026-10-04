@@ -152,8 +152,13 @@ class ASMAE(nn.Module):
         
         return pred_source, mask_binary, loss_div, x_source, target_encoded, final_mask
 
-    def extract_features(self, x, pos, target_pos=None, return_aligned_pos=False):
-        pos_align, R = self.orientation_module.align(pos, target_pos)
+    def extract_features(self, x, pos, target_pos=None, return_aligned_pos=False, rotation_matrix=None):
+        if rotation_matrix is not None:
+            c = torch.mean(pos, dim=1, keepdim=True)
+            pos_align = torch.bmm(pos - c, rotation_matrix.transpose(1, 2)) + c
+            R = rotation_matrix
+        else:
+            pos_align, R = self.orientation_module.align(pos, target_pos)
         if x.shape[-1] >= 3:
             x = x.clone()
             p_min = pos_align.min(dim=1, keepdim=True)[0]
@@ -164,3 +169,4 @@ class ASMAE(nn.Module):
         if return_aligned_pos:
             return feat, pos_align, R
         return feat
+

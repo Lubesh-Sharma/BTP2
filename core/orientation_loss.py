@@ -78,14 +78,30 @@ def compute_orientation_loss(student_ori, p1, p2, teacher_ori=None, num_bins=8, 
     logits2_rev = student_ori(p2, p2_rot)
     loss2_rev = F.cross_entropy(logits2_rev, (num_bins - bin2) % num_bins)
 
-    # 3. Identity alignment (unrotated with noise)
+    # 3. Identity alignment (unrotated self-pair with small noise)
     p1_noisy = p1 + torch.randn_like(p1) * sigma_noise
     bin_zero = torch.zeros(B, dtype=torch.long, device=device)
     loss_id1 = F.cross_entropy(student_ori(p1_noisy, p1), bin_zero)
     p2_noisy = p2 + torch.randn_like(p2) * sigma_noise
     loss_id2 = F.cross_entropy(student_ori(p2_noisy, p2), bin_zero)
 
-    total_loss = (loss1 + loss1_rev + loss2 + loss2_rev + loss_id1 + loss_id2) / 6.0
+    # 4. Cross-Shape Relative Rotation Equivariance (Shape-Agnostic)
+    # If p1 is rotated by bin1, the predicted relative orientation (p1_rot, p2)
+    # must be exactly the unrotated prediction (p1, p2) shifted by bin1.
+    logits_cross_unrot = student_ori(p1, p2)
+    logits_cross_rot = student_ori(p1_rot, p2)
+    # Target distribution is the unrotated prediction rolled by bin1
+    probs_cross_unrot = F.softmax(logits_cross_unrot.detach(), dim=-1)
+    target_shifted = torch.zeros_like(probs_cross_unrot)
+    for b_idx in range(B):
+        target_shifted[b_idx] = torch.roll(probs_cross_unrot[b_idx], shifts=int(bin1[b_idx].item()), dims=0)
+    loss_equiv = F.kl_div(
+        F.log_softmax(logits_cross_rot, dim=-1),
+        target_shifted,
+        reduction='batchmean'
+    )
+
+    total_loss = (loss1 + loss1_rev + loss2 + loss2_rev + loss_id1 + loss_id2 + 2.0 * loss_equiv) / 8.0
     
     # Optional Teacher consistency (SE-ORNet self-ensembling)
     if teacher_ori is not None:

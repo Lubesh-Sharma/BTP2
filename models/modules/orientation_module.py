@@ -148,12 +148,12 @@ class OrientationModule(nn.Module):
         logits = self.head(global_feat)  # [B, num_bins]
         return logits
 
-    def predict_rotation(self, p_src, p_tgt=None):
+    def predict_rotation(self, p_src, p_tgt=None, soft=None, temperature=0.5):
         """
         Predicts the relative 3x3 rotation matrix R to align p_src into p_tgt.
-        Returns:
-            R: [B, 3, 3] rotation matrix
-            logits: [B, num_bins] classification logits
+        If soft is True (or during training by default), returns a differentiable
+        expectation over rotation matrices so correspondence and area losses
+        can backpropagate gradients into the orientation module.
         """
         if p_tgt is None:
             B = p_src.shape[0]
@@ -163,34 +163,50 @@ class OrientationModule(nn.Module):
             return R, logits
             
         logits = self.forward(p_src, p_tgt)
-        pred_bin = torch.argmax(logits, dim=-1)  # [B]
-        
-        # Discretized angle bin center
-        angle = pred_bin.float() * (2.0 * math.pi / self.num_bins)
-        
-        cos_t = torch.cos(angle)
-        sin_t = torch.sin(angle)
-        zero = torch.zeros_like(cos_t)
-        one = torch.ones_like(cos_t)
-        
-        # Rotation around vertical axis (Y-axis)
-        row0 = torch.stack([cos_t, zero, sin_t], dim=-1)
-        row1 = torch.stack([zero, one, zero], dim=-1)
-        row2 = torch.stack([-sin_t, zero, cos_t], dim=-1)
-        R = torch.stack([row0, row1, row2], dim=1)  # [B, 3, 3]
+        device = p_src.device
+        dtype = p_src.dtype
+        B = p_src.shape[0]
+
+        if soft is None:
+            soft = self.training
+
+        # All candidate rotation matrices for discrete bins
+        bin_angles = torch.arange(self.num_bins, device=device, dtype=dtype) * (2.0 * math.pi / self.num_bins)
+        cos_all = torch.cos(bin_angles)
+        sin_all = torch.sin(bin_angles)
+        zeros_all = torch.zeros_like(cos_all)
+        ones_all = torch.ones_like(cos_all)
+
+        # [num_bins, 3, 3] rotation matrices around Y
+        r0 = torch.stack([cos_all, zeros_all, sin_all], dim=-1)
+        r1 = torch.stack([zeros_all, ones_all, zeros_all], dim=-1)
+        r2 = torch.stack([-sin_all, zeros_all, cos_all], dim=-1)
+        R_all = torch.stack([r0, r1, r2], dim=1)  # [num_bins, 3, 3]
+
+        if soft:
+            # Differentiable soft rotation matrix (expectation)
+            probs = F.softmax(logits / max(temperature, 1e-4), dim=-1)  # [B, num_bins]
+            # R: [B, 3, 3] = sum_b probs[b] * R_all[b]
+            R = torch.einsum('bm,mij->bij', probs, R_all)
+        else:
+            pred_bin = torch.argmax(logits, dim=-1)  # [B]
+            R = R_all[pred_bin]  # [B, 3, 3]
+
         return R, logits
 
-    def align(self, p_src, p_tgt=None):
+    def align(self, p_src, p_tgt=None, soft=None):
         """
         Aligns p_src to p_tgt by predicting R and applying it:
-        p_aligned = (p_src - c_src) @ R + c_src
+        p_aligned = (p_src - c_src) @ R.T + c_src
         """
         if p_tgt is None:
             B = p_src.shape[0]
             R = torch.eye(3, device=p_src.device, dtype=p_src.dtype).unsqueeze(0).expand(B, -1, -1)
             return p_src, R
             
-        R, _ = self.predict_rotation(p_src, p_tgt)
+        R, _ = self.predict_rotation(p_src, p_tgt, soft=soft)
         c_src = torch.mean(p_src, dim=1, keepdim=True)
-        p_aligned = torch.bmm(p_src - c_src, R) + c_src
+        # Apply rotation (transpose for row vector multiplication)
+        p_aligned = torch.bmm(p_src - c_src, R.transpose(1, 2)) + c_src
         return p_aligned, R
+
