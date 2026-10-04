@@ -127,6 +127,7 @@ def main():
         # L2-normalize ASMAE features
         z = z / (np.linalg.norm(z, axis=1, keepdims=True) + 1e-8)
 
+        dino_cached = None
         if args.use_dino:
             off_file = os.path.join(args.off_dir, f"{name}.off")
             if os.path.exists(off_file):
@@ -135,6 +136,7 @@ def main():
                     V_raw, ITris, variant=args.dino_variant, n_views=args.dino_views, device=device)
                 dino_norm = dino_feat / (np.linalg.norm(dino_feat, axis=1, keepdims=True) + 1e-8)
                 z = np.concatenate([z, dino_norm], axis=1)
+                dino_cached = dino_norm
             else:
                 print(f"    [Warning] OFF file not found at {off_file}, skipping DINOv2 for {name}")
 
@@ -142,6 +144,7 @@ def main():
             'V': V,
             'El': El,
             'Z': z,
+            'dino_feat': dino_cached,
             'f_torch': f_torch,
             'p_torch': p_torch,
             'name': name
@@ -172,6 +175,8 @@ def main():
                     feat1 = model.extract_features(s1['f_torch'], s1['p_torch'], target_pos=s2['p_torch'])
                     z1 = feat1.squeeze(0).cpu().numpy()
                     z1 = z1 / (np.linalg.norm(z1, axis=1, keepdims=True) + 1e-8)
+                    if s1['dino_feat'] is not None:
+                        z1 = np.concatenate([z1, s1['dino_feat']], axis=1)
                 sim = s2['Z'] @ z1.T
             p2p = np.argmax(sim, axis=1)
 
