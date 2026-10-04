@@ -21,26 +21,27 @@ def get_graph_feature(ref: torch.Tensor, query: torch.Tensor, k: int = 20, idx=N
     """
     Extracts graph neighborhood features as in DGCNN and SE-ORNet (Deng et al., CVPR 2023).
     Args:
-        ref: [B, N, C]
-        query: [B, N, C]
+        ref: [B, N_ref, C]
+        query: [B, N_query, C]
         k: int, number of neighbors
-        idx: optional precomputed neighbor indices [B, N, k]
-        ref_xyz: optional reference 3D coordinates [B, N, 3]
+        idx: optional precomputed neighbor indices [B, N_query, k]
+        ref_xyz: optional reference 3D coordinates [B, N_ref, 3]
     Returns:
-        feature: [B, N, k, C]
-        xyz: [B, N, k, 3] (if ref_xyz is provided)
+        feature: [B, N_query, k, C]
+        xyz: [B, N_query, k, 3] (if ref_xyz is provided)
     """
-    batch_size, num_points, num_dims = ref.size()
+    batch_size, num_ref, num_dims = ref.size()
+    num_query = query.size(1)
     if idx is None:
         idx = knn(ref, query, k=k)
-    idx_base = torch.arange(0, batch_size, device=idx.device).view(-1, 1, 1) * num_points
+    idx_base = torch.arange(0, batch_size, device=idx.device).view(-1, 1, 1) * num_ref
     idx = (idx + idx_base).view(-1)
 
-    feature = ref.reshape(batch_size * num_points, -1)[idx, :]
-    feature = feature.view(batch_size, num_points, k, num_dims)
+    feature = ref.reshape(batch_size * num_ref, -1)[idx, :]
+    feature = feature.view(batch_size, num_query, k, num_dims)
     if ref_xyz is not None:
-        xyz = ref_xyz.reshape(batch_size * num_points, -1)[idx, :]
-        xyz = xyz.view(batch_size, num_points, k, 3)
+        xyz = ref_xyz.reshape(batch_size * num_ref, -1)[idx, :]
+        xyz = xyz.view(batch_size, num_query, k, 3)
         return feature, xyz
     return feature
 
