@@ -1,3 +1,6 @@
 *.mat
 */mat/
 mat/*.vscode/settings.json
+__pycache__/
+*.pyc
+.ipynb_checkpoints/

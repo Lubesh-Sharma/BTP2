@@ -290,7 +290,7 @@ class OrientationModule(nn.Module):
     def align(self, p_src, p_tgt=None, soft=None):
         """
         Aligns p_src into p_tgt's frame:
-          p_aligned = (p_src - c_src) @ R.T + c_src
+          p_aligned = (p_src - c_src) @ R + c_src
         """
         if p_tgt is None:
             B = p_src.shape[0]
@@ -299,5 +299,5 @@ class OrientationModule(nn.Module):
 
         R, _ = self.predict_rotation(p_src, p_tgt, soft=soft)
         c_src = torch.mean(p_src, dim=1, keepdim=True)
-        p_aligned = torch.bmm(p_src - c_src, R.transpose(1, 2)) + c_src
+        p_aligned = torch.bmm(p_src - c_src, R) + c_src
         return p_aligned, R

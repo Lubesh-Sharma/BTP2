@@ -155,7 +155,7 @@ class ASMAE(nn.Module):
     def extract_features(self, x, pos, target_pos=None, return_aligned_pos=False, rotation_matrix=None):
         if rotation_matrix is not None:
             c = torch.mean(pos, dim=1, keepdim=True)
-            pos_align = torch.bmm(pos - c, rotation_matrix.transpose(1, 2)) + c
+            pos_align = torch.bmm(pos - c, rotation_matrix) + c
             R = rotation_matrix
         else:
             pos_align, R = self.orientation_module.align(pos, target_pos)
