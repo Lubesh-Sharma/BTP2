@@ -221,13 +221,13 @@ def train_model(student, teacher, train_shapes, config):
                 loss_area2 = compute_signed_area_loss(enc2_s, enc1_s, p2_ref, p1_align, num_samples=500, tau=dist_tau)
                 loss_area = (loss_area1 + loss_area2) / 2.0
                 
-                # SE-ORNet Orientation Loss (Relative Angle Cross-Entropy with 12 bins = 30 deg)
+                # SE-ORNet Orientation Loss (Relative Angle Cross-Entropy with 8 bins = 45 deg)
                 loss_orient = compute_orientation_loss(
                     student.orientation_module,
                     p1,
                     p2,
                     teacher_ori=teacher.orientation_module,
-                    num_bins=12
+                    num_bins=student.orientation_module.num_bins
                 )
                 
                 # Total loss with dense correspondence objectives

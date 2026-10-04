@@ -2,109 +2,87 @@ import math
 import torch
 import torch.nn.functional as F
 
-def sample_rotation_around_axis(B, device, dtype, angle):
+def rotate_point_cloud_by_angle(batch_data: torch.Tensor, angles: torch.Tensor):
     """
-    Constructs a 3x3 rotation matrix around the vertical axis for given batch angles.
-    """
-    cos_t = torch.cos(angle)
-    sin_t = torch.sin(angle)
-    zero = torch.zeros_like(cos_t)
-    one = torch.ones_like(cos_t)
-    
-    row0 = torch.stack([cos_t, zero, sin_t], dim=-1)
-    row1 = torch.stack([zero, one, zero], dim=-1)
-    row2 = torch.stack([-sin_t, zero, cos_t], dim=-1)
-    R = torch.stack([row0, row1, row2], dim=1)  # [B, 3, 3]
-    return R
-
-def compute_orientation_loss(student_ori, p1, p2, teacher_ori=None, num_bins=12, sigma_noise=0.01):
-    """
-    SE-ORNet / DV-Matcher Relative Orientation Angle Loss (Deng et al., CVPR 2023).
-    
-    Supervises the OrientationModule using discrete angle classification into M=12 bins
-    (30-degree bins covering [0, 2pi)):
-    
-    1. Evaluates all discrete candidate rotation bins simultaneously in a single batch.
-    2. Zero-variance gradient expectation across all 12 angle classes.
-    3. Self-rotations and cross-shape relative rotations supervised with exact integer labels.
-    4. Small coordinate noise perturbation (sigma=0.01) for geometric noise robustness.
-       
-    Because all target classes are exact integers {0, ..., 11}, the classification
-    loss drops smoothly from ln(12) (~2.48) down to < 0.10 without artificial boundary entropy floors.
-    
+    Rotates batch of point clouds around vertical Y-axis by given angles.
     Args:
-        student_ori: student.orientation_module (OrientationModule)
-        p1: [B, N1, 3] coordinates of Shape 1
-        p2: [B, N2, 3] coordinates of Shape 2
-        teacher_ori: optional teacher orientation module (for consistency)
-        num_bins: number of discrete angle bins (default: 12)
-        sigma_noise: standard deviation of Gaussian coordinate perturbation
-        
+        batch_data: [B, N, 3] Point clouds
+        angles: [B] Rotation angles in radians
     Returns:
-        total_loss: scalar Cross-Entropy orientation loss
+        rotated_data: [B, N, 3] Rotated point clouds centered at their centroids
+        R: [B, 3, 3] Rotation matrices
     """
-    device = p1.device
-    dtype = p1.dtype
-    bin_width = 2.0 * math.pi / num_bins
-    
-    # 1. Evaluate all discrete candidate rotation bins simultaneously in a single batch
-    bins = torch.arange(num_bins, device=device)
-    angles = bins.to(dtype) * bin_width
     cos_t = torch.cos(angles)
     sin_t = torch.sin(angles)
     zero = torch.zeros_like(cos_t)
     one = torch.ones_like(cos_t)
-    R_all = torch.stack([
-        torch.stack([cos_t, zero, sin_t], dim=-1),
-        torch.stack([zero, one, zero], dim=-1),
-        torch.stack([-sin_t, zero, cos_t], dim=-1)
-    ], dim=1)  # [num_bins, 3, 3]
 
-    # Center coordinates
-    c1 = torch.mean(p1, dim=1, keepdim=True)
-    c2 = torch.mean(p2, dim=1, keepdim=True)
-    p1_exp = p1.expand(num_bins, -1, -1)
-    p2_exp = p2.expand(num_bins, -1, -1)
+    # [B, 3, 3] rotation matrix around Y
+    row0 = torch.stack([cos_t, zero, sin_t], dim=-1)
+    row1 = torch.stack([zero, one, zero], dim=-1)
+    row2 = torch.stack([-sin_t, zero, cos_t], dim=-1)
+    R = torch.stack([row0, row1, row2], dim=1)
 
-    # Small coordinate noise for geometric robustness
-    noise1 = torch.randn_like(p1_exp) * sigma_noise if sigma_noise > 0 else 0.0
-    noise2 = torch.randn_like(p2_exp) * sigma_noise if sigma_noise > 0 else 0.0
+    centroid = torch.mean(batch_data, dim=1, keepdim=True)
+    rotated_data = torch.bmm(batch_data - centroid, R.transpose(1, 2)) + centroid
+    return rotated_data, R
 
-    p1_rot = torch.bmm((p1 - c1).expand(num_bins, -1, -1), R_all.transpose(1, 2)) + c1 + noise1
-    p2_rot = torch.bmm((p2 - c2).expand(num_bins, -1, -1), R_all.transpose(1, 2)) + c2 + noise2
-
-    rev_bins = (num_bins - bins) % num_bins
-
-    # 2. Supervised Self-Rotations
-    logits1 = student_ori(p1_rot, p1_exp)
-    l1 = F.cross_entropy(logits1, bins)
-    l1_rev = F.cross_entropy(student_ori(p1_exp, p1_rot), rev_bins)
-
-    logits2 = student_ori(p2_rot, p2_exp)
-    l2 = F.cross_entropy(logits2, bins)
-    l2_rev = F.cross_entropy(student_ori(p2_exp, p2_rot), rev_bins)
-
-    # 3. Supervised Cross-Shape Rotations
-    l_cross1 = F.cross_entropy(student_ori(p1_rot, p2_exp), bins)
-    l_cross2 = F.cross_entropy(student_ori(p1_exp, p2_rot), rev_bins)
-
-    total_loss = (l1 + l1_rev + l2 + l2_rev + l_cross1 + l_cross2) / 6.0
+def compute_orientation_loss(student_ori, p1, p2, teacher_ori=None, num_bins=None, sigma_noise=0.005):
+    """
+    SE-ORNet Relative Angle Loss (Deng et al., CVPR 2023).
     
-    # 4. Optional Teacher consistency (SE-ORNet self-ensembling)
+    Supervises the OrientationModule using discrete angle classification into M=8 bins
+    with bidirectional cyclic consistency (angle_x vs angle_y):
+      - Angle codebook: ANGLE = m * (2*pi / 8) - pi / 4
+      - Inverse angle mapping: rev_gt = (10 - gt) % 8
+    
+    Args:
+        student_ori: student.orientation_module (OrientationModule)
+        p1: [B, N1, 3] Source point cloud
+        p2: [B, N2, 3] Target point cloud
+        teacher_ori: optional teacher orientation module
+        num_bins: number of discrete angle bins (defaults to student_ori.num_bins)
+        sigma_noise: Gaussian coordinate jitter variance for robustness
+    Returns:
+        total_loss: scalar Cross-Entropy orientation loss
+    """
+    if num_bins is None:
+        num_bins = getattr(student_ori, 'num_bins', 8)
+    device = p1.device
+    B = p1.shape[0]
+
+    # Sample random ground-truth discrete rotation bins
+    gt_bins = torch.randint(0, num_bins, (B,), device=device)
+    angles = student_ori.angles[gt_bins]
+
+    # SE-ORNet inverse ground-truth formula
+    if num_bins == 8:
+        rev_bins = (10 - gt_bins) % 8
+    else:
+        rev_bins = (num_bins - gt_bins) % num_bins
+
+    # Rotate target point cloud by ground-truth angle (SE-ORNet data augmentation)
+    p2_rot, _ = rotate_point_cloud_by_angle(p2, angles)
+
+    if sigma_noise > 0:
+        p2_rot = p2_rot + torch.randn_like(p2_rot) * sigma_noise
+
+    # Bidirectional Orientation Loss (P1 -> P2_rot and P2_rot -> P1) matching SE-ORNet
+    out_cross = student_ori(p1, p2_rot, return_dict=True)
+    l_cross_x = F.cross_entropy(out_cross['angle_x'], gt_bins)
+    l_cross_y = F.cross_entropy(out_cross['angle_y'], rev_bins)
+
+    total_loss = 0.5 * (l_cross_x + l_cross_y)
+
+    # Optional Teacher Consistency (Self-Ensembling)
     if teacher_ori is not None:
         with torch.no_grad():
-            teacher_logits1 = teacher_ori(p1_rot, p1_exp)
-            teacher_logits2 = teacher_ori(p2_rot, p2_exp)
-        loss_teacher1 = F.kl_div(
-            F.log_softmax(logits1, dim=-1),
-            F.softmax(teacher_logits1, dim=-1),
+            out_teacher = teacher_ori(p1, p2_rot, return_dict=True)
+        l_cons_x = F.kl_div(
+            F.log_softmax(out_cross['angle_x'], dim=-1),
+            F.softmax(out_teacher['angle_x'], dim=-1),
             reduction='batchmean'
         )
-        loss_teacher2 = F.kl_div(
-            F.log_softmax(logits2, dim=-1),
-            F.softmax(teacher_logits2, dim=-1),
-            reduction='batchmean'
-        )
-        total_loss = total_loss + 0.1 * (loss_teacher1 + loss_teacher2)
-        
+        total_loss = total_loss + 0.1 * l_cons_x
+
     return total_loss
