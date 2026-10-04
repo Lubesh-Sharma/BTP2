@@ -8,22 +8,22 @@ class OrientationModule(nn.Module):
     SE-ORNet / DV-Matcher Orientation Estimation Module (Deng et al., CVPR 2023).
     
     Predicts relative 3D orientation between a Source and Target point cloud pair
-    using a Feature Interaction Module (FIM) and discrete angle classification.
+    using discrete angle classification into M=12 bins (30-degree bins covering 360 degrees).
     
-    Key Properties:
-    1. Feature Interaction Module (FIM): Computes cross k-NN edge features
-       between Source and Target in coordinate/feature space with residual connection.
-    2. Discrete Angle Classification: Predicts probability distribution over M discrete
-       angle bins (default M=8, covering 360 degrees in 45-degree bins).
-    3. Pure Point Cloud: Requires no triangular faces, no mesh topology, and no surface
-       normals. Operates on general point clouds (humans, quadrupeds/animals, arbitrary 3D shapes).
+    Key Features:
+    1. Cross-Covariance Tensor: Integrates centered second-moment cross-covariance
+       H = (1/N) * P_src^T @ P_tgt in SO(3), providing direct geometric rotation signals.
+    2. Deep Point Encoders: Permutation-invariant PointNet feature extraction for both shapes.
+    3. Discrete Angle Classification: Predicts probability distribution over M=12 bins (30 deg each).
+    4. Pure Point Cloud: Requires no triangular faces, no mesh topology, and no surface normals.
+       Operates on arbitrary 3D shapes (humans, quadrupeds/animals, general manifolds).
     """
-    def __init__(self, in_channels=3, num_bins=8, k=16):
+    def __init__(self, in_channels=3, num_bins=12, k=16):
         super().__init__()
         self.num_bins = num_bins
         self.k = k
         
-        # Point feature encoder (EdgeConv / PointNet layers)
+        # Point feature encoder for source and target
         self.conv1 = nn.Conv1d(in_channels, 64, 1)
         self.norm1 = nn.InstanceNorm1d(64)
         self.conv2 = nn.Conv1d(64, 128, 1)
@@ -31,26 +31,10 @@ class OrientationModule(nn.Module):
         self.conv3 = nn.Conv1d(128, 256, 1)
         self.norm3 = nn.InstanceNorm1d(256)
         
-        # Feature Interaction Module (FIM): MLP on spatial position differences and feature differences
-        # Edge spatial: (p_i, q_ij - p_i) -> 6 channels
-        # Edge feature: (F_s, F_t_gathered - F_s) -> 512 channels (Total: 518 channels)
-        self.fim_mlp = nn.Sequential(
-            nn.Conv2d(6 + 512, 256, 1),
-            nn.InstanceNorm2d(256),
-            nn.LeakyReLU(0.2, inplace=True)
-        )
-        self.fim_skip = nn.Conv1d(256, 256, 1)
-        
-        # Refinement Conv
-        self.refine = nn.Sequential(
-            nn.Conv1d(256, 256, 1),
-            nn.InstanceNorm1d(256),
-            nn.LeakyReLU(0.2, inplace=True)
-        )
-        
-        # Angle classification head: Max + Avg pooling -> 512 channels
+        # Angle classification head:
+        # Inputs: source global feat (256) + target global feat (256) + cross-covariance H (9) = 521 channels
         self.head = nn.Sequential(
-            nn.Linear(512, 256),
+            nn.Linear(256 + 256 + 9, 256),
             nn.LayerNorm(256),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Linear(256, 128),
@@ -66,12 +50,14 @@ class OrientationModule(nn.Module):
         """
         Extracts 256-dim point features from centered point coordinates.
         p_c: [B, N, 3] centered coordinates
+        Returns: [B, 256] global pooled features
         """
         p_t = p_c.transpose(1, 2)
         x1 = F.leaky_relu(self.norm1(self.conv1(p_t)), 0.2)
         x2 = F.leaky_relu(self.norm2(self.conv2(x1)), 0.2)
         x3 = F.leaky_relu(self.norm3(self.conv3(x2)), 0.2)
-        return x3  # [B, 256, N]
+        g_feat = torch.max(x3, dim=-1)[0]  # [B, 256]
+        return g_feat
 
     def forward(self, p_src, p_tgt=None):
         """
@@ -101,51 +87,23 @@ class OrientationModule(nn.Module):
         else:
             p_t_sub = p_tgt
             
-        N_sub_s = p_s_sub.shape[1]
-        N_sub_t = p_t_sub.shape[1]
-        
         c_s = torch.mean(p_s_sub, dim=1, keepdim=True)
         c_t = torch.mean(p_t_sub, dim=1, keepdim=True)
         p_s_c = p_s_sub - c_s
         p_t_c = p_t_sub - c_t
         
-        # Extract features
-        f_s = self.extract_point_features(p_s_c)  # [B, 256, N_sub_s]
-        f_t = self.extract_point_features(p_t_c)  # [B, 256, N_sub_t]
+        # 1. Direct cross-covariance tensor in SO(3): H = (1/N) * P_s_c^T @ P_t_c
+        min_n = min(p_s_c.shape[1], p_t_c.shape[1])
+        H = torch.bmm(p_s_c[:, :min_n].transpose(1, 2), p_t_c[:, :min_n]) / float(min_n)
+        H_flat = H.reshape(B, 9)
         
-        # Feature Interaction Module: Cross k-NN in feature space
-        dist = torch.cdist(f_s.transpose(1, 2), f_t.transpose(1, 2))  # [B, N_sub_s, N_sub_t]
-        k = min(self.k, N_sub_t)
-        knn_idx = torch.topk(dist, k=k, dim=-1, largest=False)[1]  # [B, N_sub_s, k]
+        # 2. Extract shape representations
+        f_s = self.extract_point_features(p_s_c)  # [B, 256]
+        f_t = self.extract_point_features(p_t_c)  # [B, 256]
         
-        # Gather target coordinates
-        idx_expanded = knn_idx.unsqueeze(-1).expand(-1, -1, -1, 3)
-        p_t_gathered = torch.gather(p_t_c.unsqueeze(1).expand(-1, N_sub_s, -1, -1), 2, idx_expanded)  # [B, N_sub_s, k, 3]
-        p_s_exp = p_s_c.unsqueeze(2).expand(-1, -1, k, -1)  # [B, N_sub_s, k, 3]
-        
-        # Edge spatial: (p_i, q_ij - p_i) -> [B, 6, N_sub_s, k]
-        edge_spatial = torch.cat([p_s_exp, p_t_gathered - p_s_exp], dim=-1).permute(0, 3, 1, 2)
-        f_s_exp = f_s.unsqueeze(-1).expand(-1, -1, -1, k)  # [B, 256, N_sub_s, k]
-        
-        # Edge feature: (f_s, f_t_gathered - f_s) -> [B, 512, N_sub_s, k]
-        idx_f = knn_idx.unsqueeze(1).expand(-1, 256, -1, -1)
-        f_t_gathered = torch.gather(f_t.unsqueeze(2).expand(-1, -1, N_sub_s, -1), 3, idx_f)
-        edge_feat = torch.cat([edge_spatial, f_s_exp, f_t_gathered - f_s_exp], dim=1)  # [B, 518, N_sub_s, k]
-        
-        # FIM MLP and MaxPool
-        e = self.fim_mlp(edge_feat)  # [B, 256, N_sub_s, k]
-        p_out = torch.max(e, dim=-1)[0]  # [B, 256, N_sub_s]
-        p_out = p_out + self.fim_skip(f_s)  # residual skip connection
-        
-        # Refinement Conv
-        p_hat = self.refine(p_out)  # [B, 256, N_sub_s]
-        
-        # Global Max + Avg Pooling
-        g_max = torch.max(p_hat, dim=2)[0]
-        g_avg = torch.mean(p_hat, dim=2)
-        global_feat = torch.cat([g_max, g_avg], dim=-1)  # [B, 512]
-        
-        logits = self.head(global_feat)  # [B, num_bins]
+        # 3. Concatenate shape representations + cross-covariance
+        joint_feat = torch.cat([f_s, f_t, H_flat], dim=-1)  # [B, 521]
+        logits = self.head(joint_feat)  # [B, num_bins]
         return logits
 
     def predict_rotation(self, p_src, p_tgt=None, soft=None, temperature=0.5):
