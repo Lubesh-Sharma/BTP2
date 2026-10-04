@@ -49,7 +49,10 @@ def load_model(config, feature_dim, device):
     if not os.path.exists(checkpoint_path):
         raise FileNotFoundError(f"Checkpoint not found at: {checkpoint_path}")
         
-    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
+    try:
+        checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    except TypeError:
+        checkpoint = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
@@ -60,7 +63,8 @@ def load_model(config, feature_dim, device):
 # -------------------------------------------------
 def main():
     parser = argparse.ArgumentParser(description="ASMAE All-Pairs Correspondence")
-    parser.add_argument('--config', type=str, default='config/SCAPE/corres.yaml', help='Path to corres config file')
+    parser.add_argument('--config', type=str, default='config/SHREC/corres.yaml', help='Path to corres config file')
+    parser.add_argument('--n_shapes', type=int, default=0, help='Number of shapes to process (default: 0 for all on SHREC, 20 on others)')
     parser.add_argument('--normalize_pc', action='store_true', default=False, help='Apply normalize_pc to coordinates (default: False, to match train_st_te.py)')
     args = parser.parse_args()
     
@@ -84,9 +88,11 @@ def main():
     # 1. Scan for all shapes
     all_files = sorted([f for f in os.listdir(data_dir) if f.endswith('.obj') or f.endswith('.off')])
     
-    # # Process only the last 20 files, or all if fewer than 20
-    # commment out this line in case of the shrec_19
-    all_files = all_files[-20:]
+    # Process all files for SHREC, or last 20 for SCAPE/FAUST unless n_shapes specified
+    if args.n_shapes > 0 and len(all_files) > args.n_shapes:
+        all_files = all_files[-args.n_shapes:]
+    elif 'SHREC' not in data_dir and len(all_files) > 20:
+        all_files = all_files[-20:]
     
     if not all_files:
         print(f"No .obj or .off files found in {data_dir}")
