@@ -142,6 +142,8 @@ def main():
             'V': V,
             'El': El,
             'Z': z,
+            'f_torch': f_torch,
+            'p_torch': p_torch,
             'name': name
         }
 
@@ -160,14 +162,17 @@ def main():
                 print(f"[{pair_count:4d}/{total_pairs}] Matching {file1} <-> {file2}")
 
             # -------------------------------------------------------------
-            # Greedy Cosine Similarity Matching (feature_visualization.ipynb)
+            # Greedy Cosine Similarity Matching with SE-ORNet Orientation
             # -------------------------------------------------------------
-            # s2 is the source (column 0 in saved file), s1 is the target (column 1)
-            # For each vertex in s2, find the vertex in s1 with maximum cosine similarity:
-            # sim matrix shape: [N_s2, N_s1]
-            # p2p shape: [N_s2], containing indices in s1
-            # -------------------------------------------------------------
-            sim = s2['Z'] @ s1['Z'].T
+            if file1 == file2:
+                sim = s2['Z'] @ s1['Z'].T
+            else:
+                with torch.no_grad():
+                    # Align S1 into S2's canonical orientation frame
+                    feat1 = model.extract_features(s1['f_torch'], s1['p_torch'], target_pos=s2['p_torch'])
+                    z1 = feat1.squeeze(0).cpu().numpy()
+                    z1 = z1 / (np.linalg.norm(z1, axis=1, keepdims=True) + 1e-8)
+                sim = s2['Z'] @ z1.T
             p2p = np.argmax(sim, axis=1)
 
             # Save in standard format expected by geodesic_error.py:
