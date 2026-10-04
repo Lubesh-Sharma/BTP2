@@ -160,58 +160,40 @@ def train_model(student, teacher, train_shapes, config):
                 f2 = torch.tensor(s2['feat']).float().unsqueeze(0).to(device)
                 
                 # -----------------------------------------------------------------
-                # Step 1: Upfront SE-ORNet Orientation Alignment (Figure 3.1 Input)
-                # Align S1 into S2's canonical coordinate frame
-                # -----------------------------------------------------------------
-                p1_align, _ = student.orientation_module.align(p1, p2)
-                f1_align = f1.clone()
-                if f1_align.shape[-1] >= 3:
-                    p_min1 = p1_align.min(dim=1, keepdim=True)[0]
-                    p_max1 = p1_align.max(dim=1, keepdim=True)[0]
-                    f1_align[:, :, -3:] = (p1_align - p_min1) / torch.clamp(p_max1 - p_min1, min=1e-6)
-
-                # -----------------------------------------------------------------
-                # Step 2: Forward Pass 1 (S1_align -> S2) - Both in S2's frame
+                # Forward Pass 1 (S1 -> S2)
                 # -----------------------------------------------------------------
                 # Student predicts deeply masked graph
-                pred1_s, _, _, clean_f1_s, enc_t1_s, mask1_s = student(f1_align, p1_align, f2, p2, mask_ratio=student_mask_ratio, feature_ratio=student_feat_ratio)
+                pred1_s, _, _, clean_f1_s, enc_t1_s, mask1_s = student(f1, p1, f2, p2, mask_ratio=student_mask_ratio, feature_ratio=student_feat_ratio)
                 
                 # Teacher predicts lightly masked/unmasked graph
                 with torch.no_grad():
-                    pred1_t, _, _, clean_f1_t, enc_t1_t, _ = teacher(f1_align, p1_align, f2, p2, mask_ratio=teacher_mask_ratio, feature_ratio=teacher_feat_ratio)
+                    pred1_t, _, _, clean_f1_t, enc_t1_t, _ = teacher(f1, p1, f2, p2, mask_ratio=teacher_mask_ratio, feature_ratio=teacher_feat_ratio)
                     
                 loss1_rec = criterion(pred1_s[mask1_s], clean_f1_s[mask1_s]) if mask1_s.sum() > 0 else criterion(pred1_s, clean_f1_s)
                 loss1_cons = compute_consistency_loss(pred1_s, pred1_t)
                 
                 # -----------------------------------------------------------------
-                # Forward Pass 2 (S2_align -> S1) - Both in S1's frame
+                # Forward Pass 2 (S2 -> S1)
                 # -----------------------------------------------------------------
-                p2_align, _ = student.orientation_module.align(p2, p1)
-                f2_align = f2.clone()
-                if f2_align.shape[-1] >= 3:
-                    p_min2 = p2_align.min(dim=1, keepdim=True)[0]
-                    p_max2 = p2_align.max(dim=1, keepdim=True)[0]
-                    f2_align[:, :, -3:] = (p2_align - p_min2) / torch.clamp(p_max2 - p_min2, min=1e-6)
-
-                pred2_s, _, _, clean_f2_s, enc_t2_s, mask2_s = student(f2_align, p2_align, f1, p1, mask_ratio=student_mask_ratio, feature_ratio=student_feat_ratio)
+                pred2_s, _, _, clean_f2_s, enc_t2_s, mask2_s = student(f2, p2, f1, p1, mask_ratio=student_mask_ratio, feature_ratio=student_feat_ratio)
                 with torch.no_grad():
-                    pred2_t, _, _, clean_f2_t, enc_t2_t, _ = teacher(f2_align, p2_align, f1, p1, mask_ratio=teacher_mask_ratio, feature_ratio=teacher_feat_ratio)
+                    pred2_t, _, _, clean_f2_t, enc_t2_t, _ = teacher(f2, p2, f1, p1, mask_ratio=teacher_mask_ratio, feature_ratio=teacher_feat_ratio)
                     
                 loss2_rec = criterion(pred2_s[mask2_s], clean_f2_s[mask2_s]) if mask2_s.sum() > 0 else criterion(pred2_s, clean_f2_s)
                 loss2_cons = compute_consistency_loss(pred2_s, pred2_t)
                 
                 # -----------------------------------------------------------------
-                # Combine Reconstruction and Consistency Losses
+                # Combine and Backprop
                 # -----------------------------------------------------------------
                 loss_rec = loss1_rec + loss2_rec
                 loss_cons = loss1_cons + loss2_cons
                 
                 # -----------------------------------------------------------------
-                # Step 3: Extract Clean Features for Correspondence Losses (Figure 3.1)
-                # Both shapes are in S2's canonical orientation frame
+                # Extract clean features with pair-aligned coordinates
+                # Align S1 into S2's frame so both share the exact same orientation
                 # -----------------------------------------------------------------
-                enc1_s = student.forward_encoder(f1_align, p1_align, mask_binary=None)
-                enc2_s = student.forward_encoder(f2, p2, mask_binary=None)
+                enc1_s, p1_align, _ = student.extract_features(f1, p1, target_pos=p2, return_aligned_pos=True)
+                enc2_s, p2_ref, _ = student.extract_features(f2, p2, target_pos=None, return_aligned_pos=True)
                 
                 # Contrastive Loss
                 loss_contra1 = compute_contrastive_loss(enc1_s, margin=contra_margin)
@@ -220,7 +202,7 @@ def train_model(student, teacher, train_shapes, config):
                 
                 # Cycle Loss on pair-aligned coordinates (both in S2's frame)
                 loss_cycle1 = compute_cycle_loss(enc1_s, enc2_s, p1_align, eps=cycle_eps, n_iter=cycle_n_iter)
-                loss_cycle2 = compute_cycle_loss(enc2_s, enc1_s, p2, eps=cycle_eps, n_iter=cycle_n_iter)
+                loss_cycle2 = compute_cycle_loss(enc2_s, enc1_s, p2_ref, eps=cycle_eps, n_iter=cycle_n_iter)
                 loss_cycle = loss_cycle1 + loss_cycle2
                 
                 # Global Optimization Loss (L_go) - asymmetric Sinkhorn pseudo-labels
@@ -229,16 +211,17 @@ def train_model(student, teacher, train_shapes, config):
                 loss_lgo = (loss_lgo1 + loss_lgo2) / 2.0
                 
                 # Metric Distortion Loss (L_dist) with both shapes in S2's reference frame
-                loss_dist1 = compute_distortion_loss(enc1_s, enc2_s, p1_align, p2, num_samples=dist_samples, tau=dist_tau)
-                loss_dist2 = compute_distortion_loss(enc2_s, enc1_s, p2, p1_align, num_samples=dist_samples, tau=dist_tau)
+                loss_dist1 = compute_distortion_loss(enc1_s, enc2_s, p1_align, p2_ref, num_samples=dist_samples, tau=dist_tau)
+                loss_dist2 = compute_distortion_loss(enc2_s, enc1_s, p2_ref, p1_align, num_samples=dist_samples, tau=dist_tau)
                 loss_dist = (loss_dist1 + loss_dist2) / 2.0
                 
                 # Signed Area / Local Smoothness Loss on aligned coordinates
-                loss_area1 = compute_signed_area_loss(enc1_s, enc2_s, p1_align, p2, num_samples=500, tau=dist_tau)
-                loss_area2 = compute_signed_area_loss(enc2_s, enc1_s, p2, p1_align, num_samples=500, tau=dist_tau)
+                # Prevents salt-and-pepper tearing and strictly penalizes reflection symmetry
+                loss_area1 = compute_signed_area_loss(enc1_s, enc2_s, p1_align, p2_ref, num_samples=500, tau=dist_tau)
+                loss_area2 = compute_signed_area_loss(enc2_s, enc1_s, p2_ref, p1_align, num_samples=500, tau=dist_tau)
                 loss_area = (loss_area1 + loss_area2) / 2.0
                 
-                # Step 4: SE-ORNet Orientation Loss (Relative Angle Cross-Entropy with 8 bins = 45 deg)
+                # SE-ORNet Orientation Loss (Relative Angle Cross-Entropy with 8 bins = 45 deg)
                 loss_orient = compute_orientation_loss(
                     student.orientation_module,
                     p1,

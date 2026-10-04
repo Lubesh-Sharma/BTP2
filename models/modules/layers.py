@@ -22,13 +22,11 @@ class Mlp(nn.Module):
 def knn(x, k):
     """
     Computes k-Nearest Neighbors (kNN) for a batch of point clouds.
-    x: [B, D, N]
-    Returns idx: [B, N, k]
     """
-    with torch.no_grad():
-        p = x.transpose(2, 1).contiguous()
-        dist = torch.cdist(p, p)
-        idx = dist.topk(k=k, largest=False, dim=-1)[1]
+    inner = -2*torch.matmul(x.transpose(2, 1), x)
+    xx = torch.sum(x**2, dim=1, keepdim=True)
+    pairwise_distance = -xx - inner - xx.transpose(2, 1)
+    idx = pairwise_distance.topk(k=k, dim=-1)[1]
     return idx
 
 def get_graph_feature(x, k=20, idx=None):
@@ -48,6 +46,6 @@ def get_graph_feature(x, k=20, idx=None):
     x = x.transpose(2, 1).contiguous()
     feature = x.view(batch_size*num_points, -1)[idx, :]
     feature = feature.view(batch_size, num_points, k, num_dims) 
-    x_expand = x.view(batch_size, num_points, 1, num_dims).expand(-1, -1, k, -1)
-    feature = torch.cat((feature - x_expand, x_expand), dim=3).permute(0, 3, 1, 2).contiguous()
+    x = x.view(batch_size, num_points, 1, num_dims).repeat(1, 1, k, 1)
+    feature = torch.cat((feature-x, x), dim=3).permute(0, 3, 1, 2).contiguous()
     return feature

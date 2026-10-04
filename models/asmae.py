@@ -100,10 +100,7 @@ class ASMAE(nn.Module):
         x_emb = x_emb + pos_emb
         
         for blk in self.encoder_blocks:
-            if self.training and x_emb.requires_grad:
-                x_emb = torch.utils.checkpoint.checkpoint(blk, x_emb, pos, use_reentrant=False)
-            else:
-                x_emb = blk(x_emb, pos=pos)
+            x_emb = blk(x_emb, pos=pos)
         x_emb = self.encoder_norm(x_emb)
         return x_emb
 
@@ -116,10 +113,9 @@ class ASMAE(nn.Module):
             base = blk(base, target_encoded)
         return self.decoder_norm(base)
 
-    def forward(self, x_source, pos_source, x_target, pos_target, mask_ratio=None, feature_ratio=0.2, align_orientation=False):
-        # Optional Relative Orientation Alignment: align source into target frame if not already aligned
-        if align_orientation:
-            pos_source, _ = self.orientation_module.align(pos_source, pos_target)
+    def forward(self, x_source, pos_source, x_target, pos_target, mask_ratio=None, feature_ratio=0.2):
+        # SE-ORNet Relative Orientation Alignment: align source into target frame
+        pos_source, _ = self.orientation_module.align(pos_source, pos_target)
         if x_source.shape[-1] >= 3:
             x_source = x_source.clone()
             p_min_s = pos_source.min(dim=1, keepdim=True)[0]
@@ -161,11 +157,8 @@ class ASMAE(nn.Module):
             c = torch.mean(pos, dim=1, keepdim=True)
             pos_align = torch.bmm(pos - c, rotation_matrix.transpose(1, 2)) + c
             R = rotation_matrix
-        elif target_pos is not None:
-            pos_align, R = self.orientation_module.align(pos, target_pos)
         else:
-            pos_align = pos
-            R = None
+            pos_align, R = self.orientation_module.align(pos, target_pos)
         if x.shape[-1] >= 3:
             x = x.clone()
             p_min = pos_align.min(dim=1, keepdim=True)[0]
