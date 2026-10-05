@@ -8,6 +8,7 @@ import argparse
 import yaml
 
 from models.asmae import ASMAE
+from models.modules.orientation_module import OrientNet, normalize_pc_torch
 from core.preprocessing import process_geometry, normalize_pc
 
 
@@ -30,6 +31,8 @@ def load_model(config, feature_dim, device, checkpoint_path=None):
         temperature=model_cfg.get('temperature', 1.0)
     ).to(device)
 
+    orient_net = OrientNet().to(device)
+
     if checkpoint_path is None:
         checkpoint_path = config.get('correspondence', {}).get('checkpoint_path', 'checkpoints/st_te_model_FAUST.pth')
 
@@ -39,13 +42,18 @@ def load_model(config, feature_dim, device, checkpoint_path=None):
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
+
+    if "orient_net_state_dict" in checkpoint:
+        orient_net.load_state_dict(checkpoint["orient_net_state_dict"])
+        print("Loaded OrientNet weights from checkpoint.")
+    orient_net.eval()
     print(f"Loaded checkpoint: {checkpoint_path}")
 
-    return model
+    return model, orient_net
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Greedy Cosine Similarity All-Pairs Shape Correspondence")
+    parser = argparse.ArgumentParser(description="Greedy Cosine Similarity All-Pairs Shape Correspondence with Orientation Alignment")
     parser.add_argument('--config', type=str, default='config/FAUST/corres.yaml', help='Path to corres config file')
     parser.add_argument('--checkpoint', type=str, default=None, help='Path to checkpoint file (overrides config)')
     parser.add_argument('--out_dir', type=str, default=None, help='Output directory for p2p txt results')
@@ -68,7 +76,6 @@ def main():
     out_dir = args.out_dir
     if not out_dir:
         out_dir = config.get('output_dir', 'p2p_results_greedy_FAUST')
-        # If output_dir from config is st_te default, distinguish greedy
         if 'st_te' in out_dir:
             out_dir = out_dir.replace('st_te', 'greedy')
         elif out_dir == 'p2p_results_FAUST':
@@ -90,7 +97,7 @@ def main():
         return
 
     print(f"\n{'='*60}")
-    print(f"Greedy All-Pairs Correspondence Matching")
+    print(f"Greedy All-Pairs Correspondence Matching with Orientation Alignment")
     print(f"  Dataset: {data_dir}")
     print(f"  Shapes to process: {len(all_files)}")
     print(f"  Output directory: {out_dir}")
@@ -98,35 +105,28 @@ def main():
     print(f"  Device: {device}")
     print(f"{'='*60}\n")
 
-    # 2. Pre-load Model
+    # 2. Pre-load Models
     temp_V, _, temp_feat, _ = process_geometry(os.path.join(data_dir, all_files[0]), k=k, t=t, neigvecs=neigvecs, output_dir=out_dir)
     feature_dim = temp_feat.shape[1]
     ckpt_path = args.checkpoint or config.get('correspondence', {}).get('checkpoint_path', 'checkpoints/st_te_model_FAUST.pth')
-    model = load_model(config, feature_dim, device, checkpoint_path=ckpt_path)
+    model, orient_net = load_model(config, feature_dim, device, checkpoint_path=ckpt_path)
 
     # Optional DINOv2 setup
     if args.use_dino:
         from utils.dino_utils import get_vertex_dino_features
         from utils.mesh import load_off
 
-    # 3. Cache Features
-    cached_shapes = {}
+    # 3. Load Shape Geometry and Features
+    loaded_shapes = {}
     for filename in all_files:
         path = os.path.join(data_dir, filename)
         name = os.path.splitext(filename)[0]
 
-        print(f"  -> Caching features for: {filename}...")
+        print(f"  -> Loading: {filename}...")
         V, El, feat, _ = process_geometry(path, k=k, t=t, neigvecs=neigvecs, output_dir=out_dir)
         p_coords = normalize_pc(V.copy()) if args.normalize_pc else V.copy()
 
-        with torch.no_grad():
-            f_torch = torch.tensor(feat, dtype=torch.float32, device=device).unsqueeze(0)
-            p_torch = torch.tensor(p_coords, dtype=torch.float32, device=device).unsqueeze(0)
-            z = model.extract_features(f_torch, p_torch).squeeze(0).cpu().numpy()
-
-        # L2-normalize ASMAE features
-        z = z / (np.linalg.norm(z, axis=1, keepdims=True) + 1e-8)
-
+        dino_norm = None
         if args.use_dino:
             off_file = os.path.join(args.off_dir, f"{name}.off")
             if os.path.exists(off_file):
@@ -134,46 +134,62 @@ def main():
                 dino_feat, _, _ = get_vertex_dino_features(
                     V_raw, ITris, variant=args.dino_variant, n_views=args.dino_views, device=device)
                 dino_norm = dino_feat / (np.linalg.norm(dino_feat, axis=1, keepdims=True) + 1e-8)
-                z = np.concatenate([z, dino_norm], axis=1)
             else:
                 print(f"    [Warning] OFF file not found at {off_file}, skipping DINOv2 for {name}")
 
-        cached_shapes[filename] = {
+        loaded_shapes[filename] = {
             'V': V,
             'El': El,
-            'Z': z,
+            'pos': p_coords,
+            'feat': feat,
+            'dino': dino_norm,
             'name': name
         }
 
-    # 4. Compute N*N Greedy Correspondences
+    # 4. Compute N*N Greedy Correspondences with Pairwise Orientation Alignment
     total_pairs = len(all_files) ** 2
     print(f"\nComputing greedy matches for {total_pairs} pairs...")
 
     pair_count = 0
     for i, file1 in enumerate(all_files):
-        s1 = cached_shapes[file1]
+        s1 = loaded_shapes[file1]
+        p1_tensor = torch.tensor(s1['pos'], dtype=torch.float32, device=device).unsqueeze(0)
+        f1_tensor = torch.tensor(s1['feat'], dtype=torch.float32, device=device).unsqueeze(0)
+        
+        with torch.no_grad():
+            z1 = model.extract_features(f1_tensor, p1_tensor).squeeze(0).cpu().numpy()
+            z1 = z1 / (np.linalg.norm(z1, axis=1, keepdims=True) + 1e-8)
+            if s1['dino'] is not None:
+                z1 = np.concatenate([z1, s1['dino']], axis=1)
+
         for j, file2 in enumerate(all_files):
-            s2 = cached_shapes[file2]
+            s2 = loaded_shapes[file2]
             pair_count += 1
 
             if pair_count % 50 == 0 or pair_count == total_pairs or pair_count == 1:
                 print(f"[{pair_count:4d}/{total_pairs}] Matching {file1} <-> {file2}")
 
-            # -------------------------------------------------------------
-            # Greedy Cosine Similarity Matching (feature_visualization.ipynb)
-            # -------------------------------------------------------------
-            # s2 is the source (column 0 in saved file), s1 is the target (column 1)
-            # For each vertex in s2, find the vertex in s1 with maximum cosine similarity:
-            # sim matrix shape: [N_s2, N_s1]
-            # p2p shape: [N_s2], containing indices in s1
-            # -------------------------------------------------------------
-            sim = s2['Z'] @ s1['Z'].T
+            p2_tensor = torch.tensor(s2['pos'], dtype=torch.float32, device=device).unsqueeze(0)
+            f2_tensor = torch.tensor(s2['feat'], dtype=torch.float32, device=device).unsqueeze(0)
+            
+            with torch.no_grad():
+                # Estimate relative orientation and align p2 to p1's coordinate space
+                p1_norm = normalize_pc_torch(p1_tensor)
+                p2_norm = normalize_pc_torch(p2_tensor)
+                orient_out = orient_net(p1_norm, p2_norm)
+                pred_angle = orient_out["angle_x"].argmax(dim=-1)
+                p2_aligned = orient_net.rotate_point_cloud(p2_tensor, pred_angle, inverse=True)
+                
+                # Extract ASMAE features on orientation-aligned coordinates
+                z2 = model.extract_features(f2_tensor, p2_aligned).squeeze(0).cpu().numpy()
+                z2 = z2 / (np.linalg.norm(z2, axis=1, keepdims=True) + 1e-8)
+                if s2['dino'] is not None:
+                    z2 = np.concatenate([z2, s2['dino']], axis=1)
+
+            # Cosine similarity matching
+            sim = s2['Z'] if 'Z' in s2 else z2 @ z1.T
             p2p = np.argmax(sim, axis=1)
 
-            # Save in standard format expected by geodesic_error.py:
-            # Filename: p2p_{s1['name']}_to_{s2['name']}.txt
-            # Column 0: indices on s2
-            # Column 1: mapped indices on s1
             out_name = f"p2p_{s1['name']}_to_{s2['name']}.txt"
             pairs = np.stack([np.arange(len(s2['V'])), p2p], axis=1)
             np.savetxt(os.path.join(out_dir, out_name), pairs, fmt="%d")
@@ -183,4 +199,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

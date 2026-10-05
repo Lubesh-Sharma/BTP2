@@ -5,14 +5,17 @@ import sys
 import yaml
 import argparse
 
-from core.preprocessing import process_geometry
+from core.preprocessing import process_geometry, normalize_pc
 from models.asmae import ASMAE
+from models.modules.orientation_module import OrientNet, DataAugment, normalize_pc_torch
 from core.consistency_loss import compute_consistency_loss
 from core.contrastive_loss import compute_contrastive_loss
 from core.cycle_loss import compute_cycle_loss
 from core.lgo_loss import compute_lgo_loss
 from core.distortion_loss import compute_distortion_loss
 from core.orientation_loss import compute_orientation_loss
+from core.domain_loss import compute_domain_loss, compute_angle_loss, FocalLoss
+
 
 def update_teacher_ema(student, teacher, alpha=0.999):
     """
@@ -21,6 +24,7 @@ def update_teacher_ema(student, teacher, alpha=0.999):
     with torch.no_grad():
         for s_param, t_param in zip(student.parameters(), teacher.parameters()):
             t_param.data = alpha * t_param.data + (1.0 - alpha) * s_param.data
+
 
 def load_train_shapes(data_dir, k, t, neigvecs, max_shapes, output_dir):
     """Load all .obj files from directory"""
@@ -62,7 +66,8 @@ def load_train_shapes(data_dir, k, t, neigvecs, max_shapes, output_dir):
     print(f"\nSuccessfully loaded {len(shapes)} shapes")
     return shapes
 
-def train_model(student, teacher, train_shapes, config):
+
+def train_model(student, teacher, orient_net, train_shapes, config):
     device = config['training'].get('device', 'cuda')
     if device == 'cuda' and not torch.cuda.is_available():
         print("CUDA not available, using CPU")
@@ -88,7 +93,7 @@ def train_model(student, teacher, train_shapes, config):
     cycle_n_iter = config['training'].get('cycle_n_iter', 15)
     cycle_weight = config['training'].get('cycle_weight', 1.0)
     
-    # Asymmetric distillation temperatures to drive Lgo down to ~3.5 - 4.0
+    # Asymmetric distillation temperatures to drive Lgo down
     student_lgo_eps = config['training'].get('lgo_eps', 0.05)
     target_lgo_eps = config['training'].get('lgo_target_eps', 0.035)
     lgo_weight = config['training'].get('lgo_weight', 50.0)
@@ -97,8 +102,12 @@ def train_model(student, teacher, train_shapes, config):
     dist_tau = config['training'].get('distortion_tau', 0.05)
     dist_samples = config['training'].get('distortion_samples', 256)
     
+    # SE-ORNet Orientation & Domain Loss weights
+    angle_weight = config['training'].get('angle_weight', 1.0)
+    domain_weight = config['training'].get('domain_weight', 1.0)
+    
     print(f"\n{'='*60}")
-    print("STUDENT-TEACHER TRAINING PHASE")
+    print("STUDENT-TEACHER TRAINING PHASE (WITH ORIENTATION ESTIMATION)")
     print(f"  Training shapes: {len(train_shapes)}")
     print(f"  Epochs: {num_epochs}")
     print(f"  Device: {device}")
@@ -106,16 +115,28 @@ def train_model(student, teacher, train_shapes, config):
     print(f"  Teacher Masking Ratio (Nodes/Feats): {teacher_mask_ratio} / {teacher_feat_ratio}")
     print(f"  EMA Alpha: {ema_alpha} | Consist. Weight: {cons_weight}")
     print(f"  Cycle Weight: {cycle_weight} | LGO Weight: {lgo_weight} | Dist. Weight: {dist_weight} | Orient Weight: {orient_weight}")
+    print(f"  Angle Weight: {angle_weight} | Domain Weight: {domain_weight}")
     print(f"  LGO Temperatures: student_eps={student_lgo_eps}, target_eps={target_lgo_eps}")
     print(f"{'='*60}\n")
     
-    optimizer = torch.optim.Adam(student.parameters(), lr=lr)
+    # Joint optimizer for ASMAE student and OrientNet
+    optimizer = torch.optim.Adam(
+        list(student.parameters()) + list(orient_net.parameters()),
+        lr=lr
+    )
     criterion = torch.nn.L1Loss()
+    fl_global = FocalLoss(class_num=2, gamma=3)
+    
+    # Point cloud data augmentations
+    src_aug = DataAugment(operations=["noise"], noise_variance=0.0001)
+    tgt_aug = DataAugment(operations=["rotate", "noise"], rotate_nbins=8, noise_variance=0.0001)
     
     student.to(device)
     teacher.to(device)
+    orient_net.to(device)
     
     student.train()
+    orient_net.train()
     teacher.eval() # Teacher does not get trained by backprop natively
     
     epoch = 0
@@ -129,7 +150,10 @@ def train_model(student, teacher, train_shapes, config):
             epoch_lgo_loss = 0
             epoch_dist_loss = 0
             epoch_orient_loss = 0
+            epoch_angle_loss = 0
+            epoch_domain_loss = 0
             num_pairs = 0
+            
             # All N x N pairs (all pairs i != j)
             pair_indices = [(i, j) for i in range(len(train_shapes)) for j in range(len(train_shapes)) if i != j]
             np.random.shuffle(pair_indices)
@@ -138,30 +162,76 @@ def train_model(student, teacher, train_shapes, config):
                 s1 = train_shapes[idx1]
                 s2 = train_shapes[idx2]
                 
-                p1 = torch.tensor((s1['pos']).copy()).float().unsqueeze(0).to(device)
+                p1_raw = torch.tensor((s1['pos']).copy()).float().unsqueeze(0).to(device)
                 f1 = torch.tensor(s1['feat']).float().unsqueeze(0).to(device)
-                p2 = torch.tensor((s2['pos']).copy()).float().unsqueeze(0).to(device)
+                p2_raw = torch.tensor((s2['pos']).copy()).float().unsqueeze(0).to(device)
                 f2 = torch.tensor(s2['feat']).float().unsqueeze(0).to(device)
                 
                 # -----------------------------------------------------------------
-                # Forward Pass 1 (S1 -> S2)
+                # Step 1: Data Augmentation & Orientation Estimation (SE-ORNet)
+                # -----------------------------------------------------------------
+                p1_student = src_aug(p1_raw)
+                p2_student, rotated_gt = tgt_aug(p2_raw)
+                
+                # Pass augmented coordinates through OrientNet for relative orientation & domain logits
+                p1_norm_student = normalize_pc_torch(p1_student)
+                p2_norm_student = normalize_pc_torch(p2_student)
+                
+                orient_out = orient_net(p1_norm_student, p2_norm_student)
+                domain_pred_student = orient_out["global_d_pred"]
+                
+                # Compute angle loss and domain discriminator loss with reference target
+                p2_norm_clean = normalize_pc_torch(p2_raw)
+                orient_out_target = orient_net(p2_norm_clean, p2_norm_student)
+                domain_pred_target = orient_out_target["global_d_pred"]
+                
+                loss_angle = compute_angle_loss(
+                    orient_out_target["angle_x"],
+                    orient_out_target["angle_y"],
+                    rotated_gt
+                )
+                loss_domain = compute_domain_loss(domain_pred_target, domain_pred_student, fl_global)
+                
+                # Align p2_student in 3D coordinate space using predicted angle
+                pred_angle_idx = orient_out["angle_x"].argmax(dim=-1)
+                p2_aligned = orient_net.rotate_point_cloud(p2_student, pred_angle_idx, inverse=True)
+                p1_aligned = p1_student
+                
+                # -----------------------------------------------------------------
+                # Forward Pass 1 (S1 -> S2) through ASMAE
                 # -----------------------------------------------------------------
                 # Student predicts deeply masked graph
-                pred1_s, _, _, _, enc_t1_s, mask1_s = student(f1, p1, f2, p2, mask_ratio=student_mask_ratio, feature_ratio=student_feat_ratio)
+                pred1_s, _, _, _, enc_t1_s, mask1_s = student(
+                    f1, p1_aligned, f2, p2_aligned,
+                    mask_ratio=student_mask_ratio,
+                    feature_ratio=student_feat_ratio
+                )
                 
-                # Teacher predicts lightly masked/unmasked graph
+                # Teacher predicts lightly masked/unmasked graph using clean coordinates
                 with torch.no_grad():
-                    pred1_t, _, _, _, enc_t1_t, _ = teacher(f1, p1, f2, p2, mask_ratio=teacher_mask_ratio, feature_ratio=teacher_feat_ratio)
+                    pred1_t, _, _, _, enc_t1_t, _ = teacher(
+                        f1, p1_raw, f2, p2_raw,
+                        mask_ratio=teacher_mask_ratio,
+                        feature_ratio=teacher_feat_ratio
+                    )
                     
                 loss1_rec = criterion(pred1_s[mask1_s], f1[mask1_s]) if mask1_s.sum() > 0 else criterion(pred1_s, f1)
                 loss1_cons = compute_consistency_loss(pred1_s, pred1_t)
                 
                 # -----------------------------------------------------------------
-                # Forward Pass 2 (S2 -> S1)
+                # Forward Pass 2 (S2 -> S1) through ASMAE
                 # -----------------------------------------------------------------
-                pred2_s, _, _, _, enc_t2_s, mask2_s = student(f2, p2, f1, p1, mask_ratio=student_mask_ratio, feature_ratio=student_feat_ratio)
+                pred2_s, _, _, _, enc_t2_s, mask2_s = student(
+                    f2, p2_aligned, f1, p1_aligned,
+                    mask_ratio=student_mask_ratio,
+                    feature_ratio=student_feat_ratio
+                )
                 with torch.no_grad():
-                    pred2_t, _, _, _, enc_t2_t, _ = teacher(f2, p2, f1, p1, mask_ratio=teacher_mask_ratio, feature_ratio=teacher_feat_ratio)
+                    pred2_t, _, _, _, enc_t2_t, _ = teacher(
+                        f2, p2_raw, f1, p1_raw,
+                        mask_ratio=teacher_mask_ratio,
+                        feature_ratio=teacher_feat_ratio
+                    )
                     
                 loss2_rec = criterion(pred2_s[mask2_s], f2[mask2_s]) if mask2_s.sum() > 0 else criterion(pred2_s, f2)
                 loss2_cons = compute_consistency_loss(pred2_s, pred2_t)
@@ -173,8 +243,8 @@ def train_model(student, teacher, train_shapes, config):
                 loss_cons = loss1_cons + loss2_cons
                 
                 # Extract clean features for Shape 1 (N1) and Shape 2 (N2)
-                enc1_s = student.extract_features(f1, p1)
-                enc2_s = student.extract_features(f2, p2)
+                enc1_s = student.extract_features(f1, p1_aligned)
+                enc2_s = student.extract_features(f2, p2_aligned)
                 
                 # Contrastive Loss
                 loss_contra1 = compute_contrastive_loss(enc1_s, margin=contra_margin)
@@ -182,8 +252,8 @@ def train_model(student, teacher, train_shapes, config):
                 loss_contra = loss_contra1 + loss_contra2
                 
                 # Cycle Loss (requires matching coordinate tensors p1 [N1] and p2 [N2])
-                loss_cycle1 = compute_cycle_loss(enc1_s, enc2_s, p1, eps=cycle_eps, n_iter=cycle_n_iter)
-                loss_cycle2 = compute_cycle_loss(enc2_s, enc1_s, p2, eps=cycle_eps, n_iter=cycle_n_iter)
+                loss_cycle1 = compute_cycle_loss(enc1_s, enc2_s, p1_aligned, eps=cycle_eps, n_iter=cycle_n_iter)
+                loss_cycle2 = compute_cycle_loss(enc2_s, enc1_s, p2_aligned, eps=cycle_eps, n_iter=cycle_n_iter)
                 loss_cycle = loss_cycle1 + loss_cycle2
                 
                 # Global Optimization Loss (L_go) - asymmetric Sinkhorn pseudo-labels
@@ -192,24 +262,26 @@ def train_model(student, teacher, train_shapes, config):
                 loss_lgo = (loss_lgo1 + loss_lgo2) / 2.0
                 
                 # Metric Distortion Loss (L_dist)
-                loss_dist1 = compute_distortion_loss(enc1_s, enc2_s, p1, p2, num_samples=dist_samples, tau=dist_tau)
-                loss_dist2 = compute_distortion_loss(enc2_s, enc1_s, p2, p1, num_samples=dist_samples, tau=dist_tau)
+                loss_dist1 = compute_distortion_loss(enc1_s, enc2_s, p1_aligned, p2_aligned, num_samples=dist_samples, tau=dist_tau)
+                loss_dist2 = compute_distortion_loss(enc2_s, enc1_s, p2_aligned, p1_aligned, num_samples=dist_samples, tau=dist_tau)
                 loss_dist = loss_dist1 + loss_dist2
                 
                 # Signed Area / Orientation Consistency Loss (Method B from Complex Functional Maps)
                 # Directly penalizes local normal flips / reflection symmetry errors
-                loss_orient1 = compute_orientation_loss(enc1_s, enc2_s, p1, p2, num_samples=500, tau=dist_tau)
-                loss_orient2 = compute_orientation_loss(enc2_s, enc1_s, p2, p1, num_samples=500, tau=dist_tau)
+                loss_orient1 = compute_orientation_loss(enc1_s, enc2_s, p1_aligned, p2_aligned, num_samples=500, tau=dist_tau)
+                loss_orient2 = compute_orientation_loss(enc2_s, enc1_s, p2_aligned, p1_aligned, num_samples=500, tau=dist_tau)
                 loss_orient = (loss_orient1 + loss_orient2) / 2.0
                 
-                # Total loss with doubled lambda for symmetry/Lgo minimization
+                # Total loss
                 loss = (loss_rec + 
                         (cons_weight * loss_cons) + 
                         (contra_weight * loss_contra) + 
                         (cycle_weight * loss_cycle) + 
                         (lgo_weight * loss_lgo) + 
                         (dist_weight * loss_dist) +
-                        (orient_weight * loss_orient))
+                        (orient_weight * loss_orient) +
+                        (angle_weight * loss_angle) +
+                        (domain_weight * loss_domain))
                 
                 optimizer.zero_grad()
                 loss.backward()
@@ -225,7 +297,9 @@ def train_model(student, teacher, train_shapes, config):
                 epoch_cycle_loss += loss_cycle.item()
                 epoch_lgo_loss += loss_lgo.item()
                 epoch_dist_loss += loss_dist.item()
-                epoch_orient_loss = epoch_orient_loss + loss_orient.item() if 'epoch_orient_loss' in locals() else loss_orient.item()
+                epoch_orient_loss += loss_orient.item()
+                epoch_angle_loss += loss_angle.item()
+                epoch_domain_loss += loss_domain.item()
                 num_pairs += 1
                 
             avg_loss = epoch_loss / num_pairs if num_pairs > 0 else 0
@@ -236,9 +310,11 @@ def train_model(student, teacher, train_shapes, config):
             avg_lgo = epoch_lgo_loss / num_pairs if num_pairs > 0 else 0
             avg_dist = epoch_dist_loss / num_pairs if num_pairs > 0 else 0
             avg_orient = epoch_orient_loss / num_pairs if num_pairs > 0 else 0
+            avg_angle = epoch_angle_loss / num_pairs if num_pairs > 0 else 0
+            avg_domain = epoch_domain_loss / num_pairs if num_pairs > 0 else 0
             
             if num_epochs <= 50 or (epoch + 1) % 10 == 0 or epoch == 0:
-                print(f"Epoch {epoch+1:3d}/{num_epochs} | Tot: {avg_loss:.4f} | Rec: {avg_rec:.4f} | Cons: {avg_cons:.4f} | Contra: {avg_contra:.4f} | Cycle: {avg_cycle:.4f} | Lgo: {avg_lgo:.4f} | Dist: {avg_dist:.4f} | Orient: {avg_orient:.4f}")
+                print(f"Epoch {epoch+1:3d}/{num_epochs} | Tot: {avg_loss:.4f} | Rec: {avg_rec:.4f} | Cons: {avg_cons:.4f} | Cycle: {avg_cycle:.4f} | Lgo: {avg_lgo:.4f} | Dist: {avg_dist:.4f} | Orient: {avg_orient:.4f} | Angle: {avg_angle:.4f} | Dom: {avg_domain:.4f}")
         
     except KeyboardInterrupt:
         if epoch >= 1:
@@ -248,10 +324,11 @@ def train_model(student, teacher, train_shapes, config):
             raise
             
     print("\nTraining complete!")
-    return student
+    return student, orient_net
+
 
 def main():
-    parser = argparse.ArgumentParser(description="ASMAE Student-Teacher Training")
+    parser = argparse.ArgumentParser(description="ASMAE Student-Teacher Training with Orientation Module")
     parser.add_argument('--config', type=str, default='config/FAUST/train_st_te_config.yaml', help='Path to config file')
     parser.add_argument('--fresh', action='store_true', help='Force training from scratch ignoring existing checkpoint')
     args = parser.parse_args()
@@ -308,7 +385,7 @@ def main():
         temperature=student_cfg.get('temperature', 1.0)
     )
     
-    # Initialize Teacher Model (ideally structurally identical, but fully configurable)
+    # Initialize Teacher Model
     teacher_cfg = config.get('teacher_model', config.get('model', {}))
     teacher = ASMAE(
         feature_dim=feature_dim,
@@ -327,6 +404,9 @@ def main():
         temperature=teacher_cfg.get('temperature', 1.0)
     )
     
+    # Initialize OrientNet
+    orient_net = OrientNet()
+    
     # Initialize teacher exactly with student's weights initially
     teacher.load_state_dict(student.state_dict())
     
@@ -339,6 +419,9 @@ def main():
             student.load_state_dict(ckpt['model_state_dict'], strict=False)
             teacher.load_state_dict(ckpt['model_state_dict'], strict=False)
             print("Successfully restored student and teacher weights from checkpoint.")
+        if 'orient_net_state_dict' in ckpt:
+            orient_net.load_state_dict(ckpt['orient_net_state_dict'], strict=False)
+            print("Successfully restored OrientNet weights from checkpoint.")
     else:
         if args.fresh:
             print(f"\n[FRESH START] --fresh flag set. Ignoring existing checkpoint and training from scratch.")
@@ -350,18 +433,22 @@ def main():
         param.requires_grad = False
     
     print(f"  Feature dimension: {feature_dim}")
-    num_params = sum(p.numel() for p in student.parameters())
-    print(f"  Student parameters: {num_params:,}")
+    num_params_student = sum(p.numel() for p in student.parameters())
+    num_params_orient = sum(p.numel() for p in orient_net.parameters())
+    print(f"  Student parameters: {num_params_student:,}")
+    print(f"  OrientNet parameters: {num_params_orient:,}")
 
-    student = train_model(student, teacher, train_shapes, config)
+    student, orient_net = train_model(student, teacher, orient_net, train_shapes, config)
     
     checkpoint_path = os.path.join(config['training']['checkpoint_dir'], config['training']['checkpoint_name'])
     torch.save({
         'model_state_dict': student.state_dict(),
+        'orient_net_state_dict': orient_net.state_dict(),
         'feature_dim': feature_dim,
         'train_size': len(train_shapes),
     }, checkpoint_path)
     print(f"\nCheckpoint saved: {checkpoint_path}")
+
 
 if __name__ == "__main__":
     main()

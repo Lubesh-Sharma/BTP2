@@ -6,6 +6,7 @@ import yaml
 from scipy.spatial.distance import cdist
 
 from models.asmae import ASMAE
+from models.modules.orientation_module import OrientNet, normalize_pc_torch
 from core.preprocessing import process_geometry, normalize_pc
 
 # -------------------------------------------------
@@ -24,9 +25,9 @@ def sinkhorn(cost, eps=0.05, n_iter=100):
     return P
 
 # -------------------------------------------------
-# Load ASMAE
+# Load ASMAE & OrientNet
 # -------------------------------------------------
-def load_model(config, feature_dim, device):
+def load_models(config, feature_dim, device):
     model_cfg = config.get('student_model', config.get('model', {}))
     model = ASMAE(
         feature_dim=feature_dim,
@@ -45,6 +46,8 @@ def load_model(config, feature_dim, device):
         temperature=model_cfg.get('temperature', 1.0)
     ).to(device)
 
+    orient_net = OrientNet().to(device)
+
     checkpoint_path = config['correspondence']['checkpoint_path']
     if not os.path.exists(checkpoint_path):
         raise FileNotFoundError(f"Checkpoint not found at: {checkpoint_path}")
@@ -53,13 +56,18 @@ def load_model(config, feature_dim, device):
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
-    return model
+    if "orient_net_state_dict" in checkpoint:
+        orient_net.load_state_dict(checkpoint["orient_net_state_dict"])
+        print("Loaded OrientNet weights from checkpoint.")
+    orient_net.eval()
+
+    return model, orient_net
 
 # -------------------------------------------------
 # MAIN
 # -------------------------------------------------
 def main():
-    parser = argparse.ArgumentParser(description="ASMAE All-Pairs Correspondence")
+    parser = argparse.ArgumentParser(description="ASMAE All-Pairs Correspondence with Orientation Alignment")
     parser.add_argument('--config', type=str, default='config/SCAPE/corres.yaml', help='Path to corres config file')
     parser.add_argument('--normalize_pc', action='store_true', default=False, help='Apply normalize_pc to coordinates (default: False, to match train_st_te.py)')
     args = parser.parse_args()
@@ -84,59 +92,71 @@ def main():
     # 1. Scan for all shapes
     all_files = sorted([f for f in os.listdir(data_dir) if f.endswith('.obj') or f.endswith('.off')])
     
-    # # Process only the last 20 files, or all if fewer than 20
-    # commment out this line in case of the shrec_19
+    # Process only the last 20 files, or all if fewer than 20
     all_files = all_files[-20:]
     
     if not all_files:
         print(f"No .obj or .off files found in {data_dir}")
         return
         
-    print(f"Found {len(all_files)} shapes. Pre-extracting features for N^2 matching...")
+    print(f"Found {len(all_files)} shapes. Computing correspondence with orientation alignment...")
     
-    # 2. Pre-load Model
-    # We need feature_dim, let's load one file to get it
+    # 2. Pre-load Models
     temp_V, _, temp_feat, _ = process_geometry(os.path.join(data_dir, all_files[0]), k=k, t=t, output_dir=out_dir)
     feature_dim = temp_feat.shape[1]
-    model = load_model(config, feature_dim, device)
+    model, orient_net = load_models(config, feature_dim, device)
     
-    # 3. Cache Features (Pre-computing helps for N^2 pairs)
-    cached_shapes = {}
+    # 3. Load Shape Geometry and Features
+    loaded_shapes = {}
     for filename in all_files:
         path = os.path.join(data_dir, filename)
         name = os.path.splitext(filename)[0]
         
-        print(f"  -> Caching: {filename}")
+        print(f"  -> Loading: {filename}")
         V, El, feat, _ = process_geometry(path, k=k, t=t, output_dir=out_dir)
         p_coords = normalize_pc(V.copy()) if args.normalize_pc else V.copy()
         
-        with torch.no_grad():
-            f_torch = torch.tensor(feat, dtype=torch.float32, device=device).unsqueeze(0)
-            p_torch = torch.tensor(p_coords, dtype=torch.float32, device=device).unsqueeze(0)
-            z = model.extract_features(f_torch, p_torch).squeeze(0).cpu().numpy()
-            
-        z /= np.linalg.norm(z, axis=1, keepdims=True) + 1e-8
-        
-        cached_shapes[filename] = {
+        loaded_shapes[filename] = {
             'V': V,
             'El': El,
-            'Z': z,
+            'pos': p_coords,
+            'feat': feat,
             'name': name
         }
 
-    # 4. Compute N*N Correspondences
+    # 4. Compute N*N Correspondences with Pairwise Orientation Alignment
     print(f"\nProcessing {len(all_files)**2} pairs...")
     
     for i, file1 in enumerate(all_files):
-        s1 = cached_shapes[file1]
-        for j, file2 in enumerate(all_files):
-            s2 = cached_shapes[file2]
+        s1 = loaded_shapes[file1]
+        p1_tensor = torch.tensor(s1['pos'], dtype=torch.float32, device=device).unsqueeze(0)
+        f1_tensor = torch.tensor(s1['feat'], dtype=torch.float32, device=device).unsqueeze(0)
+        
+        with torch.no_grad():
+            z1 = model.extract_features(f1_tensor, p1_tensor).squeeze(0).cpu().numpy()
+            z1 /= np.linalg.norm(z1, axis=1, keepdims=True) + 1e-8
             
-            # Skip diagonal? (Optional, user asked for all n*n including self-mapping)
+        for j, file2 in enumerate(all_files):
+            s2 = loaded_shapes[file2]
             print(f"[{i*len(all_files) + j + 1}/{len(all_files)**2}] {file1} -> {file2}")
             
+            p2_tensor = torch.tensor(s2['pos'], dtype=torch.float32, device=device).unsqueeze(0)
+            f2_tensor = torch.tensor(s2['feat'], dtype=torch.float32, device=device).unsqueeze(0)
+            
+            with torch.no_grad():
+                # Estimate relative orientation and align p2 to p1's coordinate space
+                p1_norm = normalize_pc_torch(p1_tensor)
+                p2_norm = normalize_pc_torch(p2_tensor)
+                orient_out = orient_net(p1_norm, p2_norm)
+                pred_angle = orient_out["angle_x"].argmax(dim=-1)
+                p2_aligned = orient_net.rotate_point_cloud(p2_tensor, pred_angle, inverse=True)
+                
+                # Extract ASMAE features on orientation-aligned coordinates
+                z2 = model.extract_features(f2_tensor, p2_aligned).squeeze(0).cpu().numpy()
+                z2 /= np.linalg.norm(z2, axis=1, keepdims=True) + 1e-8
+            
             # Compute Cost
-            cost = cdist(s1['Z'], s2['Z'], metric="sqeuclidean")
+            cost = cdist(z1, z2, metric="sqeuclidean")
             
             # Sinkhorn
             P = sinkhorn(cost, eps=eps, n_iter=n_iter)
@@ -151,5 +171,6 @@ def main():
 
     print(f"\nDone! All results saved to: {out_dir}")
     
+
 if __name__ == "__main__":
     main()
