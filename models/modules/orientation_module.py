@@ -43,43 +43,47 @@ def normalize_pc_torch(points: torch.Tensor):
 def knn_points(ref: torch.Tensor, query: torch.Tensor, k: int):
     """
     Find k nearest neighbors in ref for each point in query.
+    Supports varying number of points between ref (N_ref) and query (N_query).
     Args:
-        ref: [B, N, C]
-        query: [B, M, C]
+        ref: [B, N_ref, C]
+        query: [B, N_query, C]
         k: int
     Returns:
-        idx: [B, M, k]
+        idx: [B, N_query, k] indices in ref
     """
-    dists = torch.cdist(query, ref)  # [B, M, N]
-    idx = torch.topk(dists, k=k, dim=-1, largest=False)[1]  # [B, M, k]
+    dists = torch.cdist(query, ref)  # [B, N_query, N_ref]
+    idx = torch.topk(dists, k=k, dim=-1, largest=False)[1]  # [B, N_query, k]
     return idx
 
 
 def get_graph_feature(ref: torch.Tensor, query: torch.Tensor, k: int = 20, idx=None, ref_xyz=None):
     """
     Extract graph edge features between query and ref.
+    Supports asymmetric point cloud sizes where ref (N_ref) != query (N_query).
     Args:
-        ref: [B, N, C]
-        query: [B, N, C]
+        ref: [B, N_ref, C]
+        query: [B, N_query, C]
         k: int
-        idx: [B, N, k] optional precomputed neighbor indices
-        ref_xyz: [B, N, 3] optional reference 3D coordinates
+        idx: [B, N_query, k] optional precomputed neighbor indices in ref
+        ref_xyz: [B, N_ref, 3] optional reference 3D coordinates
     Returns:
-        feature: [B, N, k, C] (or tuple if ref_xyz is provided)
+        feature: [B, N_query, k, C] (or tuple with xyz [B, N_query, k, 3] if ref_xyz is provided)
     """
-    batch_size, num_points, num_dims = ref.size()
-    if idx is None:
-        idx = knn_points(ref, query, k=k)
+    batch_size, num_ref, num_dims = ref.size()
+    num_query = query.size(1)
 
-    idx_base = torch.arange(0, batch_size, device=ref.device).view(-1, 1, 1) * num_points
+    if idx is None:
+        idx = knn_points(ref, query, k=k)  # [B, N_query, k]
+
+    idx_base = torch.arange(0, batch_size, device=ref.device).view(-1, 1, 1) * num_ref
     idx_flat = (idx + idx_base).view(-1)
 
-    ref_flat = ref.reshape(batch_size * num_points, -1)
-    feature = ref_flat[idx_flat, :].view(batch_size, num_points, k, num_dims)
+    ref_flat = ref.reshape(batch_size * num_ref, -1)
+    feature = ref_flat[idx_flat, :].view(batch_size, num_query, k, num_dims)
 
     if ref_xyz is not None:
-        xyz_flat = ref_xyz.reshape(batch_size * num_points, -1)
-        xyz = xyz_flat[idx_flat, :].view(batch_size, num_points, k, 3)
+        xyz_flat = ref_xyz.reshape(batch_size * num_ref, -1)
+        xyz = xyz_flat[idx_flat, :].view(batch_size, num_query, k, 3)
         return feature, xyz
 
     return feature
@@ -120,31 +124,32 @@ class OrientModule(nn.Module):
 
     def forward(self, xyz_s: torch.Tensor, xyz_t: torch.Tensor, feature_s: torch.Tensor, feature_t: torch.Tensor):
         """
+        Extract cross-shape orientation features between source (N_s) and target (N_t).
         Args:
-            xyz_s: [B, N, 3]
-            xyz_t: [B, N, 3]
-            feature_s: [B, C_in, N]
-            feature_t: [B, C_in, N]
+            xyz_s: [B, N_s, 3]
+            xyz_t: [B, N_t, 3]
+            feature_s: [B, C_in, N_s]
+            feature_t: [B, C_in, N_t]
         Returns:
-            output: [B, C_out, N]
+            output: [B, C_out, N_t]
         """
         feature, xyz = get_graph_feature(
             feature_s.transpose(2, 1),
             feature_t.transpose(2, 1),
             k=self.k,
             ref_xyz=xyz_s
-        )  # [B, N, k, C_in], [B, N, k, 3]
+        )  # [B, N_t, k, C_in], [B, N_t, k, 3]
 
-        xyz_t_exp = xyz_t.unsqueeze(2).repeat(1, 1, self.k, 1)  # [B, N, k, 3]
-        feature_t_exp = feature_t.transpose(2, 1).unsqueeze(2).repeat(1, 1, self.k, 1)  # [B, N, k, C_in]
+        xyz_t_exp = xyz_t.unsqueeze(2).repeat(1, 1, self.k, 1)  # [B, N_t, k, 3]
+        feature_t_exp = feature_t.transpose(2, 1).unsqueeze(2).repeat(1, 1, self.k, 1)  # [B, N_t, k, C_in]
 
         feat_cat = torch.cat(
             (feature - feature_t_exp, feature, xyz - xyz_t_exp, xyz_t_exp),
             dim=-1
-        )  # [B, N, k, 2*(C_in + 3)]
-        feat_cat = feat_cat.permute(0, 3, 1, 2).contiguous()  # [B, 2*(C_in + 3), N, k]
-        feat_cat = self.relu(self.bn(self.linear(feat_cat)))  # [B, C_out, N, k]
-        output, _ = feat_cat.max(dim=-1, keepdim=False)  # [B, C_out, N]
+        )  # [B, N_t, k, 2*(C_in + 3)]
+        feat_cat = feat_cat.permute(0, 3, 1, 2).contiguous()  # [B, 2*(C_in + 3), N_t, k]
+        feat_cat = self.relu(self.bn(self.linear(feat_cat)))  # [B, C_out, N_t, k]
+        output, _ = feat_cat.max(dim=-1, keepdim=False)  # [B, C_out, N_t]
         return output
 
 
@@ -152,6 +157,7 @@ class OrientNet(nn.Module):
     """
     Orientation Estimation Module (OEM) from SE-ORNet.
     Predicts relative orientation angle bins and domain logits between two point clouds.
+    Fully supports varying vertex counts (N_s != N_t).
     """
     def __init__(
         self,
@@ -214,8 +220,8 @@ class OrientNet(nn.Module):
         """
         Forward pass for orientation estimation.
         Args:
-            xyz_s: [B, N, 3] source point cloud
-            xyz_t: [B, N, 3] target point cloud
+            xyz_s: [B, N_s, 3] source point cloud
+            xyz_t: [B, N_t, 3] target point cloud
         Returns:
             dict containing:
                 angle_x: [B, num_class] orientation logits for source w.r.t target
@@ -226,31 +232,31 @@ class OrientNet(nn.Module):
         idx_s = knn_points(xyz_s, xyz_s, k=self.input_neighs)
         idx_t = knn_points(xyz_t, xyz_t, k=self.input_neighs)
 
-        feature_s = xyz_s.transpose(1, 2)
-        feature_t = xyz_t.transpose(1, 2)
+        feature_s = xyz_s.transpose(1, 2)  # [B, 3, N_s]
+        feature_t = xyz_t.transpose(1, 2)  # [B, 3, N_t]
 
         for input_module in self.input_modules:
-            feature_s = input_module(feature_s, idx=idx_s)
-            feature_t = input_module(feature_t, idx=idx_t)
+            feature_s = input_module(feature_s, idx=idx_s)  # [B, C, N_s]
+            feature_t = input_module(feature_t, idx=idx_t)  # [B, C, N_t]
 
-        latent_s_0 = self.orient_module(xyz_s, xyz_t, feature_s, feature_t)
-        latent_t_0 = self.orient_module(xyz_t, xyz_s, feature_t, feature_s)
-        latent_s_1 = self.edgeconv(latent_s_0)
-        latent_t_1 = self.edgeconv(latent_t_0)
+        latent_s_0 = self.orient_module(xyz_s, xyz_t, feature_s, feature_t)  # [B, 256, N_t]
+        latent_t_0 = self.orient_module(xyz_t, xyz_s, feature_t, feature_s)  # [B, 256, N_s]
+        latent_s_1 = self.edgeconv(latent_s_0)  # [B, 256, N_t]
+        latent_t_1 = self.edgeconv(latent_t_0)  # [B, 256, N_s]
 
-        x = torch.cat((latent_s_0, latent_s_1), dim=1)
-        y = torch.cat((latent_t_0, latent_t_1), dim=1)
+        x = torch.cat((latent_s_0, latent_s_1), dim=1)  # [B, 512, N_t]
+        y = torch.cat((latent_t_0, latent_t_1), dim=1)  # [B, 512, N_s]
 
-        x1 = F.adaptive_max_pool1d(x, 1).view(batch_size, -1)
-        y1 = F.adaptive_max_pool1d(y, 1).view(batch_size, -1)
-        x2 = F.adaptive_avg_pool1d(x, 1).view(batch_size, -1)
-        y2 = F.adaptive_avg_pool1d(y, 1).view(batch_size, -1)
+        x1 = F.adaptive_max_pool1d(x, 1).view(batch_size, -1)  # [B, 512]
+        y1 = F.adaptive_max_pool1d(y, 1).view(batch_size, -1)  # [B, 512]
+        x2 = F.adaptive_avg_pool1d(x, 1).view(batch_size, -1)  # [B, 512]
+        y2 = F.adaptive_avg_pool1d(y, 1).view(batch_size, -1)  # [B, 512]
 
-        x = torch.cat((x1, x2), 1).unsqueeze(-1)  # [B, 2*(latent+output), 1]
-        y = torch.cat((y1, y2), 1).unsqueeze(-1)  # [B, 2*(latent+output), 1]
+        x = torch.cat((x1, x2), 1).unsqueeze(-1)  # [B, 1024, 1]
+        y = torch.cat((y1, y2), 1).unsqueeze(-1)  # [B, 1024, 1]
 
         # Domain discrimination with GRL
-        D_input = torch.cat((x, y), dim=-1)  # [B, 2*(latent+output), 2]
+        D_input = torch.cat((x, y), dim=-1)  # [B, 1024, 2]
         global_d = self.global_netD1(grad_reverse(D_input))  # [B, 128, 2]
         global_d = torch.mean(global_d, dim=2)  # [B, 128]
         global_d_pred = self.global_netD2(global_d)  # [B, 2]
