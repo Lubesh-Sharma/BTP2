@@ -8,29 +8,32 @@ geometry:
   t: 100
   neigvecs: 300
   
-# do not change the following parameters
 training:
-  epochs: 30
-  lr: 0.0002
+  epochs: 40
+  lr: 0.00025
   device: "cuda"
-  student_mask_ratio: 0.7
-  student_feature_ratio: 0.5
-  teacher_mask_ratio: 0.15
-  teacher_feature_ratio: 0.2
+  student_mask_ratio: 0.4
+  student_feature_ratio: 0.25
+  teacher_mask_ratio: 0.1
+  teacher_feature_ratio: 0.1
   ema_alpha: 0.999
   checkpoint_dir: "checkpoints"
   checkpoint_name: "st_te_model_SHREC.pth"
-  consistency_weight: 150.0
-  contrastive_margin: 0.2
+  consistency_weight: 50.0
+  contrastive_margin: 0.3
   contrastive_weight: 10.0
   cycle_eps: 0.02
   cycle_n_iter: 15
   cycle_weight: 100.0
-  lgo_eps: 0.05
-  lgo_target_eps: 0.035
-  lgo_weight: 50.0
+  lgo_eps: 0.03
+  lgo_target_eps: 0.018
+  lgo_weight: 60.0
   distortion_weight: 120.0
-  orientation_weight: 60.0
+  distortion_tau: 0.03
+  distortion_samples: 512
+  orientation_weight: 80.0
+  angle_weight: 2.0
+  domain_weight: 1.0
 
 student_model:
   embed_dim: 128
