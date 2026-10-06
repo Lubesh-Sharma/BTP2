@@ -12,27 +12,31 @@ training:
   epochs: 40
   lr: 0.00025
   device: "cuda"
-  student_mask_ratio: 0.4
-  student_feature_ratio: 0.25
-  teacher_mask_ratio: 0.1
-  teacher_feature_ratio: 0.1
+  student_mask_ratio: 0.60
+  student_feature_ratio: 0.35
+  teacher_mask_ratio: 0.10
+  teacher_feature_ratio: 0.10
   ema_alpha: 0.999
   checkpoint_dir: "checkpoints"
   checkpoint_name: "st_te_model_SHREC.pth"
   consistency_weight: 50.0
-  contrastive_margin: 0.3
+  contrastive_margin: 0.25
   contrastive_weight: 10.0
   cycle_eps: 0.02
   cycle_n_iter: 15
   cycle_weight: 100.0
-  lgo_eps: 0.03
-  lgo_target_eps: 0.018
-  lgo_weight: 60.0
+  lgo_eps: 0.040
+  lgo_target_eps: 0.030
+  lgo_weight: 40.0
+  lgo_weight_init: 10.0
+  lgo_warmup_epochs: 5
   distortion_weight: 120.0
-  distortion_tau: 0.03
-  distortion_samples: 512
-  orientation_weight: 80.0
+  distortion_tau: 0.04
+  distortion_samples: 384
+  orientation_weight: 100.0
   angle_weight: 2.0
+  angle_weight_init: 8.0
+  angle_warmup_epochs: 5
   domain_weight: 1.0
 
 student_model:

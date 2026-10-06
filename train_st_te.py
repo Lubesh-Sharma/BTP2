@@ -77,45 +77,51 @@ def train_model(student, teacher, orient_net, train_shapes, config):
     lr = config['training']['lr']
     
     # Extract student params
-    student_mask_ratio = config['training'].get('student_mask_ratio', 0.4)
-    student_feat_ratio = config['training'].get('student_feature_ratio', 0.2)
+    student_mask_ratio = config['training'].get('student_mask_ratio', 0.6)
+    student_feat_ratio = config['training'].get('student_feature_ratio', 0.35)
     
     # Extract teacher params
     teacher_mask_ratio = config['training'].get('teacher_mask_ratio', 0.1)
-    teacher_feat_ratio = config['training'].get('teacher_feature_ratio', 0.05)
+    teacher_feat_ratio = config['training'].get('teacher_feature_ratio', 0.1)
     
     # Loss configs
     ema_alpha = config['training'].get('ema_alpha', 0.999)
-    cons_weight = config['training'].get('consistency_weight', 1.0)
-    contra_margin = config['training'].get('contrastive_margin', 0.5)
-    contra_weight = config['training'].get('contrastive_weight', 1.0)
-    cycle_eps = config['training'].get('cycle_eps', 0.05)
+    cons_weight = config['training'].get('consistency_weight', 50.0)
+    contra_margin = config['training'].get('contrastive_margin', 0.25)
+    contra_weight = config['training'].get('contrastive_weight', 10.0)
+    cycle_eps = config['training'].get('cycle_eps', 0.02)
     cycle_n_iter = config['training'].get('cycle_n_iter', 15)
-    cycle_weight = config['training'].get('cycle_weight', 1.0)
+    cycle_weight = config['training'].get('cycle_weight', 100.0)
     
     # Asymmetric distillation temperatures to drive Lgo down
-    student_lgo_eps = config['training'].get('lgo_eps', 0.05)
-    target_lgo_eps = config['training'].get('lgo_target_eps', 0.035)
-    lgo_weight = config['training'].get('lgo_weight', 50.0)
-    orient_weight = config['training'].get('orientation_weight', 60.0)
-    dist_weight = config['training'].get('distortion_weight', 120.0)
-    dist_tau = config['training'].get('distortion_tau', 0.05)
-    dist_samples = config['training'].get('distortion_samples', 256)
+    student_lgo_eps = config['training'].get('lgo_eps', 0.04)
+    target_lgo_eps = config['training'].get('lgo_target_eps', 0.03)
+    lgo_weight_target = config['training'].get('lgo_weight', 40.0)
+    lgo_weight_init = config['training'].get('lgo_weight_init', 10.0)
+    lgo_warmup_epochs = config['training'].get('lgo_warmup_epochs', 5)
     
-    # SE-ORNet Orientation & Domain Loss weights
-    angle_weight = config['training'].get('angle_weight', 1.0)
+    orient_weight = config['training'].get('orientation_weight', 100.0)
+    dist_weight = config['training'].get('distortion_weight', 120.0)
+    dist_tau = config['training'].get('distortion_tau', 0.04)
+    dist_samples = config['training'].get('distortion_samples', 384)
+    
+    # SE-ORNet Orientation & Domain Loss weights with smooth warmup annealing
+    angle_weight_target = config['training'].get('angle_weight', 2.0)
+    angle_weight_init = config['training'].get('angle_weight_init', 8.0)
+    angle_warmup_epochs = config['training'].get('angle_warmup_epochs', 5)
     domain_weight = config['training'].get('domain_weight', 1.0)
     
     print(f"\n{'='*60}")
-    print("STUDENT-TEACHER TRAINING PHASE (WITH ORIENTATION ESTIMATION)")
+    print("STUDENT-TEACHER TRAINING PHASE (WITH DYNAMIC ORIENTATION WARMUP)")
     print(f"  Training shapes: {len(train_shapes)}")
     print(f"  Epochs: {num_epochs}")
     print(f"  Device: {device}")
     print(f"  Student Masking Ratio (Nodes/Feats): {student_mask_ratio} / {student_feat_ratio}")
     print(f"  Teacher Masking Ratio (Nodes/Feats): {teacher_mask_ratio} / {teacher_feat_ratio}")
     print(f"  EMA Alpha: {ema_alpha} | Consist. Weight: {cons_weight}")
-    print(f"  Cycle Weight: {cycle_weight} | LGO Weight: {lgo_weight} | Dist. Weight: {dist_weight} | Orient Weight: {orient_weight}")
-    print(f"  Angle Weight: {angle_weight} | Domain Weight: {domain_weight}")
+    print(f"  Cycle Weight: {cycle_weight} | Dist. Weight: {dist_weight} | Orient Weight: {orient_weight}")
+    print(f"  Angle Weight: {angle_weight_init} -> {angle_weight_target} (over {angle_warmup_epochs} epochs smooth decay)")
+    print(f"  LGO Weight:   {lgo_weight_init} -> {lgo_weight_target} (over {lgo_warmup_epochs} epochs smooth ramp-up)")
     print(f"  LGO Temperatures: student_eps={student_lgo_eps}, target_eps={target_lgo_eps}")
     print(f"{'='*60}\n")
     
@@ -142,6 +148,19 @@ def train_model(student, teacher, orient_net, train_shapes, config):
     epoch = 0
     try:
         for epoch in range(num_epochs):
+            # Smooth cosine annealing for dynamic loss weights (avoids sudden step shocks)
+            if epoch < angle_warmup_epochs:
+                alpha_angle = 0.5 * (1.0 + np.cos(np.pi * epoch / angle_warmup_epochs))
+                curr_angle_weight = angle_weight_target + (angle_weight_init - angle_weight_target) * alpha_angle
+            else:
+                curr_angle_weight = angle_weight_target
+                
+            if epoch < lgo_warmup_epochs:
+                alpha_lgo = 0.5 * (1.0 - np.cos(np.pi * epoch / lgo_warmup_epochs))
+                curr_lgo_weight = lgo_weight_init + (lgo_weight_target - lgo_weight_init) * alpha_lgo
+            else:
+                curr_lgo_weight = lgo_weight_target
+                
             epoch_loss = 0
             epoch_rec_loss = 0
             epoch_cons_loss = 0
@@ -200,7 +219,6 @@ def train_model(student, teacher, orient_net, train_shapes, config):
                 # -----------------------------------------------------------------
                 # Forward Pass 1 (S1 -> S2) through ASMAE
                 # -----------------------------------------------------------------
-                # Student predicts deeply masked graph
                 pred1_s, _, _, _, enc_t1_s, mask1_s = student(
                     f1, p1_aligned, f2, p2_aligned,
                     mask_ratio=student_mask_ratio,
@@ -272,15 +290,15 @@ def train_model(student, teacher, orient_net, train_shapes, config):
                 loss_orient2 = compute_orientation_loss(enc2_s, enc1_s, p2_aligned, p1_aligned, num_samples=500, tau=dist_tau)
                 loss_orient = (loss_orient1 + loss_orient2) / 2.0
                 
-                # Total loss
+                # Total loss with dynamic curriculum weights
                 loss = (loss_rec + 
                         (cons_weight * loss_cons) + 
                         (contra_weight * loss_contra) + 
                         (cycle_weight * loss_cycle) + 
-                        (lgo_weight * loss_lgo) + 
+                        (curr_lgo_weight * loss_lgo) + 
                         (dist_weight * loss_dist) +
                         (orient_weight * loss_orient) +
-                        (angle_weight * loss_angle) +
+                        (curr_angle_weight * loss_angle) +
                         (domain_weight * loss_domain))
                 
                 optimizer.zero_grad()
@@ -314,7 +332,7 @@ def train_model(student, teacher, orient_net, train_shapes, config):
             avg_domain = epoch_domain_loss / num_pairs if num_pairs > 0 else 0
             
             if num_epochs <= 50 or (epoch + 1) % 10 == 0 or epoch == 0:
-                print(f"Epoch {epoch+1:3d}/{num_epochs} | Tot: {avg_loss:.4f} | Rec: {avg_rec:.4f} | Cons: {avg_cons:.4f} | Contra: {avg_contra:.4f} | Cycle: {avg_cycle:.4f} | Lgo: {avg_lgo:.4f} | Dist: {avg_dist:.4f} | Orient: {avg_orient:.4f} | Angle: {avg_angle:.4f} | Dom: {avg_domain:.4f}")
+                print(f"Epoch {epoch+1:3d}/{num_epochs} | Tot: {avg_loss:.4f} | Rec: {avg_rec:.4f} | Cons: {avg_cons:.4f} | Contra: {avg_contra:.4f} | Cycle: {avg_cycle:.4f} | Lgo: {avg_lgo:.4f} | Dist: {avg_dist:.4f} | Orient: {avg_orient:.4f} | Angle: {avg_angle:.4f} (w={curr_angle_weight:.1f}) | Dom: {avg_domain:.4f}")
         
     except KeyboardInterrupt:
         if epoch >= 1:
