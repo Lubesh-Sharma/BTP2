@@ -47,20 +47,22 @@ class FocalLoss(nn.Module):
             return batch_loss.sum()
 
 
-def compute_angle_loss(angle_pred_x: torch.Tensor, angle_pred_y: torch.Tensor, rotated_gt: torch.Tensor):
+def compute_angle_loss(angle_pred_x: torch.Tensor, angle_pred_y: torch.Tensor, rotated_gt: torch.Tensor, label_smoothing: float = 0.08):
     """
-    Compute cross-entropy loss for angle predictions.
+    Compute cross-entropy loss for angle predictions with label smoothing.
     Args:
         angle_pred_x: [B, 8] logits for angle of source w.r.t target
         angle_pred_y: [B, 8] logits for angle of target w.r.t source
         rotated_gt: [B] ground truth rotation angle bin index
+        label_smoothing: label smoothing factor to eliminate flickering on near-symmetric pairs
     Returns:
         loss_angle: scalar tensor
     """
     angle_pred_combined = torch.cat([angle_pred_x, angle_pred_y], dim=0)  # [2*B, 8]
     rotated_gt_combined = torch.cat([rotated_gt, (10 - rotated_gt) % 8], dim=0)  # [2*B]
-    loss_angle = F.cross_entropy(angle_pred_combined, rotated_gt_combined)
+    loss_angle = F.cross_entropy(angle_pred_combined, rotated_gt_combined, label_smoothing=label_smoothing)
     return loss_angle
+
 
 
 def compute_domain_loss(domain_pred_S: torch.Tensor, domain_pred_T: torch.Tensor, focal_loss_fn: FocalLoss = None):

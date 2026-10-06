@@ -20,24 +20,25 @@ training:
   checkpoint_dir: "checkpoints"
   checkpoint_name: "st_te_model_SHREC.pth"
   consistency_weight: 50.0
-  contrastive_margin: 0.25
-  contrastive_weight: 10.0
-  cycle_eps: 0.02
-  cycle_n_iter: 15
+  contrastive_margin: 0.45
+  contrastive_weight: 80.0
+  cycle_eps: 0.015
+  cycle_n_iter: 25
   cycle_weight: 100.0
-  lgo_eps: 0.040
-  lgo_target_eps: 0.030
-  lgo_weight: 40.0
-  lgo_weight_init: 10.0
+  lgo_eps: 0.020
+  lgo_target_eps: 0.015
+  lgo_weight: 60.0
+  lgo_weight_init: 15.0
   lgo_warmup_epochs: 5
-  distortion_weight: 120.0
-  distortion_tau: 0.04
-  distortion_samples: 384
-  orientation_weight: 100.0
-  angle_weight: 2.0
-  angle_weight_init: 8.0
-  angle_warmup_epochs: 5
-  domain_weight: 1.0
+  distortion_weight: 200.0
+  distortion_tau: 0.015
+  distortion_samples: 512
+  orientation_weight: 250.0
+  angle_weight: 20.0
+  angle_weight_init: 40.0
+  angle_warmup_epochs: 10
+  domain_weight: 30.0
+
 
 student_model:
   embed_dim: 128
