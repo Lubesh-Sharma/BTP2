@@ -255,11 +255,12 @@ class OrientNet(nn.Module):
         x = torch.cat((x1, x2), 1).unsqueeze(-1)  # [B, 1024, 1]
         y = torch.cat((y1, y2), 1).unsqueeze(-1)  # [B, 1024, 1]
 
-        # Domain discrimination with GRL
-        D_input = torch.cat((x, y), dim=-1)  # [B, 1024, 2]
-        global_d = self.global_netD1(grad_reverse(D_input))  # [B, 128, 2]
-        global_d = torch.mean(global_d, dim=2)  # [B, 128]
-        global_d_pred = self.global_netD2(global_d)  # [B, 2]
+        # Domain discrimination with GRL for individual source and target representations
+        feat_d_x = self.global_netD1(grad_reverse(x)).squeeze(-1)  # [B, 128] target/rotated representation
+        d_pred_tgt = self.global_netD2(feat_d_x)                    # [B, 2]
+        
+        feat_d_y = self.global_netD1(grad_reverse(y)).squeeze(-1)  # [B, 128] source/clean representation
+        d_pred_src = self.global_netD2(feat_d_y)                    # [B, 2]
 
         # Angle prediction
         for m in self.mlps:
@@ -272,8 +273,12 @@ class OrientNet(nn.Module):
         return {
             "angle_x": angle_x,
             "angle_y": angle_y,
-            "global_d_pred": global_d_pred,
+            "d_pred_src": d_pred_src,
+            "d_pred_tgt": d_pred_tgt,
+            "feat_s": y1,
+            "feat_t": x1,
         }
+
 
     def rotate_point_cloud(self, xyz: torch.Tensor, angle_indices: torch.Tensor, inverse: bool = True):
         """

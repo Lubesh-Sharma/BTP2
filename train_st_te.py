@@ -197,24 +197,38 @@ def train_model(student, teacher, orient_net, train_shapes, config):
                 p2_norm_student = normalize_pc_torch(p2_student)
                 
                 orient_out = orient_net(p1_norm_student, p2_norm_student)
-                domain_pred_student = orient_out["global_d_pred"]
                 
-                # Compute angle loss and domain discriminator loss with reference target
+                # Reference pair: p2_clean (source/clean, label 0) vs p2_student (target/rotated, label 1)
                 p2_norm_clean = normalize_pc_torch(p2_raw)
                 orient_out_target = orient_net(p2_norm_clean, p2_norm_student)
-                domain_pred_target = orient_out_target["global_d_pred"]
                 
-                loss_angle = compute_angle_loss(
+                loss_angle_target = compute_angle_loss(
                     orient_out_target["angle_x"],
                     orient_out_target["angle_y"],
                     rotated_gt
                 )
-                loss_domain = compute_domain_loss(domain_pred_target, domain_pred_student, fl_global)
+                loss_angle_cross = compute_angle_loss(
+                    orient_out["angle_x"],
+                    orient_out["angle_y"],
+                    rotated_gt
+                )
+                loss_angle = (loss_angle_target + loss_angle_cross) / 2.0
                 
-                # Align p2_student in 3D coordinate space using predicted angle
-                pred_angle_idx = orient_out["angle_x"].argmax(dim=-1)
+                # Domain loss: discriminator classifies clean vs rotated + feature invariance
+                loss_domain = compute_domain_loss(
+                    orient_out_target["d_pred_src"],
+                    orient_out_target["d_pred_tgt"],
+                    fl_global,
+                    feat_clean=orient_out_target["feat_s"],
+                    feat_rot=orient_out_target["feat_t"]
+                )
+                
+                # Align p2_student in 3D coordinate space using canonical predicted angle
+                pred_angle_idx = orient_out_target["angle_x"].argmax(dim=-1)
                 p2_aligned = orient_net.rotate_point_cloud(p2_student, pred_angle_idx, inverse=True)
                 p1_aligned = p1_student
+
+
                 
                 # -----------------------------------------------------------------
                 # Forward Pass 1 (S1 -> S2) through ASMAE
@@ -331,8 +345,8 @@ def train_model(student, teacher, orient_net, train_shapes, config):
             avg_angle = epoch_angle_loss / num_pairs if num_pairs > 0 else 0
             avg_domain = epoch_domain_loss / num_pairs if num_pairs > 0 else 0
             
-            if num_epochs <= 50 or (epoch + 1) % 10 == 0 or epoch == 0:
-                print(f"Epoch {epoch+1:3d}/{num_epochs} | Tot: {avg_loss:.4f} | Rec: {avg_rec:.4f} | Cons: {avg_cons:.4f} | Contra: {avg_contra:.4f} | Cycle: {avg_cycle:.4f} | Lgo: {avg_lgo:.4f} | Dist: {avg_dist:.4f} | Orient: {avg_orient:.4f} | Angle: {avg_angle:.4f} (w={curr_angle_weight:.1f}) | Dom: {avg_domain:.4f}")
+            print(f"Epoch {epoch+1:3d}/{num_epochs} | Tot: {avg_loss:.4f} | Rec: {avg_rec:.4f} | Cons: {avg_cons:.4f} | Contra: {avg_contra:.4f} | Cycle: {avg_cycle:.4f} | Lgo: {avg_lgo:.4f} | Dist: {avg_dist:.4f} | Orient: {avg_orient:.4f} | Angle: {avg_angle:.4f} (w={curr_angle_weight:.1f}) | Dom: {avg_domain:.4f}")
+
         
     except KeyboardInterrupt:
         if epoch >= 1:

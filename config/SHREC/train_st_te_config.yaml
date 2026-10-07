@@ -9,7 +9,7 @@ geometry:
   neigvecs: 300
   
 training:
-  epochs: 40
+  epochs: 60
   lr: 0.00025
   device: "cuda"
   student_mask_ratio: 0.60
@@ -21,23 +21,23 @@ training:
   checkpoint_name: "st_te_model_SHREC.pth"
   consistency_weight: 50.0
   contrastive_margin: 0.45
-  contrastive_weight: 80.0
+  contrastive_weight: 100.0
   cycle_eps: 0.015
   cycle_n_iter: 25
   cycle_weight: 100.0
   lgo_eps: 0.020
   lgo_target_eps: 0.015
-  lgo_weight: 60.0
-  lgo_weight_init: 15.0
+  lgo_weight: 200.0
+  lgo_weight_init: 25.0
   lgo_warmup_epochs: 5
   distortion_weight: 200.0
   distortion_tau: 0.015
   distortion_samples: 512
   orientation_weight: 250.0
-  angle_weight: 20.0
-  angle_weight_init: 40.0
+  angle_weight: 30.0
+  angle_weight_init: 60.0
   angle_warmup_epochs: 10
-  domain_weight: 30.0
+  domain_weight: 500.0
 
 
 student_model:

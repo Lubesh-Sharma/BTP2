@@ -65,13 +65,15 @@ def compute_angle_loss(angle_pred_x: torch.Tensor, angle_pred_y: torch.Tensor, r
 
 
 
-def compute_domain_loss(domain_pred_S: torch.Tensor, domain_pred_T: torch.Tensor, focal_loss_fn: FocalLoss = None):
+def compute_domain_loss(domain_pred_S: torch.Tensor, domain_pred_T: torch.Tensor, focal_loss_fn: FocalLoss = None, feat_clean: torch.Tensor = None, feat_rot: torch.Tensor = None):
     """
-    Compute domain discriminator loss using Focal Loss.
+    Compute domain discriminator loss using Focal Loss and Latent Feature Invariance.
     Args:
-        domain_pred_S: [B, 2] source domain prediction logits (label 0)
-        domain_pred_T: [B, 2] target domain prediction logits (label 1)
+        domain_pred_S: [B, 2] source/clean domain prediction logits (label 0)
+        domain_pred_T: [B, 2] target/rotated domain prediction logits (label 1)
         focal_loss_fn: FocalLoss instance
+        feat_clean: [B, D] clean global feature representation
+        feat_rot: [B, D] rotated global feature representation
     Returns:
         loss_domain: scalar tensor
     """
@@ -84,5 +86,14 @@ def compute_domain_loss(domain_pred_S: torch.Tensor, domain_pred_T: torch.Tensor
     
     loss_S = focal_loss_fn(domain_pred_S, domain_S)
     loss_T = focal_loss_fn(domain_pred_T, domain_T)
+    loss_disc = (loss_S + loss_T) / 2.0
     
-    return loss_S + loss_T
+    if feat_clean is not None and feat_rot is not None:
+        # Cosine distance between clean and rotated global embeddings (drives directly to 0 as features become invariant)
+        feat_clean_norm = F.normalize(feat_clean, dim=-1)
+        feat_rot_norm = F.normalize(feat_rot, dim=-1)
+        loss_inv = (1.0 - torch.sum(feat_clean_norm * feat_rot_norm, dim=-1)).mean()
+        return loss_disc + loss_inv
+        
+    return loss_disc
+
