@@ -51,49 +51,49 @@ def compute_angle_loss(angle_pred_x: torch.Tensor, angle_pred_y: torch.Tensor, r
     """
     Compute cross-entropy loss for angle predictions with label smoothing.
     Args:
-        angle_pred_x: [B, 8] logits for angle of source w.r.t target
-        angle_pred_y: [B, 8] logits for angle of target w.r.t source
+        angle_pred_x: [B, num_bins] logits for angle of source w.r.t target
+        angle_pred_y: [B, num_bins] logits for angle of target w.r.t source
         rotated_gt: [B] ground truth rotation angle bin index
         label_smoothing: label smoothing factor to eliminate flickering on near-symmetric pairs
     Returns:
         loss_angle: scalar tensor
     """
-    angle_pred_combined = torch.cat([angle_pred_x, angle_pred_y], dim=0)  # [2*B, 8]
-    rotated_gt_combined = torch.cat([rotated_gt, (10 - rotated_gt) % 8], dim=0)  # [2*B]
+    num_bins = angle_pred_x.size(-1)
+    inv_rotated_gt = (num_bins - rotated_gt) % num_bins
+    angle_pred_combined = torch.cat([angle_pred_x, angle_pred_y], dim=0)  # [2*B, num_bins]
+    rotated_gt_combined = torch.cat([rotated_gt, inv_rotated_gt], dim=0)  # [2*B]
     loss_angle = F.cross_entropy(angle_pred_combined, rotated_gt_combined, label_smoothing=label_smoothing)
     return loss_angle
 
 
-
 def compute_domain_loss(domain_pred_S: torch.Tensor, domain_pred_T: torch.Tensor, focal_loss_fn: FocalLoss = None, feat_clean: torch.Tensor = None, feat_rot: torch.Tensor = None):
     """
-    Compute domain discriminator loss using Focal Loss and Latent Feature Invariance.
+    Compute domain discriminator loss and Latent Feature Invariance.
     Args:
         domain_pred_S: [B, 2] source/clean domain prediction logits (label 0)
         domain_pred_T: [B, 2] target/rotated domain prediction logits (label 1)
-        focal_loss_fn: FocalLoss instance
+        focal_loss_fn: Optional FocalLoss instance (defaults to standard Cross-Entropy for 0.4-0.8 -> 0.05-0.18 scale)
         feat_clean: [B, D] clean global feature representation
         feat_rot: [B, D] rotated global feature representation
     Returns:
         loss_domain: scalar tensor
     """
-    if focal_loss_fn is None:
-        focal_loss_fn = FocalLoss(class_num=2, gamma=3)
-        
     device = domain_pred_S.device
     domain_S = torch.zeros(domain_pred_S.size(0), dtype=torch.long, device=device)
     domain_T = torch.ones(domain_pred_T.size(0), dtype=torch.long, device=device)
     
-    loss_S = focal_loss_fn(domain_pred_S, domain_S)
-    loss_T = focal_loss_fn(domain_pred_T, domain_T)
+    # Standard cross-entropy domain classification (Initial: ~0.693, Target: 0.050 - 0.180)
+    loss_S = F.cross_entropy(domain_pred_S, domain_S)
+    loss_T = F.cross_entropy(domain_pred_T, domain_T)
     loss_disc = (loss_S + loss_T) / 2.0
     
     if feat_clean is not None and feat_rot is not None:
-        # Cosine distance between clean and rotated global embeddings (drives directly to 0 as features become invariant)
+        # Cosine distance between clean and rotated global embeddings
         feat_clean_norm = F.normalize(feat_clean, dim=-1)
         feat_rot_norm = F.normalize(feat_rot, dim=-1)
         loss_inv = (1.0 - torch.sum(feat_clean_norm * feat_rot_norm, dim=-1)).mean()
         return loss_disc + loss_inv
         
     return loss_disc
+
 
