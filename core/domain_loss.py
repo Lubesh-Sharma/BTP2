@@ -82,18 +82,20 @@ def compute_domain_loss(domain_pred_S: torch.Tensor, domain_pred_T: torch.Tensor
     domain_S = torch.zeros(domain_pred_S.size(0), dtype=torch.long, device=device)
     domain_T = torch.ones(domain_pred_T.size(0), dtype=torch.long, device=device)
     
-    # Standard cross-entropy domain classification (Initial: ~0.693, Target: 0.050 - 0.180)
+    # Standard cross-entropy domain classification with GRL
     loss_S = F.cross_entropy(domain_pred_S, domain_S)
     loss_T = F.cross_entropy(domain_pred_T, domain_T)
     loss_disc = (loss_S + loss_T) / 2.0
     
     if feat_clean is not None and feat_rot is not None:
-        # Cosine distance between clean and rotated global embeddings
+        # Cosine distance between clean and rotated global embeddings (Initial: ~0.40-0.70 -> Target: ~0.01-0.05)
         feat_clean_norm = F.normalize(feat_clean, dim=-1)
         feat_rot_norm = F.normalize(feat_rot, dim=-1)
         loss_inv = (1.0 - torch.sum(feat_clean_norm * feat_rot_norm, dim=-1)).mean()
-        return loss_disc + loss_inv
+        # Domain discrepancy: Feature Invariance + Discriminator Alignment
+        return loss_inv + 0.1 * loss_disc
         
     return loss_disc
+
 
 
