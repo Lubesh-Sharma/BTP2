@@ -58,8 +58,8 @@ def compute_angle_loss(angle_pred_x: torch.Tensor, angle_pred_y: torch.Tensor, r
     Returns:
         loss_angle: scalar tensor
     """
-    num_bins = angle_pred_x.size(-1)
-    inv_rotated_gt = (num_bins - rotated_gt) % num_bins
+    # Offset by +2 bins to account for the -pi/4 grid shift in OrientNet (k=1 is 0 deg)
+    inv_rotated_gt = (10 - rotated_gt) % num_bins
     angle_pred_combined = torch.cat([angle_pred_x, angle_pred_y], dim=0)  # [2*B, num_bins]
     rotated_gt_combined = torch.cat([rotated_gt, inv_rotated_gt], dim=0)  # [2*B]
     loss_angle = F.cross_entropy(angle_pred_combined, rotated_gt_combined, label_smoothing=label_smoothing)

@@ -296,7 +296,7 @@ def train_model(student, teacher, orient_net, train_shapes, config):
                 # Metric Distortion Loss (L_dist)
                 loss_dist1 = compute_distortion_loss(enc1_s, enc2_s, p1_aligned, p2_aligned, num_samples=dist_samples, tau=dist_tau)
                 loss_dist2 = compute_distortion_loss(enc2_s, enc1_s, p2_aligned, p1_aligned, num_samples=dist_samples, tau=dist_tau)
-                loss_dist = loss_dist1 + loss_dist2
+                loss_dist = (loss_dist1 + loss_dist2) / 2.0
                 
                 # Signed Area / Orientation Consistency Loss (Method B from Complex Functional Maps)
                 # Directly penalizes local normal flips / reflection symmetry errors
