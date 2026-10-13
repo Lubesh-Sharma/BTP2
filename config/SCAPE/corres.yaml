@@ -1,5 +1,5 @@
 data_dir: "input/SCAPE/obj/k_10"
-output_dir: "p2p_results_st_te_SCAPE"
+output_dir: "p2p_results_st_te_SCAPE_oem"
 
 geometry:
   k: 50
@@ -9,7 +9,7 @@ correspondence:
   device: "cuda"
   eps: 0.05
   n_iter: 100
-  checkpoint_path: "/data/home/user/Lubesh_22CS30065/btp2/st_te_model_SCAPE.pth"
+  checkpoint_path: "checkpoints/st_te_model_SCAPE_oem.pth"
 
 model:
   embed_dim: 128

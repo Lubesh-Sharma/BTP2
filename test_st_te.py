@@ -7,6 +7,8 @@ import argparse
 
 from core.preprocessing import process_geometry
 from models.asmae import ASMAE
+from models.modules.orientation_module import OrientNet
+from models.oriented_pair import prepare_aligned_pair, load_orientation_checkpoint
 from utils.files import save_masked_matrix
 
 def load_test_shapes(data_dir, k, t, neigvecs, start_idx, num_shapes, output_dir):
@@ -48,7 +50,7 @@ def load_test_shapes(data_dir, k, t, neigvecs, start_idx, num_shapes, output_dir
     print(f"\nSuccessfully loaded {len(shapes)} shapes")
     return shapes
 
-def test_model(model, test_shapes, config):
+def test_model(model, orient_net, test_shapes, config):
     device = config['testing'].get('device', 'cuda')
     if device == 'cuda' and not torch.cuda.is_available():
         print("CUDA not available, using CPU")
@@ -67,6 +69,8 @@ def test_model(model, test_shapes, config):
     os.makedirs(output_dir, exist_ok=True)
     model.to(device)
     model.eval()
+    orient_net.to(device)
+    orient_net.eval()
     
     total_mae = 0.0
     total_masked_elements = 0
@@ -82,6 +86,8 @@ def test_model(model, test_shapes, config):
             f1 = torch.tensor(s1['feat']).float().unsqueeze(0).to(device)
             p2 = torch.tensor((s2['pos']).copy()).float().unsqueeze(0).to(device)
             f2 = torch.tensor(s2['feat']).float().unsqueeze(0).to(device)
+
+            f1, p1, f2, p2, _ = prepare_aligned_pair(orient_net, f1, p1, f2, p2)
             
             pred1, _, _, f1_masked, _, mask1 = model(f1, p1, f2, p2, mask_ratio=mask_ratio, feature_ratio=feature_ratio)
             pred2, _, _, f2_masked, _, mask2 = model(f2, p2, f1, p1, mask_ratio=mask_ratio, feature_ratio=feature_ratio)
@@ -122,7 +128,7 @@ def test_model(model, test_shapes, config):
 
 def main():
     parser = argparse.ArgumentParser(description="ASMAE Testing")
-    parser.add_argument('--config', type=str, default='config/test_st_te_config.yaml', help='Path to config file')
+    parser.add_argument('--config', type=str, default='config/FAUST/test_st_te_config.yaml', help='Path to config file')
     parser.add_argument('--checkpoint', type=str, default=None, help='Path to checkpoint file. Defaults to config file default.')
     args = parser.parse_args()
     
@@ -165,6 +171,8 @@ def main():
     )
     
     model.load_state_dict(checkpoint['model_state_dict'])
+    orient_net = OrientNet().to(device)
+    load_orientation_checkpoint(orient_net, checkpoint)
     print("Checkpoint loaded successfully")
     
     data_dir = config['data_dir']
@@ -172,10 +180,15 @@ def main():
     obj_files = sorted([f for f in os.listdir(data_dir) if f.endswith('.obj')])
     total_files = len(obj_files)
     
-    config_train_size = config.get('train_size', 60)
+    # Prefer the split actually used by training over a differing test config.
+    config_train_size = checkpoint.get('train_split_index', checkpoint.get('train_size', config.get('train_size', 60)))
     config_test_size = config.get('test_size', 40)
     
-    if total_files < config_train_size + config_test_size:
+    if 'train_size' in checkpoint:
+        train_size = config_train_size
+        test_size = min(config_test_size, max(0, total_files - train_size))
+        print(f"\nUsing checkpoint split: {train_size} train, {test_size} test")
+    elif total_files < config_train_size + config_test_size:
         train_size = int(total_files * config_train_size / (config_train_size + config_test_size))
         test_size = total_files - train_size
         print(f"\nDataset too small ({total_files} files). Adjusted to ratio: {train_size} train, {test_size} test")
@@ -194,7 +207,7 @@ def main():
         print("Not enough shapes for testing.")
         return
         
-    test_model(model, test_shapes, config)
+    test_model(model, orient_net, test_shapes, config)
 
 if __name__ == "__main__":
     main()

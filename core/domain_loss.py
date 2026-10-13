@@ -47,20 +47,23 @@ class FocalLoss(nn.Module):
             return batch_loss.sum()
 
 
-def compute_angle_loss(angle_pred_x: torch.Tensor, angle_pred_y: torch.Tensor, rotated_gt: torch.Tensor, label_smoothing: float = 0.08):
+def compute_angle_loss(angle_pred_x: torch.Tensor, angle_pred_y: torch.Tensor, rotated_gt: torch.Tensor, label_smoothing: float = 0.0):
     """
     Compute cross-entropy loss for angle predictions with label smoothing.
     Args:
-        angle_pred_x: [B, num_bins] logits for angle of source w.r.t target
-        angle_pred_y: [B, num_bins] logits for angle of target w.r.t source
+        angle_pred_x: [B, num_bins] logits for rotated copy relative to original
+        angle_pred_y: [B, num_bins] logits for original relative to rotated copy
         rotated_gt: [B] ground truth rotation angle bin index
-        label_smoothing: label smoothing factor to eliminate flickering on near-symmetric pairs
+        label_smoothing: optional smoothing; nonzero values impose a positive loss floor
     Returns:
         loss_angle: scalar tensor
     """
     num_bins = angle_pred_x.size(-1)
-    # Offset by +2 bins to account for the -pi/4 grid shift in OrientNet (k=1 is 0 deg)
-    inv_rotated_gt = (10 - rotated_gt) % num_bins
+    # theta[k] = 2*pi*k/K - pi/4, so the inverse bin is K/4 - k.
+    # This shifted grid is closed under inversion only when K is divisible by 4.
+    if num_bins % 4:
+        raise ValueError("The shifted angle grid requires num_bins divisible by 4")
+    inv_rotated_gt = (num_bins // 4 - rotated_gt) % num_bins
     angle_pred_combined = torch.cat([angle_pred_x, angle_pred_y], dim=0)  # [2*B, num_bins]
     rotated_gt_combined = torch.cat([rotated_gt, inv_rotated_gt], dim=0)  # [2*B]
     loss_angle = F.cross_entropy(angle_pred_combined, rotated_gt_combined, label_smoothing=label_smoothing)
@@ -97,6 +100,21 @@ def compute_domain_loss(domain_pred_S: torch.Tensor, domain_pred_T: torch.Tensor
         return loss_inv + 0.1 * loss_disc
         
     return loss_disc
+
+
+def compute_pair_domain_loss(same_shape_logits, cross_shape_logits, focal_loss_fn=None):
+    """SE-ORNet pair domains: same-shape rotation pair = 0; cross-shape = 1.
+
+    The discriminator minimizes this loss while the OEM representation receives
+    reversed gradients through its GRL, encouraging transfer across pair types.
+    """
+    criterion = focal_loss_fn if focal_loss_fn is not None else F.cross_entropy
+    same_labels = torch.zeros(same_shape_logits.size(0), dtype=torch.long,
+                              device=same_shape_logits.device)
+    cross_labels = torch.ones(cross_shape_logits.size(0), dtype=torch.long,
+                              device=cross_shape_logits.device)
+    return (criterion(same_shape_logits, same_labels)
+            + criterion(cross_shape_logits, cross_labels))
 
 
 

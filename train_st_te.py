@@ -4,9 +4,11 @@ import numpy as np
 import sys
 import yaml
 import argparse
+import copy
 
-from core.preprocessing import process_geometry, normalize_pc
+from core.preprocessing import process_geometry
 from models.asmae import ASMAE
+from models.oriented_pair import prepare_aligned_pair, load_orientation_checkpoint, ALIGNMENT_PIPELINE_VERSION
 from models.modules.orientation_module import OrientNet, DataAugment, normalize_pc_torch
 from core.consistency_loss import compute_consistency_loss
 from core.contrastive_loss import compute_contrastive_loss
@@ -14,7 +16,7 @@ from core.cycle_loss import compute_cycle_loss
 from core.lgo_loss import compute_lgo_loss
 from core.distortion_loss import compute_distortion_loss
 from core.orientation_loss import compute_orientation_loss
-from core.domain_loss import compute_domain_loss, compute_angle_loss, FocalLoss
+from core.domain_loss import compute_pair_domain_loss, compute_angle_loss, FocalLoss
 
 
 def update_teacher_ema(student, teacher, alpha=0.999):
@@ -23,7 +25,13 @@ def update_teacher_ema(student, teacher, alpha=0.999):
     """
     with torch.no_grad():
         for s_param, t_param in zip(student.parameters(), teacher.parameters()):
-            t_param.data = alpha * t_param.data + (1.0 - alpha) * s_param.data
+            t_param.mul_(alpha).add_(s_param, alpha=1.0 - alpha)
+        # BatchNorm statistics are part of the teacher, too.
+        for s_buffer, t_buffer in zip(student.buffers(), teacher.buffers()):
+            if t_buffer.is_floating_point():
+                t_buffer.mul_(alpha).add_(s_buffer, alpha=1.0 - alpha)
+            else:
+                t_buffer.copy_(s_buffer)
 
 
 def load_train_shapes(data_dir, k, t, neigvecs, max_shapes, output_dir):
@@ -67,7 +75,11 @@ def load_train_shapes(data_dir, k, t, neigvecs, max_shapes, output_dir):
     return shapes
 
 
-def train_model(student, teacher, orient_net, train_shapes, config):
+def train_model(student, teacher, orient_net, train_shapes, config, teacher_orient_net=None):
+    teacher.requires_grad_(False)
+    if teacher_orient_net is None:
+        teacher_orient_net = copy.deepcopy(orient_net)
+    teacher_orient_net.requires_grad_(False)
     device = config['training'].get('device', 'cuda')
     if device == 'cuda' and not torch.cuda.is_available():
         print("CUDA not available, using CPU")
@@ -110,6 +122,7 @@ def train_model(student, teacher, orient_net, train_shapes, config):
     angle_weight_init = config['training'].get('angle_weight_init', 8.0)
     angle_warmup_epochs = config['training'].get('angle_warmup_epochs', 5)
     domain_weight = config['training'].get('domain_weight', 1.0)
+    angle_label_smoothing = config['training'].get('angle_label_smoothing', 0.0)
     
     print(f"\n{'='*60}")
     print("STUDENT-TEACHER TRAINING PHASE (WITH DYNAMIC ORIENTATION WARMUP)")
@@ -133,17 +146,25 @@ def train_model(student, teacher, orient_net, train_shapes, config):
     criterion = torch.nn.L1Loss()
     fl_global = FocalLoss(class_num=2, gamma=3)
     
-    # Point cloud data augmentations
-    src_aug = DataAugment(operations=["noise"], noise_variance=0.0001)
-    tgt_aug = DataAugment(operations=["rotate", "noise"], rotate_nbins=8, noise_variance=0.0001)
+    # Rotation remains enabled; Gaussian noise is controlled by YAML.
+    noise_variance = float(config['training'].get('noise_variance', 0.0))
+    if noise_variance < 0:
+        raise ValueError("training.noise_variance must be nonnegative")
+    noise_operations = ["noise"] if noise_variance > 0 else []
+    src_aug = DataAugment(operations=["rotate"] + noise_operations,
+                          rotate_nbins=8, noise_variance=noise_variance)
+    tgt_aug = DataAugment(operations=noise_operations, noise_variance=noise_variance)
+    print(f"  Gaussian noise variance: {noise_variance}")
     
     student.to(device)
     teacher.to(device)
     orient_net.to(device)
+    teacher_orient_net.to(device)
     
     student.train()
     orient_net.train()
     teacher.eval() # Teacher does not get trained by backprop natively
+    teacher_orient_net.eval()
     
     epoch = 0
     try:
@@ -171,6 +192,8 @@ def train_model(student, teacher, orient_net, train_shapes, config):
             epoch_orient_loss = 0
             epoch_angle_loss = 0
             epoch_domain_loss = 0
+            angle_correct = 0
+            angle_count = 0
             num_pairs = 0
             
             # All N x N pairs (all pairs i != j)
@@ -185,48 +208,57 @@ def train_model(student, teacher, orient_net, train_shapes, config):
                 f1 = torch.tensor(s1['feat']).float().unsqueeze(0).to(device)
                 p2_raw = torch.tensor((s2['pos']).copy()).float().unsqueeze(0).to(device)
                 f2 = torch.tensor(s2['feat']).float().unsqueeze(0).to(device)
+                # Match SE-ORNet's unit-sphere inputs; augmentation noise now
+                # has the same magnitude regardless of dataset units.
+                p1_raw = normalize_pc_torch(p1_raw)
+                p2_raw = normalize_pc_torch(p2_raw)
                 
                 # -----------------------------------------------------------------
                 # Step 1: Data Augmentation & Orientation Estimation (SE-ORNet)
                 # -----------------------------------------------------------------
-                p1_student = src_aug(p1_raw)
-                p2_student, rotated_gt = tgt_aug(p2_raw)
+                p1_student, rotated_gt = src_aug(p1_raw)
+                p2_student = tgt_aug(p2_raw)
+
+                # OEM(Y_s, X_s) predicts how to align rotated source to target.
+                f1_s, p1_aligned, f2_s, p2_aligned, orient_out = prepare_aligned_pair(
+                    orient_net, f1, p1_student, f2, p2_student
+                )
+                # EMA teacher OEM(Y, X) aligns clean source to clean target.
+                with torch.no_grad():
+                    f1_t, p1_teacher, f2_t, p2_teacher, _ = prepare_aligned_pair(
+                        teacher_orient_net, f1, p1_raw, f2, p2_raw
+                    )
                 
-                # Pass augmented coordinates through OrientNet for relative orientation & domain logits
+                # Normalize the same-shape rotation pair for OrientNet.
                 p1_norm_student = normalize_pc_torch(p1_student)
-                p2_norm_student = normalize_pc_torch(p2_student)
+                # Same-shape reference pair supplies known rotation labels
+                # and the pair-domain label 0.
+                p1_norm_clean = normalize_pc_torch(p1_raw)
+                orient_out_same_source = orient_net(p1_norm_clean, p1_norm_student)
                 
-                orient_out = orient_net(p1_norm_student, p2_norm_student)
-                
-                # Reference pair: p2_clean (source/clean, label 0) vs p2_student (target/rotated, label 1)
-                p2_norm_clean = normalize_pc_torch(p2_raw)
-                orient_out_target = orient_net(p2_norm_clean, p2_norm_student)
-                
-                loss_angle_target = compute_angle_loss(
-                    orient_out_target["angle_x"],
-                    orient_out_target["angle_y"],
-                    rotated_gt
+                loss_angle_source = compute_angle_loss(
+                    orient_out_same_source["angle_x"],
+                    orient_out_same_source["angle_y"],
+                    rotated_gt,
+                    label_smoothing=angle_label_smoothing,
                 )
-                loss_angle_cross = compute_angle_loss(
-                    orient_out["angle_x"],
-                    orient_out["angle_y"],
-                    rotated_gt
-                )
-                loss_angle = (loss_angle_target + loss_angle_cross) / 2.0
+                # Only same-shape rotation pairs have known relative-angle labels.
+                # Different shapes may have different native orientations.
+                loss_angle = loss_angle_source
+                with torch.no_grad():
+                    bins = orient_out_same_source["angle_x"].shape[-1]
+                    inverse_gt = (bins // 4 - rotated_gt) % bins
+                    angle_correct += (orient_out_same_source["angle_x"].argmax(-1) == rotated_gt).sum().item()
+                    angle_correct += (orient_out_same_source["angle_y"].argmax(-1) == inverse_gt).sum().item()
+                    angle_count += 2 * rotated_gt.numel()
                 
-                # Domain loss: discriminator classifies clean vs rotated + feature invariance
-                loss_domain = compute_domain_loss(
-                    orient_out_target["d_pred_src"],
-                    orient_out_target["d_pred_tgt"],
+                # SE-ORNet domain adaptation transfers from known-angle
+                # same-shape pairs (domain 0) to cross-shape pairs (domain 1).
+                loss_domain = compute_pair_domain_loss(
+                    orient_out_same_source["global_d_pred"],
+                    orient_out["global_d_pred"],
                     fl_global,
-                    feat_clean=orient_out_target["feat_s"],
-                    feat_rot=orient_out_target["feat_t"]
                 )
-                
-                # Align p2_student in 3D coordinate space using canonical predicted angle
-                pred_angle_idx = orient_out_target["angle_x"].argmax(dim=-1)
-                p2_aligned = orient_net.rotate_point_cloud(p2_student, pred_angle_idx, inverse=True)
-                p1_aligned = p1_student
 
 
                 
@@ -234,39 +266,40 @@ def train_model(student, teacher, orient_net, train_shapes, config):
                 # Forward Pass 1 (S1 -> S2) through ASMAE
                 # -----------------------------------------------------------------
                 pred1_s, _, _, _, enc_t1_s, mask1_s = student(
-                    f1, p1_aligned, f2, p2_aligned,
+                    f1_s, p1_aligned, f2_s, p2_aligned,
                     mask_ratio=student_mask_ratio,
                     feature_ratio=student_feat_ratio
                 )
                 
-                # Teacher predicts lightly masked/unmasked graph using clean coordinates
+                # Teacher predicts using its OEM-aligned clean coordinates.
                 with torch.no_grad():
                     pred1_t, _, _, _, enc_t1_t, _ = teacher(
-                        f1, p1_raw, f2, p2_raw,
+                        f1_t, p1_teacher, f2_t, p2_teacher,
                         mask_ratio=teacher_mask_ratio,
                         feature_ratio=teacher_feat_ratio
                     )
                     
-                loss1_rec = criterion(pred1_s[mask1_s], f1[mask1_s]) if mask1_s.sum() > 0 else criterion(pred1_s, f1)
-                loss1_cons = compute_consistency_loss(pred1_s, pred1_t)
+                loss1_rec = criterion(pred1_s[mask1_s], f1_s[mask1_s]) if mask1_s.sum() > 0 else criterion(pred1_s, f1_s)
+                # XYZ is frame-dependent; distill the intrinsic descriptors.
+                loss1_cons = compute_consistency_loss(pred1_s[..., :-3], pred1_t[..., :-3])
                 
                 # -----------------------------------------------------------------
                 # Forward Pass 2 (S2 -> S1) through ASMAE
                 # -----------------------------------------------------------------
                 pred2_s, _, _, _, enc_t2_s, mask2_s = student(
-                    f2, p2_aligned, f1, p1_aligned,
+                    f2_s, p2_aligned, f1_s, p1_aligned,
                     mask_ratio=student_mask_ratio,
                     feature_ratio=student_feat_ratio
                 )
                 with torch.no_grad():
                     pred2_t, _, _, _, enc_t2_t, _ = teacher(
-                        f2, p2_raw, f1, p1_raw,
+                        f2_t, p2_teacher, f1_t, p1_teacher,
                         mask_ratio=teacher_mask_ratio,
                         feature_ratio=teacher_feat_ratio
                     )
                     
-                loss2_rec = criterion(pred2_s[mask2_s], f2[mask2_s]) if mask2_s.sum() > 0 else criterion(pred2_s, f2)
-                loss2_cons = compute_consistency_loss(pred2_s, pred2_t)
+                loss2_rec = criterion(pred2_s[mask2_s], f2_s[mask2_s]) if mask2_s.sum() > 0 else criterion(pred2_s, f2_s)
+                loss2_cons = compute_consistency_loss(pred2_s[..., :-3], pred2_t[..., :-3])
                 
                 # -----------------------------------------------------------------
                 # Combine and Backprop
@@ -275,8 +308,8 @@ def train_model(student, teacher, orient_net, train_shapes, config):
                 loss_cons = loss1_cons + loss2_cons
                 
                 # Extract clean features for Shape 1 (N1) and Shape 2 (N2)
-                enc1_s = student.extract_features(f1, p1_aligned)
-                enc2_s = student.extract_features(f2, p2_aligned)
+                enc1_s = student.extract_features(f1_s, p1_aligned)
+                enc2_s = student.extract_features(f2_s, p2_aligned)
                 
                 # Contrastive Loss
                 loss_contra1 = compute_contrastive_loss(enc1_s, margin=contra_margin)
@@ -321,6 +354,7 @@ def train_model(student, teacher, orient_net, train_shapes, config):
                 
                 # Update EMA of the teacher model natively after student steps forwards
                 update_teacher_ema(student, teacher, alpha=ema_alpha)
+                update_teacher_ema(orient_net, teacher_orient_net, alpha=ema_alpha)
                 
                 epoch_loss += loss.item()
                 epoch_rec_loss += loss_rec.item()
@@ -346,6 +380,7 @@ def train_model(student, teacher, orient_net, train_shapes, config):
             avg_domain = epoch_domain_loss / num_pairs if num_pairs > 0 else 0
             
             print(f"Epoch {epoch+1:3d}/{num_epochs} | Tot: {avg_loss:.4f} | Rec: {avg_rec:.4f} | Cons: {avg_cons:.4f} | Contra: {avg_contra:.4f} | Cycle: {avg_cycle:.4f} | Lgo: {avg_lgo:.4f} | Dist: {avg_dist:.4f} | Orient: {avg_orient:.4f} | Angle: {avg_angle:.4f} (w={curr_angle_weight:.1f}) | Dom: {avg_domain:.4f}")
+            print(f"  Same-shape angle accuracy: {angle_correct / max(angle_count, 1):.2%} (smoothing={angle_label_smoothing})")
 
         
     except KeyboardInterrupt:
@@ -356,12 +391,12 @@ def train_model(student, teacher, orient_net, train_shapes, config):
             raise
             
     print("\nTraining complete!")
-    return student, orient_net
+    return student, orient_net, teacher_orient_net
 
 
 def main():
     parser = argparse.ArgumentParser(description="ASMAE Student-Teacher Training with Orientation Module")
-    parser.add_argument('--config', type=str, default='config/FAUST/train_st_te_config.yaml', help='Path to config file')
+    parser.add_argument('--config', type=str, default='config/SHREC/train_st_te_config.yaml', help='Path to config file')
     parser.add_argument('--fresh', action='store_true', help='Force training from scratch ignoring existing checkpoint')
     args = parser.parse_args()
     
@@ -438,6 +473,7 @@ def main():
     
     # Initialize OrientNet
     orient_net = OrientNet()
+    teacher_orient_net = copy.deepcopy(orient_net)
     
     # Initialize teacher exactly with student's weights initially
     teacher.load_state_dict(student.state_dict())
@@ -447,13 +483,14 @@ def main():
     if not args.fresh and os.path.exists(checkpoint_path):
         print(f"\n[RESUME TRAINING] Found existing checkpoint at: {checkpoint_path}")
         ckpt = torch.load(checkpoint_path, map_location='cpu')
-        if 'model_state_dict' in ckpt:
-            student.load_state_dict(ckpt['model_state_dict'], strict=False)
-            teacher.load_state_dict(ckpt['model_state_dict'], strict=False)
-            print("Successfully restored student and teacher weights from checkpoint.")
-        if 'orient_net_state_dict' in ckpt:
-            orient_net.load_state_dict(ckpt['orient_net_state_dict'], strict=False)
-            print("Successfully restored OrientNet weights from checkpoint.")
+        if ckpt.get('alignment_pipeline_version') != ALIGNMENT_PIPELINE_VERSION:
+            raise ValueError("Existing checkpoint uses the previous OEM pipeline. "
+                             "Choose a new checkpoint_name and use --fresh for this design.")
+        student.load_state_dict(ckpt['model_state_dict'])
+        teacher.load_state_dict(ckpt.get('teacher_model_state_dict', ckpt['model_state_dict']))
+        load_orientation_checkpoint(orient_net, ckpt)
+        teacher_orient_net.load_state_dict(ckpt.get('teacher_orient_net_state_dict', ckpt['orient_net_state_dict']))
+        print("Successfully restored student and EMA teacher ASMAE/OEM weights.")
     else:
         if args.fresh:
             print(f"\n[FRESH START] --fresh flag set. Ignoring existing checkpoint and training from scratch.")
@@ -470,14 +507,24 @@ def main():
     print(f"  Student parameters: {num_params_student:,}")
     print(f"  OrientNet parameters: {num_params_orient:,}")
 
-    student, orient_net = train_model(student, teacher, orient_net, train_shapes, config)
+    student, orient_net, teacher_orient_net = train_model(
+        student, teacher, orient_net, train_shapes, config, teacher_orient_net
+    )
     
     checkpoint_path = os.path.join(config['training']['checkpoint_dir'], config['training']['checkpoint_name'])
     torch.save({
         'model_state_dict': student.state_dict(),
         'orient_net_state_dict': orient_net.state_dict(),
+        'teacher_model_state_dict': teacher.state_dict(),
+        'teacher_orient_net_state_dict': teacher_orient_net.state_dict(),
+        'alignment_pipeline_version': ALIGNMENT_PIPELINE_VERSION,
         'feature_dim': feature_dim,
         'train_size': len(train_shapes),
+        'train_split_index': train_size,
+        'train_data_dir': data_dir,
+        'train_filenames': obj_files[:train_size],
+        'student_model_config': student_cfg,
+        'geometry_config': config['geometry'],
     }, checkpoint_path)
     print(f"\nCheckpoint saved: {checkpoint_path}")
 

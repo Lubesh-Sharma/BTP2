@@ -13,7 +13,7 @@ testing:
   mask_ratio: 0.7
   feature_ratio: 0.5
   checkpoint_dir: "checkpoints"
-  checkpoint_name: "st_te_model_FAUST.pth"
+  checkpoint_name: "st_te_model_FAUST_oem.pth"
 
 student_model:
   embed_dim: 128

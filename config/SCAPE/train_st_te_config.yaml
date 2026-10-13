@@ -13,13 +13,15 @@ training:
   epochs: 1500
   lr: 0.0002
   device: "cuda"
+  noise_variance: 0.0
   student_mask_ratio: 0.7
   student_feature_ratio: 0.5
   teacher_mask_ratio: 0.15
   teacher_feature_ratio: 0.2
   ema_alpha: 0.999
   checkpoint_dir: "checkpoints"
-  checkpoint_name: "st_te_model_SCAPE.pth"
+  checkpoint_name: "st_te_model_SCAPE_oem.pth"
+  angle_label_smoothing: 0.0
   consistency_weight: 150.0
   contrastive_margin: 0.2
   contrastive_weight: 10.0

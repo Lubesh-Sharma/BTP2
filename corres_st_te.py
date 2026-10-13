@@ -6,8 +6,10 @@ import yaml
 from scipy.spatial.distance import cdist
 
 from models.asmae import ASMAE
-from models.modules.orientation_module import OrientNet, normalize_pc_torch
-from core.preprocessing import process_geometry, normalize_pc
+from models.modules.orientation_module import OrientNet
+from models.oriented_pair import prepare_aligned_pair, load_orientation_checkpoint
+from core.preprocessing import process_geometry
+from utils.correspondence_io import select_correspondence_files
 
 # -------------------------------------------------
 # Sinkhorn (numpy, stable)
@@ -27,8 +29,11 @@ def sinkhorn(cost, eps=0.05, n_iter=100):
 # -------------------------------------------------
 # Load ASMAE & OrientNet
 # -------------------------------------------------
-def load_models(config, feature_dim, device):
-    model_cfg = config.get('student_model', config.get('model', {}))
+def load_models(config, feature_dim, device, checkpoint=None):
+    checkpoint_path = config['correspondence']['checkpoint_path']
+    if checkpoint is None:
+        checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
+    model_cfg = checkpoint.get('student_model_config', config.get('student_model', config.get('model', {})))
     model = ASMAE(
         feature_dim=feature_dim,
         embed_dim=model_cfg['embed_dim'],
@@ -48,17 +53,11 @@ def load_models(config, feature_dim, device):
 
     orient_net = OrientNet().to(device)
 
-    checkpoint_path = config['correspondence']['checkpoint_path']
-    if not os.path.exists(checkpoint_path):
-        raise FileNotFoundError(f"Checkpoint not found at: {checkpoint_path}")
-        
-    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
-    if "orient_net_state_dict" in checkpoint:
-        orient_net.load_state_dict(checkpoint["orient_net_state_dict"])
-        print("Loaded OrientNet weights from checkpoint.")
+    load_orientation_checkpoint(orient_net, checkpoint)
+    print("Loaded OrientNet weights from checkpoint.")
     orient_net.eval()
 
     return model, orient_net
@@ -68,8 +67,8 @@ def load_models(config, feature_dim, device):
 # -------------------------------------------------
 def main():
     parser = argparse.ArgumentParser(description="ASMAE All-Pairs Correspondence with Orientation Alignment")
-    parser.add_argument('--config', type=str, default='config/SCAPE/corres.yaml', help='Path to corres config file')
-    parser.add_argument('--normalize_pc', action='store_true', default=False, help='Apply normalize_pc to coordinates (default: False, to match train_st_te.py)')
+    parser.add_argument('--config', type=str, default='config/SHREC/corres.yaml', help='Path to corres config file')
+    parser.add_argument('--normalize_pc', action='store_true', default=False, help='Compatibility flag; OEM now always normalizes both clouds as in training')
     args = parser.parse_args()
     
     with open(args.config, 'r') as f:
@@ -88,23 +87,24 @@ def main():
     t = config['geometry']['t']
     eps = config['correspondence']['eps']
     n_iter = config['correspondence']['n_iter']
+    neigvecs = config['geometry'].get('neigvecs', 300)
+    checkpoint = torch.load(config['correspondence']['checkpoint_path'], map_location=device, weights_only=True)
+    geometry = checkpoint.get('geometry_config', config['geometry'])
+    k, t = geometry['k'], geometry['t']
+    neigvecs = geometry.get('neigvecs', 300)
+    model, orient_net = load_models(config, checkpoint['feature_dim'], device, checkpoint)
     
     # 1. Scan for all shapes
     all_files = sorted([f for f in os.listdir(data_dir) if f.endswith('.obj') or f.endswith('.off')])
     
-    # Process only the last 20 files, or all if fewer than 20
-    all_files = all_files[-20:]
+    # Match the held-out partition used by training, then limit to 20 shapes.
+    all_files = select_correspondence_files(all_files, checkpoint, data_dir)
     
     if not all_files:
-        print(f"No .obj or .off files found in {data_dir}")
+        print(f"No held-out .obj or .off files found in {data_dir}")
         return
         
     print(f"Found {len(all_files)} shapes. Computing correspondence with orientation alignment...")
-    
-    # 2. Pre-load Models
-    temp_V, _, temp_feat, _ = process_geometry(os.path.join(data_dir, all_files[0]), k=k, t=t, output_dir=out_dir)
-    feature_dim = temp_feat.shape[1]
-    model, orient_net = load_models(config, feature_dim, device)
     
     # 3. Load Shape Geometry and Features
     loaded_shapes = {}
@@ -113,8 +113,8 @@ def main():
         name = os.path.splitext(filename)[0]
         
         print(f"  -> Loading: {filename}")
-        V, El, feat, _ = process_geometry(path, k=k, t=t, output_dir=out_dir)
-        p_coords = normalize_pc(V.copy()) if args.normalize_pc else V.copy()
+        V, El, feat, _ = process_geometry(path, k=k, t=t, neigvecs=neigvecs, output_dir=out_dir)
+        p_coords = V.copy()
         
         loaded_shapes[filename] = {
             'V': V,
@@ -132,10 +132,6 @@ def main():
         p1_tensor = torch.tensor(s1['pos'], dtype=torch.float32, device=device).unsqueeze(0)
         f1_tensor = torch.tensor(s1['feat'], dtype=torch.float32, device=device).unsqueeze(0)
         
-        with torch.no_grad():
-            z1 = model.extract_features(f1_tensor, p1_tensor).squeeze(0).cpu().numpy()
-            z1 /= np.linalg.norm(z1, axis=1, keepdims=True) + 1e-8
-            
         for j, file2 in enumerate(all_files):
             s2 = loaded_shapes[file2]
             print(f"[{i*len(all_files) + j + 1}/{len(all_files)**2}] {file1} -> {file2}")
@@ -144,15 +140,16 @@ def main():
             f2_tensor = torch.tensor(s2['feat'], dtype=torch.float32, device=device).unsqueeze(0)
             
             with torch.no_grad():
-                # Estimate relative orientation and align p2 to p1's coordinate space
-                p1_norm = normalize_pc_torch(p1_tensor)
-                p2_norm = normalize_pc_torch(p2_tensor)
-                orient_out = orient_net(p1_norm, p2_norm)
-                pred_angle = orient_out["angle_x"].argmax(dim=-1)
-                p2_aligned = orient_net.rotate_point_cloud(p2_tensor, pred_angle, inverse=True)
+                # Use the same cross-shape OEM -> ASMAE inputs as training.
+                f1_aligned, p1_aligned, f2_aligned, p2_aligned, _ = prepare_aligned_pair(
+                    orient_net, f1_tensor, p1_tensor, f2_tensor, p2_tensor
+                )
                 
                 # Extract ASMAE features on orientation-aligned coordinates
-                z2 = model.extract_features(f2_tensor, p2_aligned).squeeze(0).cpu().numpy()
+                # Source alignment depends on this target; encode it per pair.
+                z1 = model.extract_features(f1_aligned, p1_aligned).squeeze(0).cpu().numpy()
+                z1 /= np.linalg.norm(z1, axis=1, keepdims=True) + 1e-8
+                z2 = model.extract_features(f2_aligned, p2_aligned).squeeze(0).cpu().numpy()
                 z2 /= np.linalg.norm(z2, axis=1, keepdims=True) + 1e-8
             
             # Compute Cost

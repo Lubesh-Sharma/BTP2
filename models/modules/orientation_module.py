@@ -189,14 +189,17 @@ class OrientNet(nn.Module):
         self.orient_module = OrientModule(self.num_neighs, in_dim, latent_dim)
         self.edgeconv = EdgeConvModule(self.num_neighs, latent_dim, output_dim)
 
-        # 3. Domain Discriminator with Gradient Reversal Layer (GRL)
-        self.global_netD = nn.Sequential(
-            nn.Linear(in_dim, 128),
-            nn.LeakyReLU(negative_slope=0.2),
-            nn.Linear(128, 64),
-            nn.LeakyReLU(negative_slope=0.2),
-            nn.Linear(64, 2)
+        # SE-ORNet discriminates same-shape vs cross-shape PAIRS from OEM
+        # representations. Both directions provide length 2 even for batch 1.
+        self.global_netD1 = nn.Sequential(
+            nn.Conv1d(2 * (latent_dim + output_dim), 256, 1),
+            nn.BatchNorm1d(256),
+            nn.ReLU(),
+            nn.Conv1d(256, 128, 1),
+            nn.BatchNorm1d(128),
+            nn.ReLU(),
         )
+        self.global_netD2 = nn.Linear(128, 2)
 
         # 4. Angle Classification MLPs
         self.mlps = nn.ModuleList()
@@ -221,10 +224,9 @@ class OrientNet(nn.Module):
             xyz_t: [B, N_t, 3] target point cloud
         Returns:
             dict containing:
-                angle_x: [B, num_class] orientation logits for source w.r.t target
-                angle_y: [B, num_class] orientation logits for target w.r.t source
-                d_pred_src: [B, 2] domain prediction logits for source
-                d_pred_tgt: [B, 2] domain prediction logits for target
+                angle_x: [B, num_class] second input's rotation relative to first
+                angle_y: [B, num_class] inverse rotation (first relative to second)
+                global_d_pred: [B, 2] same-shape/cross-shape pair domain logits
                 feat_s: [B, C] global feature descriptor for source
                 feat_t: [B, C] global feature descriptor for target
         """
@@ -243,9 +245,6 @@ class OrientNet(nn.Module):
         feat_s_global = F.adaptive_max_pool1d(feature_s, 1).view(batch_size, -1)  # [B, 256] clean domain
         feat_t_global = F.adaptive_max_pool1d(feature_t, 1).view(batch_size, -1)  # [B, 256] rotated domain
 
-        d_pred_src = self.global_netD(grad_reverse(feat_s_global))  # [B, 2]
-        d_pred_tgt = self.global_netD(grad_reverse(feat_t_global))  # [B, 2]
-
         latent_s_0 = self.orient_module(xyz_s, xyz_t, feature_s, feature_t)  # [B, 256, N_t]
         latent_t_0 = self.orient_module(xyz_t, xyz_s, feature_t, feature_s)  # [B, 256, N_s]
         latent_s_1 = self.edgeconv(latent_s_0)  # [B, 256, N_t]
@@ -262,6 +261,10 @@ class OrientNet(nn.Module):
         x = torch.cat((x1, x2), 1).unsqueeze(-1)  # [B, 1024, 1]
         y = torch.cat((y1, y2), 1).unsqueeze(-1)  # [B, 1024, 1]
 
+        domain_input = torch.cat((x, y), dim=-1)
+        domain_features = self.global_netD1(grad_reverse(domain_input))
+        global_d_pred = self.global_netD2(domain_features.mean(dim=-1))
+
         # Angle prediction
         for m in self.mlps:
             x = m(x)
@@ -273,8 +276,7 @@ class OrientNet(nn.Module):
         return {
             "angle_x": angle_x,
             "angle_y": angle_y,
-            "d_pred_src": d_pred_src,
-            "d_pred_tgt": d_pred_tgt,
+            "global_d_pred": global_d_pred,
             "feat_s": feat_s_global,
             "feat_t": feat_t_global,
         }

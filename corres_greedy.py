@@ -8,12 +8,18 @@ import argparse
 import yaml
 
 from models.asmae import ASMAE
-from models.modules.orientation_module import OrientNet, normalize_pc_torch
-from core.preprocessing import process_geometry, normalize_pc
+from models.modules.orientation_module import OrientNet
+from models.oriented_pair import prepare_aligned_pair, load_orientation_checkpoint
+from core.preprocessing import process_geometry
+from utils.correspondence_io import correspondence_output_dir, select_correspondence_files
 
 
-def load_model(config, feature_dim, device, checkpoint_path=None):
-    model_cfg = config.get('student_model', config.get('model', {}))
+def load_model(config, feature_dim, device, checkpoint_path=None, checkpoint=None):
+    if checkpoint_path is None:
+        checkpoint_path = config['correspondence']['checkpoint_path']
+    if checkpoint is None:
+        checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
+    model_cfg = checkpoint.get('student_model_config', config.get('student_model', config.get('model', {})))
     model = ASMAE(
         feature_dim=feature_dim,
         embed_dim=model_cfg['embed_dim'],
@@ -33,19 +39,11 @@ def load_model(config, feature_dim, device, checkpoint_path=None):
 
     orient_net = OrientNet().to(device)
 
-    if checkpoint_path is None:
-        checkpoint_path = config.get('correspondence', {}).get('checkpoint_path', 'checkpoints/st_te_model_FAUST.pth')
-
-    if not os.path.exists(checkpoint_path):
-        raise FileNotFoundError(f"Checkpoint not found at: {checkpoint_path}")
-
-    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
-    if "orient_net_state_dict" in checkpoint:
-        orient_net.load_state_dict(checkpoint["orient_net_state_dict"])
-        print("Loaded OrientNet weights from checkpoint.")
+    load_orientation_checkpoint(orient_net, checkpoint)
+    print("Loaded OrientNet weights from checkpoint.")
     orient_net.eval()
     print(f"Loaded checkpoint: {checkpoint_path}")
 
@@ -54,15 +52,15 @@ def load_model(config, feature_dim, device, checkpoint_path=None):
 
 def main():
     parser = argparse.ArgumentParser(description="Greedy Cosine Similarity All-Pairs Shape Correspondence with Orientation Alignment")
-    parser.add_argument('--config', type=str, default='config/FAUST/corres.yaml', help='Path to corres config file')
+    parser.add_argument('--config', type=str, default='config/SHREC/corres.yaml', help='Path to corres config file')
     parser.add_argument('--checkpoint', type=str, default=None, help='Path to checkpoint file (overrides config)')
     parser.add_argument('--out_dir', type=str, default=None, help='Output directory for p2p txt results')
-    parser.add_argument('--n_shapes', type=int, default=20, help='Number of test shapes to match (last N, default: 20, -1 for all)')
+    parser.add_argument('--n_shapes', type=int, default=20, help='Maximum held-out shapes to match (default: 20); -1 explicitly includes training shapes')
     parser.add_argument('--use_dino', action='store_true', help='Concatenate DINOv2 visual features with ASMAE (as in feature_visualization.ipynb)')
     parser.add_argument('--dino_variant', type=str, default='dinov2_vitb14_reg', help='DINOv2 model variant if --use_dino is set')
     parser.add_argument('--dino_views', type=int, default=4, help='Number of multi-view camera poses around mesh (default: 4)')
     parser.add_argument('--off_dir', type=str, default='input/FAUST/off', help='Directory with .off files (needed for DINOv2)')
-    parser.add_argument('--normalize_pc', action='store_true', default=False, help='Apply normalize_pc to coordinates (default: False, to match train_st_te.py)')
+    parser.add_argument('--normalize_pc', action='store_true', default=False, help='Compatibility flag; OEM now always normalizes both clouds as in training')
     args = parser.parse_args()
 
     with open(args.config, 'r') as f:
@@ -75,22 +73,24 @@ def main():
 
     out_dir = args.out_dir
     if not out_dir:
-        out_dir = config.get('output_dir', 'p2p_results_greedy_FAUST')
-        if 'st_te' in out_dir:
-            out_dir = out_dir.replace('st_te', 'greedy')
-        elif out_dir == 'p2p_results_FAUST':
-            out_dir = 'p2p_results_greedy_FAUST'
+        out_dir = str(correspondence_output_dir(config, 'greedy'))
     os.makedirs(out_dir, exist_ok=True)
 
     data_dir = config['data_dir']
     k = config['geometry']['k']
     t = config['geometry']['t']
     neigvecs = config['geometry'].get('neigvecs', 300)
+    ckpt_path = args.checkpoint or config.get('correspondence', {}).get('checkpoint_path', 'checkpoints/st_te_model_FAUST_oem.pth')
+    checkpoint = torch.load(ckpt_path, map_location=device, weights_only=True)
+    geometry = checkpoint.get('geometry_config', config['geometry'])
+    k, t = geometry['k'], geometry['t']
+    neigvecs = geometry.get('neigvecs', 300)
+    model, orient_net = load_model(config, checkpoint['feature_dim'], device,
+                                  checkpoint_path=ckpt_path, checkpoint=checkpoint)
 
     # 1. Scan for all shapes
     all_files = sorted([f for f in os.listdir(data_dir) if f.endswith('.obj') or f.endswith('.off')])
-    if args.n_shapes > 0 and len(all_files) > args.n_shapes:
-        all_files = all_files[-args.n_shapes:]
+    all_files = select_correspondence_files(all_files, checkpoint, data_dir, args.n_shapes)
 
     if not all_files:
         print(f"No .obj or .off files found in {data_dir}")
@@ -105,12 +105,6 @@ def main():
     print(f"  Device: {device}")
     print(f"{'='*60}\n")
 
-    # 2. Pre-load Models
-    temp_V, _, temp_feat, _ = process_geometry(os.path.join(data_dir, all_files[0]), k=k, t=t, neigvecs=neigvecs, output_dir=out_dir)
-    feature_dim = temp_feat.shape[1]
-    ckpt_path = args.checkpoint or config.get('correspondence', {}).get('checkpoint_path', 'checkpoints/st_te_model_FAUST.pth')
-    model, orient_net = load_model(config, feature_dim, device, checkpoint_path=ckpt_path)
-
     # Optional DINOv2 setup
     if args.use_dino:
         from utils.dino_utils import get_vertex_dino_features
@@ -124,7 +118,7 @@ def main():
 
         print(f"  -> Loading: {filename}...")
         V, El, feat, _ = process_geometry(path, k=k, t=t, neigvecs=neigvecs, output_dir=out_dir)
-        p_coords = normalize_pc(V.copy()) if args.normalize_pc else V.copy()
+        p_coords = V.copy()
 
         dino_norm = None
         if args.use_dino:
@@ -156,12 +150,6 @@ def main():
         p1_tensor = torch.tensor(s1['pos'], dtype=torch.float32, device=device).unsqueeze(0)
         f1_tensor = torch.tensor(s1['feat'], dtype=torch.float32, device=device).unsqueeze(0)
         
-        with torch.no_grad():
-            z1 = model.extract_features(f1_tensor, p1_tensor).squeeze(0).cpu().numpy()
-            z1 = z1 / (np.linalg.norm(z1, axis=1, keepdims=True) + 1e-8)
-            if s1['dino'] is not None:
-                z1 = np.concatenate([z1, s1['dino']], axis=1)
-
         for j, file2 in enumerate(all_files):
             s2 = loaded_shapes[file2]
             pair_count += 1
@@ -173,21 +161,21 @@ def main():
             f2_tensor = torch.tensor(s2['feat'], dtype=torch.float32, device=device).unsqueeze(0)
             
             with torch.no_grad():
-                # Estimate relative orientation and align p2 to p1's coordinate space
-                p1_norm = normalize_pc_torch(p1_tensor)
-                p2_norm = normalize_pc_torch(p2_tensor)
-                orient_out = orient_net(p1_norm, p2_norm)
-                pred_angle = orient_out["angle_x"].argmax(dim=-1)
-                p2_aligned = orient_net.rotate_point_cloud(p2_tensor, pred_angle, inverse=True)
+                f1_aligned, p1_aligned, f2_aligned, p2_aligned, _ = prepare_aligned_pair(
+                    orient_net, f1_tensor, p1_tensor, f2_tensor, p2_tensor
+                )
                 
                 # Extract ASMAE features on orientation-aligned coordinates
-                z2 = model.extract_features(f2_tensor, p2_aligned).squeeze(0).cpu().numpy()
+                z1 = model.extract_features(f1_aligned, p1_aligned).squeeze(0).cpu().numpy()
+                z1 = z1 / (np.linalg.norm(z1, axis=1, keepdims=True) + 1e-8)
+                z2 = model.extract_features(f2_aligned, p2_aligned).squeeze(0).cpu().numpy()
                 z2 = z2 / (np.linalg.norm(z2, axis=1, keepdims=True) + 1e-8)
-                if s2['dino'] is not None:
+                if s1['dino'] is not None and s2['dino'] is not None:
+                    z1 = np.concatenate([z1, s1['dino']], axis=1)
                     z2 = np.concatenate([z2, s2['dino']], axis=1)
 
             # Cosine similarity matching
-            sim = s2['Z'] if 'Z' in s2 else z2 @ z1.T
+            sim = z2 @ z1.T
             p2p = np.argmax(sim, axis=1)
 
             out_name = f"p2p_{s1['name']}_to_{s2['name']}.txt"

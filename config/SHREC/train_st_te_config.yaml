@@ -12,13 +12,15 @@ training:
   epochs: 60
   lr: 0.00025
   device: "cuda"
+  noise_variance: 0.0
   student_mask_ratio: 0.60
   student_feature_ratio: 0.35
   teacher_mask_ratio: 0.10
   teacher_feature_ratio: 0.10
   ema_alpha: 0.999
   checkpoint_dir: "checkpoints"
-  checkpoint_name: "st_te_model_SHREC.pth"
+  checkpoint_name: "st_te_model_SHREC_oem.pth"
+  angle_label_smoothing: 0.0
   consistency_weight: 50.0
   contrastive_margin: 0.45
   contrastive_weight: 100.0
