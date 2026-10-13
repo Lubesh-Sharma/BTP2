@@ -27,15 +27,15 @@ training:
   cycle_weight: 100.0
   lgo_eps: 0.020
   lgo_target_eps: 0.015
-  lgo_weight: 100.0
-  lgo_weight_init: 25.0
+  lgo_weight: 250.0
+  lgo_weight_init: 100.0
   lgo_warmup_epochs: 5
-  distortion_weight: 200.0
+  distortion_weight: 350.0
   distortion_tau: 0.015
   distortion_samples: 512
-  orientation_weight: 250.0
-  angle_weight: 150.0
-  angle_weight_init: 250.0
+  orientation_weight: 350.0
+  angle_weight: 250.0
+  angle_weight_init: 350.0
   angle_warmup_epochs: 10
   domain_weight: 150.0
 
