@@ -21,8 +21,8 @@ stabilizes rotation estimation before it controls correspondence inputs.
    inverse predicted angle toward Y_s, then pass the aligned pair to student ASMAE.
    Call teacher OEM(Y, X), align clean X toward Y, then pass it to teacher ASMAE.
    Original X and rotated X_s still go through student OEM for angle supervision.
-6. Freeze OEM for the first 10 correspondence epochs. Its encoder normalization
-   statistics remain fixed throughout correspondence training, matching inference.
+6. Freeze OEM for the first 10 correspondence epochs. OEM uses GroupNorm
+   throughout, so normalization has identical behavior in training and inference.
    Then fine-tune its angle/domain objectives at a smaller learning rate. ASMAE
    learns through reconstruction, consistency and correspondence objectives.
    The discrete angle decision still blocks correspondence gradients through
@@ -31,8 +31,11 @@ stabilizes rotation estimation before it controls correspondence inputs.
    HKS is preserved; XYZ channels are rebuilt from the actual aligned coordinates.
    Descriptor consistency excludes frame-dependent XYZ.
 
-The pair discriminator uses GroupNorm instead of BatchNorm on only two pooled
-directional samples. Pair domains are same-shape = 0 and cross-shape = 1, with
+The coordinate encoder, cross-shape orientation layers, angle head and pair
+discriminator all use GroupNorm. There are no OEM BatchNorm running statistics.
+Warm-up also prints eval-mode accuracy and CE on four fixed training shapes,
+separately from held-out validation, to identify overfitting.
+Pair domains are same-shape = 0 and cross-shape = 1, with
 gradient reversal. Domain influence starts later during pretraining and stays
 small; its focal loss is not expected to approach zero.
 
@@ -112,3 +115,5 @@ validation filenames; matching another dataset does not reuse that split.
 
 The full schema changed, so previous `_oem.pth` checkpoints are rejected rather
 than partially loaded into the new discriminator. No test files were added.
+The all-GroupNorm OEM also requires fresh warm-up; do not resume the preceding
+BatchNorm warm-up checkpoint. Use `--fresh` after updating these files on SSH.

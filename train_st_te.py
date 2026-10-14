@@ -181,8 +181,8 @@ def train_model(student, teacher, orient_net, train_shapes, config, teacher_orie
     print(f"  Gaussian noise variance: {noise_variance}")
     
     student.train()
-    # Keep pretrained encoder normalization statistics stable and consistent
-    # with inference. eval() still permits gradients when OEM is unfrozen.
+    # OEM uses GroupNorm throughout, with identical train/eval behavior.
+    # eval() still permits gradients when OEM is unfrozen.
     orient_net.eval()
     teacher.eval() # Teacher does not get trained by backprop natively
     teacher_orient_net.eval()
@@ -205,7 +205,7 @@ def train_model(student, teacher, orient_net, train_shapes, config, teacher_orie
         for epoch in range(start_epoch, num_epochs):
             oem_frozen = epoch < freeze_epochs
             orient_net.requires_grad_(not oem_frozen)
-            print(f"Epoch {epoch + 1}: OEM {'frozen' if oem_frozen else 'fine-tuning'}; encoder running statistics fixed")
+            print(f"Epoch {epoch + 1}: OEM {'frozen' if oem_frozen else 'fine-tuning'}; GroupNorm throughout")
             # Smooth cosine annealing for dynamic loss weights (avoids sudden step shocks)
             if epoch < angle_warmup_epochs:
                 alpha_angle = 0.5 * (1.0 + np.cos(np.pi * epoch / angle_warmup_epochs))
@@ -610,7 +610,7 @@ def main():
         if min(metrics['forward_accuracy'], metrics['inverse_accuracy']) < minimum:
             raise RuntimeError(f"OEM warm-up has not reached {minimum:.1%} in both held-out directions. "
                                f"Best OEM saved at {warmup_path}; correspondence training was not started. "
-                               "Inspect eval-mode rotation predictions or increase oem.pretrain_epochs.")
+                               "Compare the training-shape eval probe against held-out accuracy before changing epochs.")
         teacher_orient_net.load_state_dict(orient_net.state_dict())
     
     print(f"  Feature dimension: {feature_dim}")

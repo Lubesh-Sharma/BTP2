@@ -5,6 +5,7 @@ from pathlib import Path
 
 from core.domain_loss import compute_angle_loss, compute_pair_domain_loss, FocalLoss
 from models.modules.orientation_module import normalize_pc_torch
+from models.oriented_pair import ALIGNMENT_PIPELINE_VERSION
 
 
 def canonical_angle_labels(config):
@@ -86,9 +87,15 @@ def pretrain_oem(net, train_shapes, validation_shapes, config, checkpoint_path, 
              for s in train_shapes}
     names = sorted(cache)
     best_accuracy, best_state, best_metrics = -1.0, None, None
+    probe_count = min(int(config.get('train_eval_shapes', 4)), len(train_shapes))
+    if probe_count < 1:
+        raise ValueError('oem.train_eval_shapes must be positive')
+    train_probe = [train_shapes[i * len(train_shapes) // probe_count] for i in range(probe_count)]
     start_epoch = 0
     if resume and Path(checkpoint_path).exists():
         saved = torch.load(checkpoint_path, map_location=device, weights_only=True)
+        if saved.get('alignment_pipeline_version') != ALIGNMENT_PIPELINE_VERSION:
+            raise ValueError('Warm-up checkpoint uses the previous OEM normalization. Restart with --fresh.')
         expected = [s['name'] for s in validation_shapes]
         if saved.get('validation_shapes') != expected:
             raise ValueError('OEM warm-up validation split changed; use --fresh')
@@ -135,9 +142,13 @@ def pretrain_oem(net, train_shapes, validation_shapes, config, checkpoint_path, 
                 total_loss += loss.item()
                 steps += 1
         metrics = evaluate_oem(net, validation_shapes, labels)
+        train_metrics = evaluate_oem(net, train_probe)
         print(f"OEM warm-up {epoch + 1}/{epochs} | Loss: {total_loss / max(steps, 1):.4f} | "
               f"Eval forward: {metrics['forward_accuracy']:.2%} | Eval inverse: {metrics['inverse_accuracy']:.2%} | "
               f"Forward yaw error: {metrics['yaw_error_degrees']:.2f} deg | Domain weight: {domain_weight:.3f}")
+        print(f"  Training-shape eval probe: forward={train_metrics['forward_accuracy']:.2%}, "
+              f"inverse={train_metrics['inverse_accuracy']:.2%}, CE={train_metrics['angle_ce']:.4f} "
+              f"({len(train_probe)} fixed training shapes)")
         if metrics['cross_accuracy'] is not None:
             print(f"  Annotated held-out cross-shape rotation accuracy: {metrics['cross_accuracy']:.2%}")
         score = min(metrics['forward_accuracy'], metrics['inverse_accuracy'])
@@ -146,7 +157,9 @@ def pretrain_oem(net, train_shapes, validation_shapes, config, checkpoint_path, 
             best_accuracy, best_metrics = score, metrics
             best_state = {key: value.detach().cpu().clone() for key, value in net.state_dict().items()}
             torch.save({'orient_net_state_dict': best_state, 'oem_config': config,
+                        'alignment_pipeline_version': ALIGNMENT_PIPELINE_VERSION,
                         'oem_validation': metrics, 'epoch': epoch + 1,
+                        'train_eval_probe': train_metrics,
                         'optimizer_state_dict': optimizer.state_dict(),
                         'validation_shapes': [s['name'] for s in validation_shapes]}, checkpoint_path)
     net.load_state_dict(best_state)

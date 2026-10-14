@@ -10,7 +10,7 @@ import torch
 
 from .modules.orientation_module import normalize_pc_torch
 
-ALIGNMENT_PIPELINE_VERSION = 4
+ALIGNMENT_PIPELINE_VERSION = 5
 
 
 def features_in_aligned_frame(features, positions):

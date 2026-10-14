@@ -94,7 +94,8 @@ class EdgeConvModule(nn.Module):
         super(EdgeConvModule, self).__init__()
         self.k = k
         self.linear = nn.Conv2d(input_size * 2, output_size, kernel_size=1, bias=False)
-        self.bn = nn.BatchNorm2d(output_size)
+        # One shape per branch: use identical normalization in train and eval.
+        self.norm = nn.GroupNorm(1, output_size)
         self.relu = nn.LeakyReLU(negative_slope=0.2)
 
     def forward(self, x: torch.Tensor, idx=None):
@@ -109,7 +110,7 @@ class EdgeConvModule(nn.Module):
         x_expanded = x_trans.unsqueeze(2).repeat(1, 1, self.k, 1)  # [B, N, k, C_in]
         edge_feat = torch.cat((feature - x_expanded, x_expanded), dim=-1)  # [B, N, k, 2*C_in]
         edge_feat = edge_feat.permute(0, 3, 1, 2).contiguous()  # [B, 2*C_in, N, k]
-        edge_feat = self.relu(self.bn(self.linear(edge_feat)))  # [B, C_out, N, k]
+        edge_feat = self.relu(self.norm(self.linear(edge_feat)))  # [B, C_out, N, k]
         output, _ = edge_feat.max(dim=-1, keepdim=False)  # [B, C_out, N]
         return output
 
@@ -119,7 +120,7 @@ class OrientModule(nn.Module):
         super(OrientModule, self).__init__()
         self.k = k
         self.linear = nn.Conv2d((input_size + 3) * 2, output_size, kernel_size=1, bias=False)
-        self.bn = nn.BatchNorm2d(output_size)
+        self.norm = nn.GroupNorm(1, output_size)
         self.relu = nn.LeakyReLU(negative_slope=0.2)
 
     def forward(self, xyz_s: torch.Tensor, xyz_t: torch.Tensor, feature_s: torch.Tensor, feature_t: torch.Tensor):
@@ -148,7 +149,7 @@ class OrientModule(nn.Module):
             dim=-1
         )  # [B, N_t, k, 2*(C_in + 3)]
         feat_cat = feat_cat.permute(0, 3, 1, 2).contiguous()  # [B, 2*(C_in + 3), N_t, k]
-        feat_cat = self.relu(self.bn(self.linear(feat_cat)))  # [B, C_out, N_t, k]
+        feat_cat = self.relu(self.norm(self.linear(feat_cat)))  # [B, C_out, N_t, k]
         output, _ = feat_cat.max(dim=-1, keepdim=False)  # [B, C_out, N_t]
         return output
 
