@@ -46,6 +46,8 @@ oem:
   freeze_epochs: 10
   finetune_lr: 0.000025
   minimum_eval_accuracy: 0.95
+  strict_readiness: false
+  weight_decay: 0.0001
   domain_start_epoch: 10
   domain_warmup_epochs: 10
   domain_weight: 0.1

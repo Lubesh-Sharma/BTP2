@@ -237,15 +237,18 @@ class OrientNet(nn.Module):
         """
         batch_size = xyz_s.shape[0]
         # OEM needs global orientation, not a dense correspondence output.
-        # Deterministic sampling keeps clean/rotated copies in the same order
-        # and limits quadratic neighbor searches. ASMAE still sees all vertices.
+        # Vary visible vertices during training, without changing rotation
+        # labels or adding coordinate noise. Evaluation stays deterministic.
+        # ASMAE still sees all vertices.
         if self.max_points and xyz_s.shape[1] > self.max_points:
-            idx = torch.linspace(0, xyz_s.shape[1] - 1, self.max_points,
-                                 device=xyz_s.device).long()
+            idx = (torch.randperm(xyz_s.shape[1], device=xyz_s.device)[:self.max_points]
+                   if self.training else torch.linspace(0, xyz_s.shape[1] - 1, self.max_points,
+                                                        device=xyz_s.device).long())
             xyz_s = xyz_s[:, idx]
         if self.max_points and xyz_t.shape[1] > self.max_points:
-            idx = torch.linspace(0, xyz_t.shape[1] - 1, self.max_points,
-                                 device=xyz_t.device).long()
+            idx = (torch.randperm(xyz_t.shape[1], device=xyz_t.device)[:self.max_points]
+                   if self.training else torch.linspace(0, xyz_t.shape[1] - 1, self.max_points,
+                                                        device=xyz_t.device).long())
             xyz_t = xyz_t[:, idx]
         idx_s = knn_points(xyz_s, xyz_s, k=self.input_neighs)
         idx_t = knn_points(xyz_t, xyz_t, k=self.input_neighs)

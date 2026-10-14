@@ -77,13 +77,19 @@ Training automatically resumes the latest staged checkpoint if present. A partly
 completed interrupted epoch is replayed. OEM warm-up also retains its best weights
 and optimizer state separately.
 
-By default, both held-out OEM directions must reach 95% before correspondence
-training begins. This is a configurable readiness criterion, not a guarantee of
-cross-shape alignment. If warm-up does not reach it, the OEM checkpoint is kept
-and correspondence training stops. Inspect the reported yaw errors, or increase
-`oem.pretrain_epochs` and rerun without `--fresh` to continue warm-up. Existing
-cross-shape accuracy is reported only when explicit validation angle annotations
-are available.
+The 95% held-out OEM accuracy reference now produces a warning by default;
+correspondence training continues with the best warm-up OEM. Set
+`oem.strict_readiness: true` to require both directions to reach that reference.
+Continuing does not establish that alignment is accurate: compare validation
+mapping error and the identity-alignment baseline. Cross-shape rotation accuracy
+is reported only when explicit validation angle annotations are available.
+
+During OEM warm-up, random vertex subsets vary the input without coordinate
+noise or changing rotation labels. Evaluation uses fixed subsets. Warm-up uses
+weight decay and a cosine learning-rate decrease, and reports errors per held-out
+shape. The `_oem_pretrain_predictions.csv` file records the latest validation
+predictions for every shape and rotation bin. These changes target the observed
+training/validation gap; their effect must be measured on SSH.
 
 ## Run on SSH
 

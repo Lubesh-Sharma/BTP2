@@ -1,6 +1,8 @@
 """Rotation warm-up and fixed evaluation-mode diagnostics, run on SSH."""
 
 import torch
+import csv
+import math
 from pathlib import Path
 
 from core.domain_loss import compute_angle_loss, compute_pair_domain_loss, FocalLoss
@@ -36,6 +38,8 @@ def evaluate_oem(net, shapes, canonical_labels=None):
     counts = {'forward': 0, 'inverse': 0, 'total': 0, 'ce': 0.0, 'degrees': 0.0}
     cross_correct, cross_count = 0, 0
     by_name = {s['name']: s for s in shapes}
+    details = []
+    confusion = [[0 for _ in range(8)] for _ in range(8)]
     for shape in shapes:
         clean = normalize_pc_torch(torch.as_tensor(shape['pos'], device=device,
                                                    dtype=torch.float32).unsqueeze(0))
@@ -49,7 +53,13 @@ def evaluate_oem(net, shapes, canonical_labels=None):
             counts['inverse'] += (inverse == (2 - label) % 8).sum().item()
             counts['ce'] += compute_angle_loss(outputs['angle_x'], outputs['angle_y'], label).item()
             delta = (forward - label).abs()
-            counts['degrees'] += torch.minimum(delta, 8 - delta).sum().item() * 45
+            degrees = torch.minimum(delta, 8 - delta).sum().item() * 45
+            counts['degrees'] += degrees
+            predicted = int(forward.item())
+            confusion[index][predicted] += 1
+            details.append({'shape': shape['name'], 'gt_bin': index,
+                            'forward_bin': predicted, 'inverse_gt_bin': (2 - index) % 8,
+                            'inverse_bin': int(inverse.item()), 'forward_error_degrees': degrees})
             counts['total'] += 1
     for (source, target), base_bin in (canonical_labels or {}).items():
         if source not in by_name or target not in by_name or source == target:
@@ -70,7 +80,8 @@ def evaluate_oem(net, shapes, canonical_labels=None):
             'inverse_accuracy': counts['inverse'] / total,
             'accuracy': (counts['forward'] + counts['inverse']) / (2 * total),
             'angle_ce': counts['ce'] / total, 'yaw_error_degrees': counts['degrees'] / total,
-            'cross_accuracy': cross_correct / cross_count if cross_count else None}
+            'cross_accuracy': cross_correct / cross_count if cross_count else None,
+            'details': details, 'forward_confusion': confusion}
 
 
 def pretrain_oem(net, train_shapes, validation_shapes, config, checkpoint_path, resume=True):
@@ -79,7 +90,9 @@ def pretrain_oem(net, train_shapes, validation_shapes, config, checkpoint_path, 
     if epochs <= 0:
         return evaluate_oem(net, validation_shapes)
     device = next(net.parameters()).device
-    optimizer = torch.optim.Adam(net.parameters(), lr=float(config.get('lr', 0.00025)))
+    initial_lr = float(config.get('lr', 0.00025))
+    optimizer = torch.optim.Adam(net.parameters(), lr=initial_lr,
+                                 weight_decay=float(config.get('weight_decay', 0.0001)))
     focal = FocalLoss(class_num=2, gamma=3)
     labels = canonical_angle_labels(config)
     cache = {s['name']: normalize_pc_torch(torch.as_tensor(s['pos'], dtype=torch.float32,
@@ -111,6 +124,11 @@ def pretrain_oem(net, train_shapes, validation_shapes, config, checkpoint_path, 
         print(f"Resuming OEM warm-up from epoch {start_epoch}")
     for epoch in range(start_epoch, epochs):
         net.train()
+        # Reduce late-epoch oscillations rather than keep fitting at full LR.
+        factor = 0.1 + 0.9 * 0.5 * (1.0 + math.cos(math.pi * epoch / max(epochs - 1, 1)))
+        for group in optimizer.param_groups:
+            group['lr'] = initial_lr * factor
+            group['weight_decay'] = float(config.get('weight_decay', 0.0001))
         domain_start = int(config.get('domain_start_epoch', 10))
         ramp = max(int(config.get('domain_warmup_epochs', 10)), 1)
         domain_weight = float(config.get('domain_weight', 0.1)) * max(0.0, min(1.0, (epoch - domain_start + 1) / ramp))
@@ -145,10 +163,23 @@ def pretrain_oem(net, train_shapes, validation_shapes, config, checkpoint_path, 
         train_metrics = evaluate_oem(net, train_probe)
         print(f"OEM warm-up {epoch + 1}/{epochs} | Loss: {total_loss / max(steps, 1):.4f} | "
               f"Eval forward: {metrics['forward_accuracy']:.2%} | Eval inverse: {metrics['inverse_accuracy']:.2%} | "
-              f"Forward yaw error: {metrics['yaw_error_degrees']:.2f} deg | Domain weight: {domain_weight:.3f}")
+              f"Forward yaw error: {metrics['yaw_error_degrees']:.2f} deg | Domain weight: {domain_weight:.3f} | "
+              f"LR: {optimizer.param_groups[0]['lr']:.7f}")
         print(f"  Training-shape eval probe: forward={train_metrics['forward_accuracy']:.2%}, "
               f"inverse={train_metrics['inverse_accuracy']:.2%}, CE={train_metrics['angle_ce']:.4f} "
               f"({len(train_probe)} fixed training shapes)")
+        for shape in validation_shapes:
+            rows = [row for row in metrics['details'] if row['shape'] == shape['name']]
+            correct = sum(row['forward_bin'] == row['gt_bin'] for row in rows)
+            yaw = sum(row['forward_error_degrees'] for row in rows) / max(len(rows), 1)
+            print(f"  Validation shape {shape['name']}: forward={correct}/{len(rows)}, yaw={yaw:.2f} deg")
+        diagnostic_path = Path(checkpoint_path).with_suffix('')
+        diagnostic_path = Path(str(diagnostic_path) + '_predictions.csv')
+        with diagnostic_path.open('w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=['shape', 'gt_bin', 'forward_bin',
+                                                  'inverse_gt_bin', 'inverse_bin', 'forward_error_degrees'])
+            writer.writeheader()
+            writer.writerows(metrics['details'])
         if metrics['cross_accuracy'] is not None:
             print(f"  Annotated held-out cross-shape rotation accuracy: {metrics['cross_accuracy']:.2%}")
         score = min(metrics['forward_accuracy'], metrics['inverse_accuracy'])
