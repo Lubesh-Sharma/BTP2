@@ -47,7 +47,7 @@ class FocalLoss(nn.Module):
             return batch_loss.sum()
 
 
-def compute_angle_loss(angle_pred_x: torch.Tensor, angle_pred_y: torch.Tensor, rotated_gt: torch.Tensor, label_smoothing: float = 0.08):
+def compute_angle_loss(angle_pred_x: torch.Tensor, angle_pred_y: torch.Tensor, rotated_gt: torch.Tensor, label_smoothing: float = 0.0):
     """
     Compute cross-entropy loss for angle predictions with label smoothing.
     Args:
@@ -67,36 +67,14 @@ def compute_angle_loss(angle_pred_x: torch.Tensor, angle_pred_y: torch.Tensor, r
     return loss_angle
 
 
-def compute_domain_loss(domain_pred_S: torch.Tensor, domain_pred_T: torch.Tensor, focal_loss_fn: FocalLoss = None, feat_clean: torch.Tensor = None, feat_rot: torch.Tensor = None):
-    """
-    Compute domain discriminator loss and Latent Feature Invariance.
-    Args:
-        domain_pred_S: [B, 2] source/clean domain prediction logits (label 0)
-        domain_pred_T: [B, 2] target/rotated domain prediction logits (label 1)
-        focal_loss_fn: Optional FocalLoss instance (defaults to standard Cross-Entropy for 0.4-0.8 -> 0.05-0.18 scale)
-        feat_clean: [B, D] clean global feature representation
-        feat_rot: [B, D] rotated global feature representation
-    Returns:
-        loss_domain: scalar tensor
-    """
-    device = domain_pred_S.device
-    domain_S = torch.zeros(domain_pred_S.size(0), dtype=torch.long, device=device)
-    domain_T = torch.ones(domain_pred_T.size(0), dtype=torch.long, device=device)
-    
-    # Standard cross-entropy domain classification with GRL
-    loss_S = F.cross_entropy(domain_pred_S, domain_S)
-    loss_T = F.cross_entropy(domain_pred_T, domain_T)
-    loss_disc = (loss_S + loss_T) / 2.0
-    
-    if feat_clean is not None and feat_rot is not None:
-        # Cosine distance between clean and rotated global embeddings (Initial: ~0.40-0.70 -> Target: ~0.01-0.05)
-        feat_clean_norm = F.normalize(feat_clean, dim=-1)
-        feat_rot_norm = F.normalize(feat_rot, dim=-1)
-        loss_inv = (1.0 - torch.sum(feat_clean_norm * feat_rot_norm, dim=-1)).mean()
-        # Domain discrepancy: Feature Invariance + Discriminator Alignment
-        return loss_inv + 0.1 * loss_disc
-        
-    return loss_disc
-
-
-
+def compute_domain_loss(reference_logits: torch.Tensor, cross_shape_logits: torch.Tensor,
+                        focal_loss_fn: FocalLoss = None):
+    """Adapt OEM pair features from same-shape references (0) to cross-shape pairs (1)."""
+    if focal_loss_fn is None:
+        focal_loss_fn = FocalLoss(class_num=2, gamma=3)
+    reference_labels = torch.zeros(reference_logits.size(0), dtype=torch.long,
+                                   device=reference_logits.device)
+    cross_labels = torch.ones(cross_shape_logits.size(0), dtype=torch.long,
+                              device=cross_shape_logits.device)
+    return (focal_loss_fn(reference_logits, reference_labels)
+            + focal_loss_fn(cross_shape_logits, cross_labels))

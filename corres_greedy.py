@@ -12,44 +12,14 @@ from models.modules.orientation_module import OrientNet, normalize_pc_torch
 from core.preprocessing import process_geometry, normalize_pc
 
 
-def load_model(config, feature_dim, device, checkpoint_path=None):
-    model_cfg = config.get('student_model', config.get('model', {}))
-    model = ASMAE(
-        feature_dim=feature_dim,
-        embed_dim=model_cfg['embed_dim'],
-        depth=model_cfg['depth'],
-        num_heads=model_cfg['num_heads'],
-        decoder_embed_dim=model_cfg['decoder_embed_dim'],
-        decoder_depth=model_cfg['decoder_depth'],
-        decoder_num_heads=model_cfg['decoder_num_heads'],
-        mlk_ratio=model_cfg['mlk_ratio'],
-        num_mask_queries=model_cfg.get('num_mask_queries', 5000),
-        encoder_k=model_cfg.get('encoder_k', 20),
-        aamg_k=model_cfg.get('aamg_k', 10),
-        aamg_emb_dim=model_cfg.get('aamg_emb_dim', 64),
-        pos_embed_dim=model_cfg.get('pos_embed_dim', 64),
-        temperature=model_cfg.get('temperature', 1.0)
-    ).to(device)
-
-    orient_net = OrientNet().to(device)
-
-    if checkpoint_path is None:
-        checkpoint_path = config.get('correspondence', {}).get('checkpoint_path', 'checkpoints/st_te_model_FAUST.pth')
-
-    if not os.path.exists(checkpoint_path):
-        raise FileNotFoundError(f"Checkpoint not found at: {checkpoint_path}")
-
-    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
-    model.load_state_dict(checkpoint["model_state_dict"])
-    model.eval()
-
-    if "orient_net_state_dict" in checkpoint:
-        orient_net.load_state_dict(checkpoint["orient_net_state_dict"])
-        print("Loaded OrientNet weights from checkpoint.")
-    orient_net.eval()
-    print(f"Loaded checkpoint: {checkpoint_path}")
-
-    return model, orient_net
+def load_model(config, feature_dim, device, checkpoint_path=None, network="student"):
+    """Use the same checkpoint pairing and validation as Sinkhorn inference."""
+    from corres_st_te import load_models
+    config = dict(config)
+    config['correspondence'] = dict(config.get('correspondence', {}))
+    if checkpoint_path is not None:
+        config['correspondence']['checkpoint_path'] = checkpoint_path
+    return load_models(config, feature_dim, device, network=network)
 
 
 def main():
@@ -57,12 +27,14 @@ def main():
     parser.add_argument('--config', type=str, default='config/FAUST/corres.yaml', help='Path to corres config file')
     parser.add_argument('--checkpoint', type=str, default=None, help='Path to checkpoint file (overrides config)')
     parser.add_argument('--out_dir', type=str, default=None, help='Output directory for p2p txt results')
-    parser.add_argument('--n_shapes', type=int, default=20, help='Number of test shapes to match (last N, default: 20, -1 for all)')
+    parser.add_argument('--n_shapes', type=int, default=None, help='Last N shapes; defaults to config test_size or 20; -1 for all')
     parser.add_argument('--use_dino', action='store_true', help='Concatenate DINOv2 visual features with ASMAE (as in feature_visualization.ipynb)')
     parser.add_argument('--dino_variant', type=str, default='dinov2_vitb14_reg', help='DINOv2 model variant if --use_dino is set')
     parser.add_argument('--dino_views', type=int, default=4, help='Number of multi-view camera poses around mesh (default: 4)')
     parser.add_argument('--off_dir', type=str, default='input/FAUST/off', help='Directory with .off files (needed for DINOv2)')
     parser.add_argument('--normalize_pc', action='store_true', default=False, help='Apply normalize_pc to coordinates (default: False, to match train_st_te.py)')
+    parser.add_argument("--network", choices=["student", "teacher"], default="student",
+                        help="Select ASMAE and its matching OEM")
     args = parser.parse_args()
 
     with open(args.config, 'r') as f:
@@ -89,8 +61,9 @@ def main():
 
     # 1. Scan for all shapes
     all_files = sorted([f for f in os.listdir(data_dir) if f.endswith('.obj') or f.endswith('.off')])
-    if args.n_shapes > 0 and len(all_files) > args.n_shapes:
-        all_files = all_files[-args.n_shapes:]
+    n_shapes = args.n_shapes if args.n_shapes is not None else config.get('test_size', 20)
+    if n_shapes > 0:
+        all_files = all_files[-n_shapes:]
 
     if not all_files:
         print(f"No .obj or .off files found in {data_dir}")
@@ -109,7 +82,7 @@ def main():
     temp_V, _, temp_feat, _ = process_geometry(os.path.join(data_dir, all_files[0]), k=k, t=t, neigvecs=neigvecs, output_dir=out_dir)
     feature_dim = temp_feat.shape[1]
     ckpt_path = args.checkpoint or config.get('correspondence', {}).get('checkpoint_path', 'checkpoints/st_te_model_FAUST.pth')
-    model, orient_net = load_model(config, feature_dim, device, checkpoint_path=ckpt_path)
+    model, orient_net = load_model(config, feature_dim, device, checkpoint_path=ckpt_path, network=args.network)
 
     # Optional DINOv2 setup
     if args.use_dino:
@@ -187,7 +160,7 @@ def main():
                     z2 = np.concatenate([z2, s2['dino']], axis=1)
 
             # Cosine similarity matching
-            sim = s2['Z'] if 'Z' in s2 else z2 @ z1.T
+            sim = z2 @ z1.T
             p2p = np.argmax(sim, axis=1)
 
             out_name = f"p2p_{s1['name']}_to_{s2['name']}.txt"

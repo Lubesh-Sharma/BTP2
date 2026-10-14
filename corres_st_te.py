@@ -27,8 +27,8 @@ def sinkhorn(cost, eps=0.05, n_iter=100):
 # -------------------------------------------------
 # Load ASMAE & OrientNet
 # -------------------------------------------------
-def load_models(config, feature_dim, device):
-    model_cfg = config.get('student_model', config.get('model', {}))
+def load_models(config, feature_dim, device, network="student"):
+    model_cfg = config.get(f'{network}_model', config.get('student_model', config.get('model', {})))
     model = ASMAE(
         feature_dim=feature_dim,
         embed_dim=model_cfg['embed_dim'],
@@ -53,13 +53,20 @@ def load_models(config, feature_dim, device):
         raise FileNotFoundError(f"Checkpoint not found at: {checkpoint_path}")
         
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
-    model.load_state_dict(checkpoint["model_state_dict"])
+    model_key = "model_state_dict" if network == "student" else "teacher_state_dict"
+    oem_key = "orient_net_state_dict" if network == "student" else "teacher_orient_net_state_dict"
+    if model_key not in checkpoint or oem_key not in checkpoint:
+        raise ValueError(f"Checkpoint lacks the {network} model/OEM pair. "
+                         "Train and save with the updated OEM pipeline first.")
+    model.load_state_dict(checkpoint[model_key])
+    try:
+        orient_net.load_state_dict(checkpoint[oem_key])
+    except RuntimeError as exc:
+        raise ValueError("Legacy OEM checkpoint: resume training with the updated "
+                         "pipeline to initialize and train the pair discriminator.") from exc
     model.eval()
-
-    if "orient_net_state_dict" in checkpoint:
-        orient_net.load_state_dict(checkpoint["orient_net_state_dict"])
-        print("Loaded OrientNet weights from checkpoint.")
     orient_net.eval()
+    print(f"Loaded {network} ASMAE and its matching OEM.")
 
     return model, orient_net
 
@@ -70,6 +77,12 @@ def main():
     parser = argparse.ArgumentParser(description="ASMAE All-Pairs Correspondence with Orientation Alignment")
     parser.add_argument('--config', type=str, default='config/SCAPE/corres.yaml', help='Path to corres config file')
     parser.add_argument('--normalize_pc', action='store_true', default=False, help='Apply normalize_pc to coordinates (default: False, to match train_st_te.py)')
+    parser.add_argument("--network", choices=["student", "teacher"], default="student",
+                        help="Choose ASMAE and its matching OEM checkpoint weights")
+    parser.add_argument("--output-dir", default=None,
+                        help="Override result directory when comparing student and teacher")
+    parser.add_argument("--n_shapes", type=int, default=None,
+                        help="Last N shapes; defaults to config test_size or 20; -1 for all")
     args = parser.parse_args()
     
     with open(args.config, 'r') as f:
@@ -80,20 +93,22 @@ def main():
         print("CUDA not available, using CPU")
         device = 'cpu'
         
-    out_dir = config['output_dir']
+    out_dir = args.output_dir or config['output_dir']
     os.makedirs(out_dir, exist_ok=True)
     
     data_dir = config['data_dir']
     k = config['geometry']['k']
     t = config['geometry']['t']
+    neigvecs = config['geometry'].get('neigvecs', 300)
     eps = config['correspondence']['eps']
     n_iter = config['correspondence']['n_iter']
     
     # 1. Scan for all shapes
     all_files = sorted([f for f in os.listdir(data_dir) if f.endswith('.obj') or f.endswith('.off')])
     
-    # Process only the last 20 files, or all if fewer than 20
-    all_files = all_files[-20:]
+    n_shapes = args.n_shapes if args.n_shapes is not None else config.get('test_size', 20)
+    if n_shapes > 0:
+        all_files = all_files[-n_shapes:]
     
     if not all_files:
         print(f"No .obj or .off files found in {data_dir}")
@@ -102,9 +117,9 @@ def main():
     print(f"Found {len(all_files)} shapes. Computing correspondence with orientation alignment...")
     
     # 2. Pre-load Models
-    temp_V, _, temp_feat, _ = process_geometry(os.path.join(data_dir, all_files[0]), k=k, t=t, output_dir=out_dir)
+    temp_V, _, temp_feat, _ = process_geometry(os.path.join(data_dir, all_files[0]), k=k, t=t, neigvecs=neigvecs, output_dir=out_dir)
     feature_dim = temp_feat.shape[1]
-    model, orient_net = load_models(config, feature_dim, device)
+    model, orient_net = load_models(config, feature_dim, device, network=args.network)
     
     # 3. Load Shape Geometry and Features
     loaded_shapes = {}
@@ -113,7 +128,7 @@ def main():
         name = os.path.splitext(filename)[0]
         
         print(f"  -> Loading: {filename}")
-        V, El, feat, _ = process_geometry(path, k=k, t=t, output_dir=out_dir)
+        V, El, feat, _ = process_geometry(path, k=k, t=t, neigvecs=neigvecs, output_dir=out_dir)
         p_coords = normalize_pc(V.copy()) if args.normalize_pc else V.copy()
         
         loaded_shapes[filename] = {

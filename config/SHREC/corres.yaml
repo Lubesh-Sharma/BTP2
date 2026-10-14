@@ -1,6 +1,9 @@
 data_dir: "input/SHREC/obj/k_10"
 output_dir: "p2p_results_st_te_SHREC"
 
+train_size: 26
+test_size: 18
+
 geometry:
   k: 50
   t: 100
