@@ -1,105 +1,114 @@
-# ASMAE with SE-ORNet-style orientation alignment
+# ASMAE with staged SE-ORNet-style orientation learning
 
-The orientation pipeline follows the three OEM roles in the figure and the
-SHREC path of the local SE-ORNet implementation in
-`SE-ORNet/models/modules/dgcnn_with_angle.py` and
-`SE-ORNet/models/runners/PointCorrWithAngle.py`. ASMAE and its correspondence
-objectives remain the algorithm after alignment.
+HKS/FPS preprocessing and ASMAE remain the descriptor/correspondence algorithm.
+OEM retains the three uses shown in the SE-ORNet figure: clean teacher alignment,
+augmented student alignment, and known-angle same-shape supervision. Training now
+stabilizes rotation estimation before it controls correspondence inputs.
 
-## Training on two shapes X and Y
+## Pipeline on source X and target Y
 
-1. Preprocessing computes FPS-anchor heat descriptors and appends XYZ channels.
-   Coordinates are centered and normalized to a unit sphere before augmentation.
-2. The student receives a randomly rotated source X_s and the unchanged target Y_s.
-   Rotation uses eight discrete Y-axis bins.
-   Gaussian noise is disabled by `training.noise_variance: 0.0` in every dataset
-   training YAML. Setting a positive variance enables noise on both clouds.
-   To match the figure's source/target naming, OEM receives (Y_s, X_s): the
-   reference implementation always rotates its second input toward its first.
-3. The student OEM encodes both augmented clouds with shared EdgeConv weights.
-   Its cross-shape orientation layers predict their relative rotation. The
-   highest-scoring angle bin rotates X_s toward Y_s's frame before ASMAE.
-4. The aligned pair enters student ASMAE: adaptive point/feature masking,
-   local attention encoder, cross-attention decoder, and descriptor reconstruction.
-   Clean embedding extraction on the same aligned pair supplies the existing
-   contrastive, cycle, LGO, distortion, and geometric orientation objectives.
-5. The clean X/Y pair passes through the teacher's own EMA OEM as (Y, X), which
-   aligns source X to target Y before teacher ASMAE. Teacher predictions supervise the student's
-   descriptor predictions. XYZ is excluded from consistency because student
-   and teacher alignments can differ (and noise can differ if enabled later).
-6. An additional same-shape pair (clean X, rotated X_s) goes through student OEM.
-   Its known augmentation angle supervises both directional angle classifiers.
-   Cross-shape pairs are not assigned an invented ground-truth angle.
-7. As in SE-ORNet, an OEM pair discriminator with gradient reversal distinguishes
-   same-shape rotation pairs (domain 0) from cross-shape pairs (domain 1).
-   This encourages the angle representation to transfer between pair types.
-8. Backpropagation updates student ASMAE and student OEM. OEM learns through
-   angle/domain losses; the discrete angle choice blocks correspondence gradients
-   through the rotation decision, matching the reference implementation.
-   EMA updates both teacher ASMAE and teacher OEM, including normalization buffers.
+1. Compute HKS/FPS descriptors. With k=50, ASMAE inputs have 50 descriptor channels
+   plus three XYZ channels. OEM receives coordinates, not HKS.
+2. Reserve validation shapes inside the training partition. SHREC uses 22 shapes
+   for gradients, 4 for validation, and leaves the final 18 for testing.
+3. Pretrain OEM on original X and its rotated copy X_s. Every training shape sees
+   all eight rotation bins each epoch. Optional annotated cross-shape angles are
+   also supervised; no native orientation labels are assumed for other pairs.
+4. Evaluate OEM on fixed validation shapes, all eight rotations, in eval mode.
+   Log forward and inverse accuracy separately and mean yaw error in degrees.
+   Restore the best OEM and initialize the teacher OEM from those exact weights.
+5. During correspondence training, call student OEM(Y_s, X_s), rotate X_s by the
+   inverse predicted angle toward Y_s, then pass the aligned pair to student ASMAE.
+   Call teacher OEM(Y, X), align clean X toward Y, then pass it to teacher ASMAE.
+   Original X and rotated X_s still go through student OEM for angle supervision.
+6. Freeze OEM for the first 10 correspondence epochs. Its encoder normalization
+   statistics remain fixed throughout correspondence training, matching inference.
+   Then fine-tune its angle/domain objectives at a smaller learning rate. ASMAE
+   learns through reconstruction, consistency and correspondence objectives.
+   The discrete angle decision still blocks correspondence gradients through
+   rotation, following the reference implementation.
+7. EMA updates teacher ASMAE, and updates teacher OEM during OEM fine-tuning.
+   HKS is preserved; XYZ channels are rebuilt from the actual aligned coordinates.
+   Descriptor consistency excludes frame-dependent XYZ.
 
-The common alignment implementation is `models/oriented_pair.py`. It replaces
-the final XYZ feature channels with `(aligned_unit_sphere_xyz + 1) / 2` and
-preserves descriptor channels and vertex ordering. Both ASMAE's position tensor
-and appended XYZ therefore describe the same frame.
+The pair discriminator uses GroupNorm instead of BatchNorm on only two pooled
+directional samples. Pair domains are same-shape = 0 and cross-shape = 1, with
+gradient reversal. Domain influence starts later during pretraining and stays
+small; its focal loss is not expected to approach zero.
 
-## Evaluation and p2p mapping
+OEM uses a deterministic sample of at most 512 vertices for its quadratic neighbor
+searches; ASMAE still receives every vertex. `oem.max_points: 0` uses the full cloud.
+Noise remains disabled with `training.noise_variance: 0.0`.
 
-New shapes X/Y pass through the saved student OEM as (Y, X). The predicted inverse
-rotation aligns source X to target Y before the ASMAE encoder. Source features are
-recomputed for each target because source alignment is pair-dependent. Then
-cosine-normalized embeddings produce p2p assignments through
-either Sinkhorn (`corres_st_te.py`) or nearest similarity (`corres_greedy.py`).
-Teacher, augmentation, angle labels, and domain losses are unnecessary at inference.
-The discriminator is still computed by OEM's shared forward function but is unused.
-`test_st_te.py` uses the same alignment before reconstruction testing; its MAE
-is a reconstruction metric, not a correspondence accuracy metric.
+## Loss settings
 
-Both p2p scripts default to the saved held-out partition and at most 20 shapes.
-The greedy script's `--n_shapes -1` explicitly includes all shapes. The split
-assumes the same dataset directory and sorted filenames as training.
+LGO is logged from the start but initially excluded from optimization. It starts
+after epoch 5 and ramps over 15 epochs; SHREC's maximum weight is 50 rather than
+250. This is an initial configuration to validate, not a proven optimal weight.
 
-P2p output retains the existing convention: `p2p_X_to_Y.txt` stores two columns,
-`[Y_vertex_index, predicted_X_vertex_index]`, i.e. a Y-to-X map. Argmax assignments
-can be many-to-one. Rotation does not reorder vertices or change mesh indexing.
+The old geometric orientation formula compares world-space normal directions
+across poses. It is still calculated and logged, but `orientation_weight: 0.0`
+makes it diagnostic only. OEM angle loss remains active in its training stages.
+Setting a positive orientation weight explicitly enables the legacy term.
+Distance, contrastive, cycle and reconstruction formulas have not been replaced
+in this stabilization pass. Printed active weights distinguish improving a
+metric from simply disabling its influence.
 
-The OEM predicts eight discrete yaw bins (45-degree steps), not arbitrary 3D
-rotation. Correct alignment and correspondence on unseen shapes must be measured;
-the design alone does not guarantee them. Existing distortion/orientation loss
-formulas remain unchanged, now evaluated on normalized aligned coordinates.
-This follows the SHREC/figure pair-supervision pattern; other dataset branches in
-the original SE-ORNet runner use different angle-supervision schemes.
+## Validation and checkpoints
 
-## Running on the SSH machine
+Correspondence validation uses fixed held-out shapes and greedy matching over
+sampled query vertices against all candidate vertices. Ground-truth maps are used
+only for validation, not as training labels. Where dense geodesic matrices exist,
+error is normalized by sqrt(mesh area). Otherwise shortest paths on original OFF
+triangle edges provide **approximate edge geodesics**, explicitly named in logs.
+Unreachable predictions receive a configurable penalty rather than being omitted.
 
-New checkpoints use `_oem.pth` filenames in every dataset config. Previous
-checkpoints are preserved, but incompatible pipelines are rejected. Train the new
-pipeline from scratch. For SHREC, run from the repository root:
+Without compatible maps/meshes, validation reports a separately named synthetic
+self-rotation p2p coordinate error. That fallback does not establish cross-shape
+correspondence accuracy. `validation.map_index_base` declares GT indexing (1 for
+SHREC); generated predictions always use zero-based indices.
+
+The main checkpoint is selected by the validation mapping error, not total training
+loss. Separate `_last.pth` files preserve latest weights, optimizer state and epoch.
+Training automatically resumes the latest staged checkpoint if present. A partly
+completed interrupted epoch is replayed. OEM warm-up also retains its best weights
+and optimizer state separately.
+
+By default, both held-out OEM directions must reach 95% before correspondence
+training begins. This is a configurable readiness criterion, not a guarantee of
+cross-shape alignment. If warm-up does not reach it, the OEM checkpoint is kept
+and correspondence training stops. Inspect the reported yaw errors, or increase
+`oem.pretrain_epochs` and rerun without `--fresh` to continue warm-up. Existing
+cross-shape accuracy is reported only when explicit validation angle annotations
+are available.
+
+## Run on SSH
+
+No model code or tests were executed locally. Existing models/results remain
+separate: new names end in `_oem_staged`. From the repository root:
 
 ```bash
 python train_st_te.py --config config/SHREC/train_st_te_config.yaml --fresh
-python test_st_te.py --config config/SHREC/test_st_te_config.yaml
 python corres_st_te.py --config config/SHREC/corres.yaml
+# Or:
 python corres_greedy.py --config config/SHREC/corres.yaml
 ```
 
-Checkpoints contain student and teacher ASMAE/OEM weights, the pipeline version,
-and training split index. Loading restores weights; optimizer state and epoch
-position are not saved by this training script.
+Both p2p scripts load the best validated checkpoint by default. To diagnose OEM
+on the SAME checkpoint, run `--alignment identity`; results go to a separate
+`_identity` directory. `alignment.csv` records each source/reference pair's
+predicted bin, inverse yaw and confidence. Confidence alone does not establish
+rotation correctness. `--checkpoint` and `--out_dir` allow explicit overrides.
 
-The default run order is training, either p2p script, then `checker.ipynb` or
-`feature_visualization.ipynb`. Scripts and notebooks default to SHREC. For another
-dataset, pass its YAML to the scripts and select it in the notebook settings.
-The checkpoint records the actual model configuration, descriptor geometry,
-training directory, and reserved training filenames for matching.
+Open `checker.ipynb` or `feature_visualization.ipynb`, restart its kernel and run
+cells from the top. Set the notebook method to `sinkhorn` or `greedy` to match the
+script. Set `results_dir_override` to inspect identity-mode or custom output paths.
+Both notebooks display the saved p2p map by default; DINO is optional and off.
 
-In the notebooks, choose `sinkhorn` after `corres_st_te.py` or `greedy` after
-`corres_greedy.py`. Both notebooks display the saved map by default and select
-shapes from generated results. No flattening, truncation, index-base guessing,
-or clipping is used. The feature notebook's DINO features are disabled by default;
-explicitly recomputed greedy matches are available with `USE_SAVED_P2P=False`.
-Its feature plots align each cloud to the first displayed shape through OEM.
-New p2p output directories end in `_oem` to keep prior predictions separate.
-Start each notebook with a fresh kernel and run cells from the top.
+`p2p_X_to_Y.txt` preserves the existing Y-to-X convention: rows are
+`[Y_vertex_index, predicted_X_vertex_index]`. Rotation never reorders vertices.
+The maps can be many-to-one. Same-dataset inference excludes both training and
+validation filenames; matching another dataset does not reuse that split.
 
-The requested test files have been removed. No project code was executed locally.
+The full schema changed, so previous `_oem.pth` checkpoints are rejected rather
+than partially loaded into the new discriminator. No test files were added.

@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import argparse
 import yaml
+import csv
 from scipy.spatial.distance import cdist
 
 from models.asmae import ASMAE
@@ -68,6 +69,10 @@ def load_models(config, feature_dim, device, checkpoint=None):
 def main():
     parser = argparse.ArgumentParser(description="ASMAE All-Pairs Correspondence with Orientation Alignment")
     parser.add_argument('--config', type=str, default='config/SHREC/corres.yaml', help='Path to corres config file')
+    parser.add_argument('--checkpoint', type=str, default=None, help='Override checkpoint (best validation weights by default)')
+    parser.add_argument('--out_dir', type=str, default=None, help='Override output directory')
+    parser.add_argument('--alignment', choices=['predicted', 'identity'], default='predicted',
+                        help='Use OEM rotation, or compare against the original orientation')
     parser.add_argument('--normalize_pc', action='store_true', default=False, help='Compatibility flag; OEM now always normalizes both clouds as in training')
     args = parser.parse_args()
     
@@ -79,7 +84,9 @@ def main():
         print("CUDA not available, using CPU")
         device = 'cpu'
         
-    out_dir = config['output_dir']
+    out_dir = args.out_dir or config['output_dir']
+    if args.out_dir is None and args.alignment == 'identity':
+        out_dir += '_identity'
     os.makedirs(out_dir, exist_ok=True)
     
     data_dir = config['data_dir']
@@ -88,6 +95,8 @@ def main():
     eps = config['correspondence']['eps']
     n_iter = config['correspondence']['n_iter']
     neigvecs = config['geometry'].get('neigvecs', 300)
+    if args.checkpoint:
+        config['correspondence']['checkpoint_path'] = args.checkpoint
     checkpoint = torch.load(config['correspondence']['checkpoint_path'], map_location=device, weights_only=True)
     geometry = checkpoint.get('geometry_config', config['geometry'])
     k, t = geometry['k'], geometry['t']
@@ -126,6 +135,7 @@ def main():
 
     # 4. Compute N*N Correspondences with Pairwise Orientation Alignment
     print(f"\nProcessing {len(all_files)**2} pairs...")
+    alignment_log = []
     
     for i, file1 in enumerate(all_files):
         s1 = loaded_shapes[file1]
@@ -141,9 +151,14 @@ def main():
             
             with torch.no_grad():
                 # Use the same cross-shape OEM -> ASMAE inputs as training.
-                f1_aligned, p1_aligned, f2_aligned, p2_aligned, _ = prepare_aligned_pair(
-                    orient_net, f1_tensor, p1_tensor, f2_tensor, p2_tensor
+                f1_aligned, p1_aligned, f2_aligned, p2_aligned, outputs = prepare_aligned_pair(
+                    orient_net, f1_tensor, p1_tensor, f2_tensor, p2_tensor, args.alignment
                 )
+                probabilities = outputs['angle_x'].softmax(-1)
+                angle_bin = int(probabilities.argmax(-1).item())
+                undo_degrees = -float(orient_net.ANGLE[angle_bin].item()) * 180.0 / np.pi
+                alignment_log.append([s1['name'], s2['name'], args.alignment, angle_bin,
+                                      undo_degrees, float(probabilities.max().item())])
                 
                 # Extract ASMAE features on orientation-aligned coordinates
                 # Source alignment depends on this target; encode it per pair.
@@ -166,7 +181,12 @@ def main():
             pairs = np.stack([np.arange(len(s2['V'])), p2p], axis=1)
             np.savetxt(os.path.join(out_dir, out_name), pairs, fmt="%d")
 
-    print(f"\nDone! All results saved to: {out_dir}")
+    with open(os.path.join(out_dir, 'alignment.csv'), 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['source', 'target_reference', 'mode', 'predicted_bin',
+                         'predicted_undo_yaw_degrees', 'confidence'])
+        writer.writerows(alignment_log)
+    print(f"\nDone! All results and alignment.csv saved to: {out_dir}")
     
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ import torch
 
 from .modules.orientation_module import normalize_pc_torch
 
-ALIGNMENT_PIPELINE_VERSION = 3
+ALIGNMENT_PIPELINE_VERSION = 4
 
 
 def features_in_aligned_frame(features, positions):
@@ -25,7 +25,7 @@ def features_in_aligned_frame(features, positions):
 
 
 def prepare_aligned_pair(orient_net, features_source, positions_source,
-                         features_target, positions_target):
+                         features_target, positions_target, alignment='predicted'):
     """Normalize both clouds and align source X to target Y, as in the figure.
 
     Called by the student OEM for augmented pairs, EMA teacher OEM for clean
@@ -39,7 +39,10 @@ def prepare_aligned_pair(orient_net, features_source, positions_source,
     # clean teacher pair (Y, X) and augmented student pair (Y_s, X_s).
     outputs = orient_net(target, source)
     angle_indices = outputs["angle_x"].argmax(dim=-1)
-    source = orient_net.rotate_point_cloud(source, angle_indices, inverse=True)
+    if alignment == 'predicted':
+        source = orient_net.rotate_point_cloud(source, angle_indices, inverse=True)
+    elif alignment != 'identity':
+        raise ValueError("alignment must be 'predicted' or 'identity'")
     return (features_in_aligned_frame(features_source, source), source,
             features_in_aligned_frame(features_target, target), target, outputs)
 
@@ -51,4 +54,5 @@ def load_orientation_checkpoint(orient_net, checkpoint):
                          "updated train_st_te.py before evaluating aligned pairs.")
     if "orient_net_state_dict" not in checkpoint:
         raise ValueError("Checkpoint has no trained orientation module")
+    orient_net.max_points = checkpoint.get('oem_config', {}).get('max_points', 512)
     orient_net.load_state_dict(checkpoint["orient_net_state_dict"])

@@ -6,6 +6,7 @@ import torch
 import numpy as np
 import argparse
 import yaml
+import csv
 
 from models.asmae import ASMAE
 from models.modules.orientation_module import OrientNet
@@ -56,6 +57,7 @@ def main():
     parser.add_argument('--checkpoint', type=str, default=None, help='Path to checkpoint file (overrides config)')
     parser.add_argument('--out_dir', type=str, default=None, help='Output directory for p2p txt results')
     parser.add_argument('--n_shapes', type=int, default=20, help='Maximum held-out shapes to match (default: 20); -1 explicitly includes training shapes')
+    parser.add_argument('--alignment', choices=['predicted', 'identity'], default='predicted')
     parser.add_argument('--use_dino', action='store_true', help='Concatenate DINOv2 visual features with ASMAE (as in feature_visualization.ipynb)')
     parser.add_argument('--dino_variant', type=str, default='dinov2_vitb14_reg', help='DINOv2 model variant if --use_dino is set')
     parser.add_argument('--dino_views', type=int, default=4, help='Number of multi-view camera poses around mesh (default: 4)')
@@ -74,6 +76,8 @@ def main():
     out_dir = args.out_dir
     if not out_dir:
         out_dir = str(correspondence_output_dir(config, 'greedy'))
+        if args.alignment == 'identity':
+            out_dir += '_identity'
     os.makedirs(out_dir, exist_ok=True)
 
     data_dir = config['data_dir']
@@ -145,6 +149,7 @@ def main():
     print(f"\nComputing greedy matches for {total_pairs} pairs...")
 
     pair_count = 0
+    alignment_log = []
     for i, file1 in enumerate(all_files):
         s1 = loaded_shapes[file1]
         p1_tensor = torch.tensor(s1['pos'], dtype=torch.float32, device=device).unsqueeze(0)
@@ -161,9 +166,14 @@ def main():
             f2_tensor = torch.tensor(s2['feat'], dtype=torch.float32, device=device).unsqueeze(0)
             
             with torch.no_grad():
-                f1_aligned, p1_aligned, f2_aligned, p2_aligned, _ = prepare_aligned_pair(
-                    orient_net, f1_tensor, p1_tensor, f2_tensor, p2_tensor
+                f1_aligned, p1_aligned, f2_aligned, p2_aligned, outputs = prepare_aligned_pair(
+                    orient_net, f1_tensor, p1_tensor, f2_tensor, p2_tensor, args.alignment
                 )
+                probabilities = outputs['angle_x'].softmax(-1)
+                angle_bin = int(probabilities.argmax(-1).item())
+                undo_degrees = -float(orient_net.ANGLE[angle_bin].item()) * 180.0 / np.pi
+                alignment_log.append([s1['name'], s2['name'], args.alignment, angle_bin,
+                                      undo_degrees, float(probabilities.max().item())])
                 
                 # Extract ASMAE features on orientation-aligned coordinates
                 z1 = model.extract_features(f1_aligned, p1_aligned).squeeze(0).cpu().numpy()
@@ -182,7 +192,12 @@ def main():
             pairs = np.stack([np.arange(len(s2['V'])), p2p], axis=1)
             np.savetxt(os.path.join(out_dir, out_name), pairs, fmt="%d")
 
-    print(f"\nAll {total_pairs} greedy correspondence files saved to: {out_dir}")
+    with open(os.path.join(out_dir, 'alignment.csv'), 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['source', 'target_reference', 'mode', 'predicted_bin',
+                         'predicted_undo_yaw_degrees', 'confidence'])
+        writer.writerows(alignment_log)
+    print(f"\nAll {total_pairs} maps and alignment.csv saved to: {out_dir}")
 
 
 if __name__ == "__main__":

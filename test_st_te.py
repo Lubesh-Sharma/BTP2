@@ -128,7 +128,7 @@ def test_model(model, orient_net, test_shapes, config):
 
 def main():
     parser = argparse.ArgumentParser(description="ASMAE Testing")
-    parser.add_argument('--config', type=str, default='config/FAUST/test_st_te_config.yaml', help='Path to config file')
+    parser.add_argument('--config', type=str, default='config/SHREC/test_st_te_config.yaml', help='Path to config file')
     parser.add_argument('--checkpoint', type=str, default=None, help='Path to checkpoint file. Defaults to config file default.')
     args = parser.parse_args()
     
@@ -151,7 +151,7 @@ def main():
         
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
     feature_dim = checkpoint['feature_dim']
-    model_cfg = config.get('student_model', config.get('model', {}))
+    model_cfg = checkpoint.get('student_model_config', config.get('student_model', config.get('model', {})))
     
     model = ASMAE(
         feature_dim=feature_dim,
@@ -198,9 +198,10 @@ def main():
         print(f"\nUsing absolute split: {train_size} train, {test_size} test")
 
     output_dir = config['output_dir']
-    k = config['geometry']['k']
-    t = config['geometry']['t']
-    neigvecs = config['geometry'].get('neigvecs', 300)
+    geometry = checkpoint.get('geometry_config', config['geometry'])
+    k = geometry['k']
+    t = geometry['t']
+    neigvecs = geometry.get('neigvecs', 300)
     
     test_shapes = load_test_shapes(data_dir, k, t, neigvecs, start_idx=train_size, num_shapes=test_size, output_dir=output_dir)
     if len(test_shapes) < 2:

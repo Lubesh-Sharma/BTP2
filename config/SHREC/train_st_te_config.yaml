@@ -19,7 +19,7 @@ training:
   teacher_feature_ratio: 0.10
   ema_alpha: 0.999
   checkpoint_dir: "checkpoints"
-  checkpoint_name: "st_te_model_SHREC_oem.pth"
+  checkpoint_name: "st_te_model_SHREC_oem_staged.pth"
   angle_label_smoothing: 0.0
   consistency_weight: 50.0
   contrastive_margin: 0.45
@@ -29,17 +29,40 @@ training:
   cycle_weight: 100.0
   lgo_eps: 0.020
   lgo_target_eps: 0.015
-  lgo_weight: 250.0
-  lgo_weight_init: 100.0
-  lgo_warmup_epochs: 5
+  lgo_weight: 50.0
+  lgo_weight_init: 0.0
+  lgo_start_epoch: 5
+  lgo_warmup_epochs: 15
   distortion_weight: 350.0
   distortion_tau: 0.015
   distortion_samples: 512
-  orientation_weight: 350.0
-  angle_weight: 250.0
-  angle_weight_init: 350.0
+  orientation_weight: 0.0  # Legacy world-normal loss is logged, not optimized.
+  angle_weight: 1.0
+  angle_weight_init: 1.0
   angle_warmup_epochs: 10
-  domain_weight: 150.0
+  domain_weight: 0.1
+  grad_clip: 5.0
+  seed: 42
+
+oem:
+  max_points: 512
+  pretrain_epochs: 30
+  lr: 0.00025
+  freeze_epochs: 10
+  finetune_lr: 0.000025
+  minimum_eval_accuracy: 0.95  # Both directions on held-out rotation examples.
+  domain_start_epoch: 10
+  domain_warmup_epochs: 10
+  domain_weight: 0.1
+  label_smoothing: 0.0
+  canonical_pairs: []  # Optional {source, target, angle_bin}; bin 1 = aligned.
+
+validation:
+  shape_count: 4  # Within the reserved 26; the final 18 test shapes stay unused.
+  every_epochs: 5
+  max_pairs: 6
+  vertices: 256
+  map_index_base: 1
 
 student_model:
   embed_dim: 128

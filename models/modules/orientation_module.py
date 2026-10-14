@@ -168,11 +168,15 @@ class OrientNet(nn.Module):
         num_neighs: int = 24,
         input_neighs: int = 27,
         num_class: int = 8,
+        max_points: int = 512,
     ):
         super(OrientNet, self).__init__()
         self.num_neighs = num_neighs
         self.input_neighs = input_neighs
         self.num_class = num_class
+        self.max_points = max_points
+        if max_points and max_points < max(num_neighs, input_neighs):
+            raise ValueError('OEM max_points must cover all configured neighbors')
         
         # Precompute discrete angle bins (nbins=8: [-pi/4, 0, pi/4, pi/2, 3pi/4, pi, 5pi/4, 3pi/2])
         angles = torch.arange(num_class, dtype=torch.float32) * 2.0 * np.pi / num_class - np.pi / 4.0
@@ -193,10 +197,10 @@ class OrientNet(nn.Module):
         # representations. Both directions provide length 2 even for batch 1.
         self.global_netD1 = nn.Sequential(
             nn.Conv1d(2 * (latent_dim + output_dim), 256, 1),
-            nn.BatchNorm1d(256),
+            nn.GroupNorm(1, 256),
             nn.ReLU(),
             nn.Conv1d(256, 128, 1),
-            nn.BatchNorm1d(128),
+            nn.GroupNorm(1, 128),
             nn.ReLU(),
         )
         self.global_netD2 = nn.Linear(128, 2)
@@ -231,6 +235,17 @@ class OrientNet(nn.Module):
                 feat_t: [B, C] global feature descriptor for target
         """
         batch_size = xyz_s.shape[0]
+        # OEM needs global orientation, not a dense correspondence output.
+        # Deterministic sampling keeps clean/rotated copies in the same order
+        # and limits quadratic neighbor searches. ASMAE still sees all vertices.
+        if self.max_points and xyz_s.shape[1] > self.max_points:
+            idx = torch.linspace(0, xyz_s.shape[1] - 1, self.max_points,
+                                 device=xyz_s.device).long()
+            xyz_s = xyz_s[:, idx]
+        if self.max_points and xyz_t.shape[1] > self.max_points:
+            idx = torch.linspace(0, xyz_t.shape[1] - 1, self.max_points,
+                                 device=xyz_t.device).long()
+            xyz_t = xyz_t[:, idx]
         idx_s = knn_points(xyz_s, xyz_s, k=self.input_neighs)
         idx_t = knn_points(xyz_t, xyz_t, k=self.input_neighs)
 

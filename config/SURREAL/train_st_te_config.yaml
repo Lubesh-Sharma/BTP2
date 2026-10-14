@@ -20,7 +20,7 @@ training:
   teacher_feature_ratio: 0.2
   ema_alpha: 0.999
   checkpoint_dir: "checkpoints"
-  checkpoint_name: "st_te_model_SURREAL_oem.pth"
+  checkpoint_name: "st_te_model_SURREAL_oem_staged.pth"
   angle_label_smoothing: 0.0
   consistency_weight: 150.0
   contrastive_margin: 0.2
@@ -30,6 +30,34 @@ training:
   cycle_weight: 100.0
   lgo_eps: 0.1
   lgo_weight: 50.0
+  lgo_weight_init: 0.0
+  lgo_start_epoch: 5
+  lgo_warmup_epochs: 15
+  orientation_weight: 0.0
+  angle_weight: 1.0
+  angle_weight_init: 1.0
+  domain_weight: 0.1
+  grad_clip: 5.0
+
+oem:
+  max_points: 512
+  pretrain_epochs: 30
+  lr: 0.00025
+  freeze_epochs: 10
+  finetune_lr: 0.000025
+  minimum_eval_accuracy: 0.95
+  domain_start_epoch: 10
+  domain_warmup_epochs: 10
+  domain_weight: 0.1
+  label_smoothing: 0.0
+  canonical_pairs: []
+
+validation:
+  shape_count: 4
+  every_epochs: 5
+  max_pairs: 6
+  vertices: 256
+  map_index_base: 1
 
 student_model:
   embed_dim: 128
