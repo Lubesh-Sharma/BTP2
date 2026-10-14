@@ -370,7 +370,7 @@ def train_model(student, teacher, orient_net, train_shapes, config, teacher_orie
                 loss_cycle = loss_cycle1 + loss_cycle2
                 
                 # Global Optimization Loss (L_go) - asymmetric Sinkhorn pseudo-labels
-                with torch.set_grad_enabled(curr_lgo_weight > 0):
+                with torch.set_grad_enabled(bool(curr_lgo_weight > 0)):
                     loss_lgo1 = compute_lgo_loss(enc1_s, enc2_s, eps=student_lgo_eps, target_eps=target_lgo_eps, n_iter=cycle_n_iter)
                     loss_lgo2 = compute_lgo_loss(enc2_s, enc1_s, eps=student_lgo_eps, target_eps=target_lgo_eps, n_iter=cycle_n_iter)
                 loss_lgo = (loss_lgo1 + loss_lgo2) / 2.0
@@ -384,7 +384,7 @@ def train_model(student, teacher, orient_net, train_shapes, config, teacher_orie
                 # Directly penalizes local normal flips / reflection symmetry errors
                 # The legacy world-normal term is diagnostic when weight is 0;
                 # do not conceal it by reporting an artificial zero loss.
-                with torch.set_grad_enabled(orient_weight > 0):
+                with torch.set_grad_enabled(bool(orient_weight > 0)):
                     loss_orient1 = compute_orientation_loss(enc1_s, enc2_s, p1_aligned, p2_aligned, num_samples=500, tau=dist_tau)
                     loss_orient2 = compute_orientation_loss(enc2_s, enc1_s, p2_aligned, p1_aligned, num_samples=500, tau=dist_tau)
                 loss_orient = (loss_orient1 + loss_orient2) / 2.0
