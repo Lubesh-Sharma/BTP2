@@ -10,7 +10,7 @@ except ImportError:
 if torch is not None:
     import numpy as np
     from models.asmae import ASMAE
-    from models.modules.orientation_module import OrientNet
+    from models.modules.orientation_module import OrientNet, add_noise_to_pointcloud
     from core.orientation_training import evaluate_rotation, correspondence_loss_scale, relative_rotation_pair, orientation_is_ready, oem_learning_rate
 
 
@@ -84,6 +84,23 @@ class OrientationTrainingTests(unittest.TestCase):
         self.assertEqual(correspondence_loss_scale(0, 0, 0), 1)
         with self.assertRaises(ValueError):
             correspondence_loss_scale(0, -1, 10)
+
+    def test_radius_scaled_noise_respects_scale_and_translation(self):
+        points = torch.randn(1, 1024, 3, dtype=torch.float64)
+        generator = torch.Generator().manual_seed(99)
+        noisy = add_noise_to_pointcloud(points, 0.000004, True, generator)
+        generator = torch.Generator().manual_seed(99)
+        transformed = add_noise_to_pointcloud(points * 10 + 20, 0.000004, True, generator)
+        torch.testing.assert_close(transformed, noisy * 10 + 20, atol=1e-10, rtol=1e-10)
+        radius = (points - points.mean(dim=1, keepdim=True)).norm(dim=-1).max()
+        std = ((noisy - points) / radius).std().item()
+        self.assertTrue(0.0018 < std < 0.0022)
+
+    def test_zero_noise_is_identity_and_consumes_no_rng(self):
+        points = torch.randn(1, 9, 3)
+        before = torch.get_rng_state().clone()
+        self.assertIs(add_noise_to_pointcloud(points, 0.0, True), points)
+        torch.testing.assert_close(torch.get_rng_state(), before)
 
     def test_reference_labels_hold_for_every_start_direction(self):
         points = torch.randn(1, 9, 3)

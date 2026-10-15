@@ -125,6 +125,7 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
     oem_warmup = config['training'].get('orientation_warmup_epochs', 10)
     oem_transition = config['training'].get('orientation_transition_epochs', 10)
     noise_variance = config['training'].get('noise_variance', 0.0)
+    noise_relative_to_radius = config['training'].get('noise_relative_to_radius', False)
     max_warmup = config['training'].get('orientation_max_warmup_epochs', 30)
     ready_accuracy = config['training'].get('orientation_ready_accuracy', 0.85)
     ready_error = config['training'].get('orientation_ready_max_angle_error', 15.0)
@@ -150,7 +151,7 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
     print(f"  Training shapes: {len(train_shapes)} | Validation shapes: {len(validation_shapes)}")
     print(f"  OEM-only for at least {oem_warmup} epochs; stop if unready by epoch {max_warmup}")
     print(f"  Gate: both OEMs forward/reverse accuracy >= {ready_accuracy:.0%}, angle error <= {ready_error} deg, {ready_patience} checks")
-    print(f"  Once ready, ramp ASMAE over {oem_transition} epochs | noise variance={noise_variance}")
+    print(f"  Once ready, ramp ASMAE over {oem_transition} epochs | noise variance={noise_variance} | radius-scaled={noise_relative_to_radius}")
     print("  All correspondence inputs use OEM-predicted pairwise alignment")
     print("  OEM uses GroupNorm: no running-statistics or inference overrides")
     print(f"  Epochs: {num_epochs}")
@@ -173,9 +174,11 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
     fl_global = FocalLoss(class_num=2, gamma=3)
     
     # Point cloud data augmentations
-    src_aug = DataAugment(operations=["noise"] if noise_variance > 0 else [], noise_variance=noise_variance)
+    src_aug = DataAugment(operations=["noise"] if noise_variance > 0 else [], noise_variance=noise_variance,
+                          noise_relative_to_radius=noise_relative_to_radius)
     tgt_aug = DataAugment(operations=["rotate", "noise"] if noise_variance > 0 else ["rotate"],
-                          rotate_nbins=orient_net.num_class, noise_variance=noise_variance)
+                          rotate_nbins=orient_net.num_class, noise_variance=noise_variance,
+                          noise_relative_to_radius=noise_relative_to_radius)
     
     student.to(device)
     teacher.to(device)
@@ -312,6 +315,7 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
                 relative_bin = torch.randint(orient_net.num_class, (p2_raw.shape[0],), device=device)
                 ref_source, ref_target = relative_rotation_pair(
                     orient_net, p2_raw, base_bin, relative_bin, noise_variance,
+                    noise_relative_to_radius=noise_relative_to_radius,
                 )
                 p2_norm_clean = normalize_pc_torch(p2_raw)
                 orient_out_target = orient_net(normalize_pc_torch(ref_source), normalize_pc_torch(ref_target))
@@ -494,7 +498,8 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
                               f"CE={result['loss']:.4f} | train/eval gap={result['mode_gap']:.2e} | cases={result['count']}")
                         if split == 'validation' and noise_variance > 0:
                             noisy = evaluate_rotation(module, shapes, device, base_bins=validation_base_bins,
-                                                      noise_variance=noise_variance)
+                                                      noise_variance=noise_variance,
+                                                      noise_relative_to_radius=noise_relative_to_radius)
                             metrics[f'{label}_validation_noisy'] = noisy
                             print(f"OEM {label} validation noisy: accuracy={noisy['accuracy']:.1%} | "
                                   f"reverse={noisy['reverse_accuracy']:.1%} | angle error={noisy['angle_error_degrees']:.2f} deg")

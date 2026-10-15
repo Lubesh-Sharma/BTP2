@@ -95,3 +95,22 @@ For the existing version-5 epoch-30 checkpoint, run the normal training command
 without `--fresh`. Adam moments, EMA weights, RNG state, and readiness history
 are preserved. The absolute-epoch schedule is applied to the OEM optimizer group
 at the start of each epoch and recorded in the checkpoint's configuration.
+
+## Separate small-noise experiment
+
+The clean baseline config and checkpoint paths are unchanged. To test noise alone:
+
+```bash
+python train_st_te.py --config config/SHREC/train_st_te_noise_config.yaml --fresh
+```
+
+The experiment uses variance 0.000004 with `noise_relative_to_radius: true`:
+per-axis Gaussian standard deviation is 0.002 times each cloud's centered maximum
+radius. Training reference source and target receive independent noise. No point
+sampling augmentation is introduced. The geometry, split, seed, losses, learning
+rate schedule, and readiness gate match the clean baseline. Clean validation still
+controls readiness; additional noisy validation uses the same relative variance.
+The experiment writes `st_te_model_SHREC_noise_small.pth` and a separate geometry
+output directory. Resume that experiment by omitting `--fresh` from this command.
+Compare clean validation at comparable training epochs; noise is not guaranteed
+to improve either training or held-out accuracy.

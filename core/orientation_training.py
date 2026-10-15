@@ -1,7 +1,7 @@
 """Rotation curriculum and evaluation shared by fresh OEM training and tests."""
 import torch
 from core.domain_loss import compute_angle_loss
-from models.modules.orientation_module import normalize_pc_torch
+from models.modules.orientation_module import normalize_pc_torch, add_noise_to_pointcloud
 
 CHECKPOINT_VERSION = 5
 
@@ -33,7 +33,7 @@ def orientation_is_ready(metrics, minimum_accuracy, maximum_error):
 
 
 def relative_rotation_pair(net, points, base_indices, relative_indices, noise_variance=0.0,
-                           generator=None):
+                           generator=None, noise_relative_to_radius=False):
     """Random starting direction plus a known relative Y rotation; no cross-shape labels."""
     if noise_variance < 0:
         raise ValueError("noise_variance cannot be negative.")
@@ -41,13 +41,14 @@ def relative_rotation_pair(net, points, base_indices, relative_indices, noise_va
     target = net.rotate_point_cloud(source, relative_indices, inverse=False)
     # At zero variance do not allocate noise or consume random numbers.
     if noise_variance > 0:
-        target = target + torch.randn(target.shape, device=target.device, dtype=target.dtype,
-                                      generator=generator) * noise_variance ** 0.5
+        source = add_noise_to_pointcloud(source, noise_variance, noise_relative_to_radius, generator)
+        target = add_noise_to_pointcloud(target, noise_variance, noise_relative_to_radius, generator)
     return source, target
 
 
 @torch.no_grad()
-def evaluate_rotation(net, shapes, device, base_bins=None, noise_variance=0.0):
+def evaluate_rotation(net, shapes, device, base_bins=None, noise_variance=0.0,
+                      noise_relative_to_radius=False):
     """Same-shape relative rotations at deterministic starting directions in eval mode.
 
     Uses a private RNG for optional noise, leaving training randomness untouched.
@@ -73,7 +74,7 @@ def evaluate_rotation(net, shapes, device, base_bins=None, noise_variance=0.0):
                 for index in range(net.num_class):
                     label = torch.tensor([index], device=device)
                     source, target = relative_rotation_pair(net, points, base, label,
-                                                            noise_variance, generator)
+                                                            noise_variance, generator, noise_relative_to_radius)
                     source, target = normalize_pc_torch(source), normalize_pc_torch(target)
                     out = net(source, target)
                     pred = out['angle_x'].argmax(dim=-1)

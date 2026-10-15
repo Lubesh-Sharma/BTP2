@@ -348,10 +348,20 @@ def rotate_by_y_axis(batch_data: torch.Tensor, nbins: int = 8):
     return rotated_data, rotated_gt
 
 
-def add_noise_to_pointcloud(batch_data: torch.Tensor, noise_variance: float = 0.0001):
-    """Add Gaussian noise to point cloud."""
-    noise = torch.randn_like(batch_data) * np.sqrt(noise_variance)
-    return batch_data + noise
+def add_noise_to_pointcloud(batch_data: torch.Tensor, noise_variance: float = 0.0001,
+                            relative_to_radius: bool = False, generator=None):
+    """Gaussian noise, optionally scaled by each cloud's centered maximum radius."""
+    if noise_variance < 0:
+        raise ValueError("noise_variance cannot be negative.")
+    if noise_variance == 0:
+        return batch_data
+    scale = 1.0
+    if relative_to_radius:
+        centered = batch_data - batch_data.mean(dim=1, keepdim=True)
+        scale = centered.norm(dim=-1).amax(dim=1, keepdim=True).unsqueeze(-1)
+    noise = torch.randn(batch_data.shape, dtype=batch_data.dtype, device=batch_data.device,
+                        generator=generator) * noise_variance ** 0.5
+    return batch_data + noise * scale
 
 
 def scale_pointcloud(batch_data: torch.Tensor, scale_range=[0.95, 1.05]):
@@ -372,12 +382,14 @@ class DataAugment(nn.Module):
         scale_range=[0.95, 1.05],
         rotate_nbins=8,
         noise_variance=0.0001,
+        noise_relative_to_radius=False,
     ):
         super().__init__()
         self.operations = operations
         self.scale_range = scale_range
         self.rotate_nbins = rotate_nbins
         self.noise_variance = noise_variance
+        self.noise_relative_to_radius = noise_relative_to_radius
 
     def forward(self, batch_data: torch.Tensor):
         B = batch_data.shape[0]
@@ -388,7 +400,7 @@ class DataAugment(nn.Module):
         if "rotate" in self.operations:
             batch_data, rotated_gt = rotate_by_y_axis(batch_data, self.rotate_nbins)
         if "noise" in self.operations:
-            batch_data = add_noise_to_pointcloud(batch_data, self.noise_variance)
+            batch_data = add_noise_to_pointcloud(batch_data, self.noise_variance, self.noise_relative_to_radius)
             
         if "rotate" in self.operations:
             return batch_data, rotated_gt
