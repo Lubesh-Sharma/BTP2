@@ -1,0 +1,91 @@
+data_dir: "input/SHREC/obj/k_10"
+output_dir: "output_st_te_SHREC_sampling"
+train_size: 26
+test_size: 18
+
+geometry:
+  k: 50
+  t: 100
+  neigvecs: 300
+  
+# Sampling is internal to OEM only. ASMAE descriptors and P2P stay full-resolution.
+orientation_model:
+  sample_points: 1024
+  sampling_seed: 2026
+
+training:
+  epochs: 90
+  seed: 42
+  validation_size: 2  # Reserved from the 26-shape training pool; 18 test shapes untouched.
+  validation_every: 1
+  orientation_warmup_epochs: 10
+  orientation_transition_epochs: 10
+  orientation_max_warmup_epochs: 50
+  orientation_ready_accuracy: 0.85
+  orientation_ready_max_angle_error: 15.0
+  orientation_ready_patience: 2
+  orientation_validation_base_bins: [1, 5]  # Source starts at 0 and 180 degrees.
+  noise_variance: 0.0  # No noise is sampled at zero; enable explicitly in a later experiment.
+  lr: 0.00025
+  oem_lr_schedule:
+    start_epoch: 31  # Existing epoch-30 runs can resume without resetting Adam.
+    duration_epochs: 20
+    start_lr: 0.00005
+    min_lr: 0.00001
+  device: "cuda"
+  student_mask_ratio: 0.60
+  student_feature_ratio: 0.35
+  teacher_mask_ratio: 0.10
+  teacher_feature_ratio: 0.10
+  ema_alpha: 0.999
+  checkpoint_dir: "checkpoints"
+  checkpoint_name: "st_te_model_SHREC_sampling.pth"
+  consistency_weight: 50.0
+  contrastive_margin: 0.45
+  contrastive_weight: 100.0
+  cycle_eps: 0.015
+  cycle_n_iter: 25
+  cycle_weight: 100.0
+  lgo_eps: 0.020
+  lgo_target_eps: 0.015
+  lgo_weight: 250.0
+  lgo_weight_init: 100.0
+  lgo_warmup_epochs: 5
+  distortion_weight: 350.0
+  distortion_tau: 0.015
+  distortion_samples: 512
+  orientation_weight: 350.0
+  angle_weight: 250.0
+  angle_weight_init: 350.0
+  angle_warmup_epochs: 10
+  domain_weight: 150.0
+
+student_model:
+  embed_dim: 128
+  depth: 4
+  num_heads: 4
+  decoder_embed_dim: 64
+  decoder_depth: 2
+  decoder_num_heads: 4
+  mlk_ratio: 2.0
+  num_mask_queries: 5000
+  encoder_k: 20
+  aamg_k: 10
+  aamg_emb_dim: 64
+  pos_embed_dim: 64
+  temperature: 0.1
+
+teacher_model:
+  embed_dim: 128
+  depth: 4
+  num_heads: 4
+  decoder_embed_dim: 64
+  decoder_depth: 2
+  decoder_num_heads: 4
+  mlk_ratio: 2.0
+  num_mask_queries: 5000
+  encoder_k: 20
+  aamg_k: 10
+  aamg_emb_dim: 64
+  pos_embed_dim: 64
+  temperature: 0.1

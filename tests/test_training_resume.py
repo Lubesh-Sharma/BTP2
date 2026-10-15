@@ -35,7 +35,7 @@ class TrainingResumeTests(unittest.TestCase):
         def networks():
             student = ASMAE(feature_dim=8, **model_config)
             teacher = copy.deepcopy(student)
-            oem = OrientNet()
+            oem = OrientNet(sample_points=28, sampling_seed=2026)
             teacher_oem = copy.deepcopy(oem)
             for module in (teacher, teacher_oem):
                 for parameter in module.parameters():
@@ -49,6 +49,7 @@ class TrainingResumeTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory, contextlib.redirect_stdout(io.StringIO()):
             config = dict(geometry=dict(k=5, t=1, neigvecs=8),
+                          orientation_model=dict(sample_points=28, sampling_seed=2026),
                           student_model=model_config, teacher_model=model_config,
                           training=dict(epochs=1, lr=0.0001, device='cpu',
                                         checkpoint_dir=directory, checkpoint_name='resume.pth',
@@ -90,7 +91,15 @@ class TrainingResumeTests(unittest.TestCase):
                 module.load_state_dict(checkpoint[key])
             config['training']['epochs'] = 2
             config['training']['oem_lr_schedule'] = dict(start_epoch=2, duration_epochs=3, start_lr=5e-5, min_lr=1e-5)
+            full_shape_sizes = []
+            def record_full_shapes(module, inputs):
+                full_shape_sizes.append((inputs[1].shape[1], inputs[3].shape[1]))
+            shape_hooks = [module.register_forward_pre_hook(record_full_shapes) for module in resumed[:2]]
             train_model(*resumed, shapes[:2], config, validation_shapes=shapes[2:], resume=checkpoint)
+            for hook in shape_hooks:
+                hook.remove()
+            self.assertTrue(full_shape_sizes)
+            self.assertEqual(set(full_shape_sizes), {(32, 33), (33, 32)})
             final = torch.load(Path(directory) / 'resume.pth', weights_only=True)
             self.assertEqual(final['completed_epochs'], 2)
             self.assertEqual(final['optimizer_state_dict']['param_groups'][0]['lr'], 0.0001)
@@ -114,6 +123,7 @@ class TrainingResumeTests(unittest.TestCase):
                     asmae, oem = loader(inference_config, 8, 'cpu', network=network)
                     self.assertFalse(asmae.training)
                     self.assertFalse(oem.training)
+                    self.assertEqual(oem.sample_points, 28)
                     for loaded, expected in [(asmae, resumed[offset]), (oem, resumed[2 + offset])]:
                         for key, value in loaded.state_dict().items():
                             torch.testing.assert_close(value, expected.state_dict()[key])

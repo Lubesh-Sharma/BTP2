@@ -102,6 +102,36 @@ class OrientationTrainingTests(unittest.TestCase):
         self.assertIs(add_noise_to_pointcloud(points, 0.0, True), points)
         torch.testing.assert_close(torch.get_rng_state(), before)
 
+    def test_sampling_independent_and_eval_reproducible_without_mutation(self):
+        self.net.sample_points = 5
+        source = torch.arange(45, dtype=torch.float32).reshape(1, 15, 3)
+        before = source.clone()
+        self.net.train()
+        sampled_source, sampled_target = self.net.sample_pair(source, source)
+        self.assertEqual(sampled_source.shape, (1, 5, 3))
+        self.assertFalse(torch.equal(sampled_source, sampled_target))
+        torch.testing.assert_close(source, before)
+        self.net.eval()
+        rng = torch.get_rng_state().clone()
+        first = self.net.sample_pair(source, source)
+        second = self.net.sample_pair(source, source)
+        torch.testing.assert_close(torch.get_rng_state(), rng)
+        for a, b in zip(first, second):
+            torch.testing.assert_close(a, b)
+        self.assertFalse(torch.equal(first[0], first[1]))
+
+    def test_sampling_validation_compares_identical_subsets_between_modes(self):
+        self.net.sample_points = 5
+        self.net.eval()
+        source, target = self.net.sample_pair(torch.randn(1, 15, 3), torch.randn(1, 17, 3))
+        expected = self.net(source, target, sample_inputs=False)
+        self.net.train()
+        actual = self.net(source, target, sample_inputs=False)
+        for key in expected:
+            torch.testing.assert_close(actual[key], expected[key])
+        metrics = evaluate_rotation(self.net, [{'pos': np.random.randn(15, 3)}], 'cpu')
+        self.assertEqual(metrics['mode_gap'], 0)
+
     def test_reference_labels_hold_for_every_start_direction(self):
         points = torch.randn(1, 9, 3)
         for base_index in range(8):

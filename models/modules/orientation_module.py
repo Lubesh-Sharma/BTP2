@@ -168,11 +168,17 @@ class OrientNet(nn.Module):
         num_neighs: int = 24,
         input_neighs: int = 27,
         num_class: int = 8,
+        sample_points=None,
+        sampling_seed: int = 2026,
     ):
         super(OrientNet, self).__init__()
         self.num_neighs = num_neighs
         self.input_neighs = input_neighs
         self.num_class = num_class
+        if sample_points is not None and sample_points < max(num_neighs, input_neighs):
+            raise ValueError("OEM sample_points must cover its largest KNN neighborhood.")
+        self.sample_points = sample_points
+        self.sampling_seed = sampling_seed
         
         # Precompute discrete angle bins (nbins=8: [-pi/4, 0, pi/4, pi/2, 3pi/4, pi, 5pi/4, 3pi/2])
         angles = torch.arange(num_class, dtype=torch.float32) * 2.0 * np.pi / num_class - np.pi / 4.0
@@ -216,7 +222,26 @@ class OrientNet(nn.Module):
 
         self.classifier = nn.Conv1d(mlp_in, self.num_class, 1, bias=False)
 
-    def forward(self, xyz_s: torch.Tensor, xyz_t: torch.Tensor):
+    def sample_pair(self, xyz_s, xyz_t):
+        """Independent OEM subsets; never mutate, reorder, or truncate caller inputs.
+
+        Training draws fresh subsets. Evaluation uses private fixed seeds for
+        reproducible subsets without consuming the training random stream.
+        """
+        def sample(points, stream):
+            if self.sample_points is None or points.shape[1] <= self.sample_points:
+                return points
+            generator = None
+            if not self.training:
+                generator = torch.Generator(device=points.device).manual_seed(self.sampling_seed + stream)
+            indices = torch.stack([
+                torch.randperm(points.shape[1], device=points.device, generator=generator)[:self.sample_points]
+                for _ in range(points.shape[0])
+            ])
+            return points.gather(1, indices.unsqueeze(-1).expand(-1, -1, points.shape[-1]))
+        return sample(xyz_s, 0), sample(xyz_t, 1)
+
+    def forward(self, xyz_s: torch.Tensor, xyz_t: torch.Tensor, sample_inputs=True):
         """
         Forward pass for orientation estimation.
         Args:
@@ -228,6 +253,8 @@ class OrientNet(nn.Module):
                 angle_y: [B, num_class] orientation logits for target w.r.t source
                 global_d_pred: [B, 2] pair-domain prediction logits
         """
+        if sample_inputs:
+            xyz_s, xyz_t = self.sample_pair(xyz_s, xyz_t)
         batch_size = xyz_s.shape[0]
         idx_s = knn_points(xyz_s, xyz_s, k=self.input_neighs)
         idx_t = knn_points(xyz_t, xyz_t, k=self.input_neighs)

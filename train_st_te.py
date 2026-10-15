@@ -154,6 +154,7 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
     print(f"  Once ready, ramp ASMAE over {oem_transition} epochs | noise variance={noise_variance} | radius-scaled={noise_relative_to_radius}")
     print("  All correspondence inputs use OEM-predicted pairwise alignment")
     print("  OEM uses GroupNorm: no running-statistics or inference overrides")
+    print(f"  OEM sample size: {orient_net.sample_points or 'full cloud'}; ASMAE always receives full shapes")
     print(f"  Epochs: {num_epochs}")
     print(f"  Device: {device}")
     print(f"  Student Masking Ratio (Nodes/Feats): {student_mask_ratio} / {student_feat_ratio}")
@@ -623,7 +624,7 @@ def main():
     )
     
     # Initialize OrientNet
-    orient_net = OrientNet()
+    orient_net = OrientNet(**config.get("orientation_model", {}))
     teacher_orient_net = copy.deepcopy(orient_net)
     
     # Initialize teacher exactly with student's weights initially
@@ -646,7 +647,7 @@ def main():
         for key in (old_training.keys() | config['training'].keys()) - mutable:
             if old_training.get(key) != config['training'].get(key):
                 raise ValueError(f"Resume must preserve training.{key}; use --fresh for a new experiment.")
-        for key in ('geometry', 'student_model', 'teacher_model', 'model'):
+        for key in ('geometry', 'student_model', 'teacher_model', 'model', 'orientation_model'):
             if resume['config'].get(key) != config.get(key):
                 raise ValueError(f"Resume must preserve {key}.")
         student.load_state_dict(resume['model_state_dict'])

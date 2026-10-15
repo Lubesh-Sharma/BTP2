@@ -60,7 +60,7 @@ def load_models(config, feature_dim, device, network="student"):
         temperature=model_cfg.get('temperature', 1.0)
     ).to(device)
 
-    orient_net = OrientNet().to(device)
+    orient_net = OrientNet(**saved_config.get("orientation_model", {})).to(device)
 
     model_key = "model_state_dict" if network == "student" else "teacher_state_dict"
     oem_key = "orient_net_state_dict" if network == "student" else "teacher_orient_net_state_dict"

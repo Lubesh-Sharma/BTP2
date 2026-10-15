@@ -114,3 +114,33 @@ The experiment writes `st_te_model_SHREC_noise_small.pth` and a separate geometr
 output directory. Resume that experiment by omitting `--fresh` from this command.
 Compare clean validation at comparable training epochs; noise is not guaranteed
 to improve either training or held-out accuracy.
+
+## Independent OEM point sampling experiment
+
+```bash
+python train_st_te.py --config config/SHREC/train_st_te_sampling_config.yaml --fresh
+```
+
+This separate experiment keeps coordinate noise at zero and records
+`orientation_model.sample_points: 1024` and `sampling_seed: 2026` in its checkpoint.
+Only OEM inputs are subsampled. Student OEM draws independent subsets for source
+and target on each training forward. Teacher, validation, and inference OEMs use
+fixed independent subsets with private seeds; their calls do not consume training
+RNG state. Clouds smaller than the limit are kept whole. Inputs must still cover
+the OEM's largest KNN neighborhood.
+
+The predicted angle rotates the FULL target coordinates. Both student and teacher
+ASMAEs receive full point sets and descriptors in original vertex order, and P2P
+maps still include every target vertex. Both correspondence loaders construct
+OEM with the checkpoint's saved sampling configuration; the notebook shares that
+loader. The train/eval normalization check freezes one sampled pair before mode
+switching, so sampling augmentation is not mistaken for a normalization failure.
+
+This writes `st_te_model_SHREC_sampling.pth` and leaves clean and noise experiment
+checkpoints untouched. Sampling is an augmentation experiment, not a guarantee of
+accurate alignment. Validate rotation and held-out geodesic error separately.
+
+Use `config/SHREC/corres_sampling.yaml` with either correspondence script to select
+the sampling checkpoint and a separate output directory. In the notebook, set
+`config_path` to the sampling training YAML and `checkpoint_path` to
+`./checkpoints/st_te_model_SHREC_sampling.pth`, then rerun setup and shape loading.

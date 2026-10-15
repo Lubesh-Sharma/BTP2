@@ -76,7 +76,11 @@ def evaluate_rotation(net, shapes, device, base_bins=None, noise_variance=0.0,
                     source, target = relative_rotation_pair(net, points, base, label,
                                                             noise_variance, generator, noise_relative_to_radius)
                     source, target = normalize_pc_torch(source), normalize_pc_torch(target)
-                    out = net(source, target)
+                    # Hold subsets fixed when comparing normalization modes.
+                    # Fresh random training subsets are intentional augmentation,
+                    # not a train/eval normalization mismatch.
+                    source, target = net.sample_pair(source, target)
+                    out = net(source, target, sample_inputs=False)
                     pred = out['angle_x'].argmax(dim=-1)
                     reverse = out['angle_y'].argmax(dim=-1)
                     difference = net.ANGLE[pred] - net.ANGLE[label]
@@ -89,7 +93,7 @@ def evaluate_rotation(net, shapes, device, base_bins=None, noise_variance=0.0,
                     total_loss += compute_angle_loss(out['angle_x'], out['angle_y'], label).item()
                     if index == 1:
                         net.train()
-                        train_out = net(source, target)
+                        train_out = net(source, target, sample_inputs=False)
                         net.eval()
                         gap = max((train_out[key] - out[key]).abs().max().item()
                                   for key in ('angle_x', 'angle_y'))
