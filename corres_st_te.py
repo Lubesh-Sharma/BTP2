@@ -34,7 +34,7 @@ def load_models(config, feature_dim, device, network="student"):
         raise FileNotFoundError(f"Checkpoint not found at: {checkpoint_path}")
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
     if checkpoint.get('oem_version') != CHECKPOINT_VERSION:
-        raise ValueError("This checkpoint predates GroupNorm and aligned XYZ inputs. "
+        raise ValueError("This checkpoint uses an older training pipeline. "
                          "Train the new pipeline with --fresh first.")
     if checkpoint['feature_dim'] != feature_dim:
         raise ValueError("Checkpoint feature dimension differs from preprocessing output.")

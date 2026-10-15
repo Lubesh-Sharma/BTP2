@@ -17,11 +17,16 @@ The SHREC configuration reserves two shapes from the 26-shape training pool:
 remain outside optimization and validation. File ordering follows the existing
 lexicographic split. Checkpoint metadata records the actual shape names.
 
-During epochs 1–10, the known inverse augmentation aligns student coordinates;
-the teacher receives clean coordinates. OEM learns reference-pair rotation
-classification. During epochs 11–20, the probability of using student/teacher
-OEM predictions increases from 0.1 to 1.0; pair-domain adaptation ramps with it.
-Subsequent epochs always use predicted pairwise alignment, as inference does.
+During epochs 1–10, only OEM rotation classification is optimized. ASMAE is
+frozen, its forward passes are skipped, and its teacher remains unchanged.
+During epochs 11–20, the existing ASMAE loss contribution and learning-rate multiplier increase from 0.1 to
+1.0; pair-domain adaptation ramps with it. OEM angle learning continues throughout.
+All correspondence steps, including the transition, use student/teacher OEM
+predictions for pairwise alignment. No P2P training uses known augmentation
+labels to restore a target to its original frame. From epoch 20 onward the
+ASMAE objective is fully weighted. LGO's own ramp starts when ASMAE activates.
+Ten OEM-only epochs do not guarantee accurate cross-shape alignment: inspect
+validation accuracy and angle error before relying on the resulting P2P maps.
 The known augmentation label is never used as an angle label for different shapes.
 Correspondence losses cannot differentiate through the hard angle argmax; OEM
 is trained by its angle and domain objectives.
@@ -42,7 +47,7 @@ angle error and is not a best-geodesic-error checkpoint.
 
 Resume this pipeline by omitting `--fresh`. `epochs` is the total desired number
 of epochs, not the number to add. Training settings and splits must match, apart
-from total epochs, device, and checkpoint location. Legacy checkpoints are rejected
+from total epochs, device, and checkpoint location. Checkpoints from previous training schedules are rejected
 rather than silently converted from BatchNorm to GroupNorm.
 
 Inference retains the existing flags:
@@ -52,7 +57,7 @@ python corres_st_te.py --config config/SHREC/corres.yaml --network student --out
 python corres_greedy.py --config config/SHREC/corres.yaml --network teacher --out_dir p2p_teacher
 ```
 
-Both loaders use the architecture recorded in the selected version-3 checkpoint
+Both loaders use the architecture recorded in the selected version-4 checkpoint
 and check feature preprocessing parameters. The visualization notebook uses this
 same loader. Its default ASMAE-only checks do not require DINO.
 

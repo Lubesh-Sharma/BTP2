@@ -17,7 +17,7 @@ from core.lgo_loss import compute_lgo_loss
 from core.distortion_loss import compute_distortion_loss
 from core.orientation_loss import compute_orientation_loss
 from core.orientation_training import (CHECKPOINT_VERSION, evaluate_rotation,
-                                       predicted_alignment_probability)
+                                       correspondence_loss_scale)
 from core.domain_loss import compute_domain_loss, compute_angle_loss, FocalLoss
 
 
@@ -126,14 +126,15 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
     if validation_every < 1:
         raise ValueError("validation_every must be positive.")
     # Validate durations before starting the expensive training loop.
-    predicted_alignment_probability(0, oem_warmup, oem_transition)
+    correspondence_loss_scale(0, oem_warmup, oem_transition)
     checkpoint_path = os.path.join(config['training']['checkpoint_dir'],
                                    config['training']['checkpoint_name'])
     
     print(f"\n{'='*60}")
     print("STUDENT-TEACHER TRAINING PHASE (WITH DYNAMIC ORIENTATION WARMUP)")
     print(f"  Training shapes: {len(train_shapes)} | Validation shapes: {len(validation_shapes)}")
-    print(f"  Known alignment for {oem_warmup} epochs, then {oem_transition} epoch transition to predicted alignment")
+    print(f"  OEM-only for {oem_warmup} epochs, then ramp ASMAE losses over {oem_transition} epochs")
+    print("  All correspondence inputs use OEM-predicted pairwise alignment")
     print("  OEM uses GroupNorm: no running-statistics or inference overrides")
     print(f"  Epochs: {num_epochs}")
     print(f"  Device: {device}")
@@ -147,10 +148,10 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
     print(f"{'='*60}\n")
     
     # Joint optimizer for ASMAE student and OrientNet
-    optimizer = torch.optim.Adam(
-        list(student.parameters()) + list(orient_net.parameters()),
-        lr=lr
-    )
+    optimizer = torch.optim.Adam([
+        {'params': list(student.parameters()), 'lr': lr, 'name': 'asmae'},
+        {'params': list(orient_net.parameters()), 'lr': lr, 'name': 'oem'},
+    ], lr=lr)
     criterion = torch.nn.L1Loss()
     fl_global = FocalLoss(class_num=2, gamma=3)
     
@@ -213,10 +214,18 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
 
     try:
         for epoch in range(start_epoch, num_epochs):
-            predicted_probability = predicted_alignment_probability(epoch, oem_warmup, oem_transition)
-            # Adversarial adaptation starts with the predicted-alignment transition.
-            curr_domain_weight = domain_weight * predicted_probability
-            print(f"Alignment curriculum: predicted probability={predicted_probability:.2f}")
+            asmae_scale = correspondence_loss_scale(epoch, oem_warmup, oem_transition)
+            # No ASMAE forward passes, gradients, buffer updates, or EMA changes
+            # during the OEM-only phase. Adam gets no ASMAE state until activation.
+            student.requires_grad_(asmae_scale > 0)
+            student.train(asmae_scale > 0)
+            # Adam can cancel a uniform gradient rescaling through its moments;
+            # ramp the ASMAE learning rate too, so activation is actually gradual.
+            optimizer.param_groups[0]['lr'] = lr * asmae_scale
+            curr_domain_weight = domain_weight * asmae_scale
+            stage = "OEM only" if asmae_scale == 0 else "OEM + ASMAE"
+            print(f"Training stage: {stage} | ASMAE loss scale={asmae_scale:.2f} | "
+                  f"ASMAE lr={optimizer.param_groups[0]['lr']:.2e}")
             # Smooth cosine annealing for dynamic loss weights (avoids sudden step shocks)
             if epoch < angle_warmup_epochs:
                 alpha_angle = 0.5 * (1.0 + np.cos(np.pi * epoch / angle_warmup_epochs))
@@ -224,8 +233,9 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
             else:
                 curr_angle_weight = angle_weight_target
                 
-            if epoch < lgo_warmup_epochs:
-                alpha_lgo = 0.5 * (1.0 - np.cos(np.pi * epoch / lgo_warmup_epochs))
+            correspondence_epoch = max(0, epoch - oem_warmup)
+            if correspondence_epoch < lgo_warmup_epochs:
+                alpha_lgo = 0.5 * (1.0 - np.cos(np.pi * correspondence_epoch / lgo_warmup_epochs))
                 curr_lgo_weight = lgo_weight_init + (lgo_weight_target - lgo_weight_init) * alpha_lgo
             else:
                 curr_lgo_weight = lgo_weight_target
@@ -265,7 +275,8 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
                 p1_norm_student = normalize_pc_torch(p1_student)
                 p2_norm_student = normalize_pc_torch(p2_student)
                 
-                orient_out = orient_net(p1_norm_student, p2_norm_student)
+                orient_out = (orient_net(p1_norm_student, p2_norm_student)
+                              if asmae_scale > 0 else None)
                 
                 # Same-shape reference pair supervises rotation and is pair-domain 0.
                 p2_norm_clean = normalize_pc_torch(p2_raw)
@@ -276,18 +287,29 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
                     orient_out_target["angle_y"],
                     rotated_gt,
                 )
-                loss_domain = compute_domain_loss(
+                loss_domain = (compute_domain_loss(
                     orient_out_target["global_d_pred"],
                     orient_out["global_d_pred"],
                     fl_global,
-                )
+                ) if orient_out is not None else loss_angle.new_zeros(()))
 
-                # Start from known augmentation alignment, then transition to the
-                # actual cross-shape prediction used at inference. No angle labels
-                # are invented for different shapes.
-                use_prediction = np.random.random() < predicted_probability
-                pred_angle_idx = (orient_out["angle_x"].argmax(dim=-1)
-                                  if use_prediction else rotated_gt)
+                if asmae_scale == 0:
+                    # Warm-up learns the known rotation task only. Neither the
+                    # student nor teacher ASMAE is invoked on unaligned pairs.
+                    loss = curr_angle_weight * loss_angle
+                    optimizer.zero_grad(set_to_none=True)
+                    loss.backward()
+                    optimizer.step()
+                    update_teacher_ema(orient_net, teacher_orient_net, alpha=ema_alpha)
+                    epoch_loss += loss.item()
+                    epoch_angle_loss += loss_angle.item()
+                    epoch_domain_loss += loss_domain.item()
+                    num_pairs += 1
+                    continue
+
+                # Every P2P update uses the same predicted pairwise alignment as
+                # inference. Known augmentation labels supervise OEM only.
+                pred_angle_idx = orient_out["angle_x"].argmax(dim=-1)
                 p2_aligned = orient_net.rotate_point_cloud(p2_student, pred_angle_idx, inverse=True)
 
                 # The EMA teacher has its own OEM and aligns the clean pair.
@@ -296,9 +318,9 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
                         normalize_pc_torch(p1_raw), p2_norm_clean,
                     )
                     teacher_angle_idx = teacher_orient_out["angle_x"].argmax(dim=-1)
-                    p2_teacher_aligned = (teacher_orient_net.rotate_point_cloud(
+                    p2_teacher_aligned = teacher_orient_net.rotate_point_cloud(
                         p2_raw, teacher_angle_idx, inverse=True,
-                    ) if use_prediction else p2_raw)
+                    )
                 p1_aligned = p1_student
 
 
@@ -377,18 +399,19 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
                 loss_orient2 = compute_orientation_loss(enc2_s, enc1_s, p2_aligned, p1_aligned, num_samples=500, tau=dist_tau)
                 loss_orient = (loss_orient1 + loss_orient2) / 2.0
                 
-                # Total loss with dynamic curriculum weights
-                loss = (loss_rec + 
+                # Ramp the existing ASMAE objective, not the alignment source.
+                loss_correspondence = (loss_rec +
                         (cons_weight * loss_cons) + 
                         (contra_weight * loss_contra) + 
                         (cycle_weight * loss_cycle) + 
                         (curr_lgo_weight * loss_lgo) + 
                         (dist_weight * loss_dist) +
-                        (orient_weight * loss_orient) +
-                        (curr_angle_weight * loss_angle) +
-                        (curr_domain_weight * loss_domain))
+                        (orient_weight * loss_orient))
+                loss = (asmae_scale * loss_correspondence
+                        + curr_angle_weight * loss_angle
+                        + curr_domain_weight * loss_domain)
                 
-                optimizer.zero_grad()
+                optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 optimizer.step()
                 
@@ -557,8 +580,8 @@ def main():
     if not args.fresh and os.path.exists(checkpoint_path):
         resume = torch.load(checkpoint_path, map_location='cpu', weights_only=True)
         if resume.get('oem_version') != CHECKPOINT_VERSION:
-            raise ValueError("Legacy checkpoint uses a different OEM pipeline. "
-                             "Use --fresh to train the GroupNorm pipeline from scratch.")
+            raise ValueError("Checkpoint uses a different training schedule or OEM pipeline. "
+                             "Use --fresh for the OEM-first pipeline.")
         if resume['train_names'] != [shape['name'] for shape in train_shapes] or \
                 resume['validation_names'] != [shape['name'] for shape in validation_shapes]:
             raise ValueError("Checkpoint train/validation split differs from this run.")

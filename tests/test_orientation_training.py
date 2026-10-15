@@ -11,7 +11,7 @@ if torch is not None:
     import numpy as np
     from models.asmae import ASMAE
     from models.modules.orientation_module import OrientNet
-    from core.orientation_training import evaluate_rotation, predicted_alignment_probability
+    from core.orientation_training import evaluate_rotation, correspondence_loss_scale
 
 
 @unittest.skipIf(torch is None, 'PyTorch is not installed')
@@ -65,13 +65,13 @@ class OrientationTrainingTests(unittest.TestCase):
                                    net.extract_features(stale, points))
 
     def test_curriculum_boundaries(self):
-        self.assertEqual(predicted_alignment_probability(9, 10, 10), 0)
-        self.assertAlmostEqual(predicted_alignment_probability(10, 10, 10), 0.1)
-        self.assertEqual(predicted_alignment_probability(19, 10, 10), 1)
-        self.assertEqual(predicted_alignment_probability(50, 10, 10), 1)
-        self.assertEqual(predicted_alignment_probability(0, 0, 0), 1)
+        self.assertEqual(correspondence_loss_scale(9, 10, 10), 0)
+        self.assertAlmostEqual(correspondence_loss_scale(10, 10, 10), 0.1)
+        self.assertEqual(correspondence_loss_scale(19, 10, 10), 1)
+        self.assertEqual(correspondence_loss_scale(50, 10, 10), 1)
+        self.assertEqual(correspondence_loss_scale(0, 0, 0), 1)
         with self.assertRaises(ValueError):
-            predicted_alignment_probability(0, -1, 10)
+            correspondence_loss_scale(0, -1, 10)
 
     def test_validation_restores_mode_and_does_not_change_weights(self):
         self.net.train()

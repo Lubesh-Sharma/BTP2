@@ -55,12 +55,29 @@ class TrainingResumeTests(unittest.TestCase):
                                         cycle_n_iter=3, distortion_samples=16))
             seed()
             first = networks()
+            initial_asmae = [copy.deepcopy(module.state_dict()) for module in first[:2]]
+            initial_oem = copy.deepcopy(first[2].state_dict())
+            # The warm-up must never call either ASMAE, even in no-grad mode.
+            def reject_asmae_forward(module, inputs):
+                raise AssertionError("ASMAE was called during OEM-only warm-up")
+            hooks = [module.register_forward_pre_hook(reject_asmae_forward) for module in first[:2]]
             train_model(*first, shapes[:2], config, validation_shapes=shapes[2:])
+            for hook in hooks:
+                hook.remove()
+            for module, before in zip(first[:2], initial_asmae):
+                for key, value in module.state_dict().items():
+                    torch.testing.assert_close(value, before[key], rtol=0, atol=0)
+                self.assertTrue(all(parameter.grad is None for parameter in module.parameters()))
+            self.assertTrue(any(not torch.equal(value, initial_oem[key])
+                                for key, value in first[2].state_dict().items()))
             checkpoint = torch.load(Path(directory) / 'resume.pth', weights_only=True)
             self.assertEqual(checkpoint['completed_epochs'], 1)
-            self.assertEqual(checkpoint['oem_version'], 3)
+            self.assertEqual(checkpoint['oem_version'], 4)
             self.assertEqual(checkpoint['rotation_metrics']['student_validation']['mode_gap'], 0)
             self.assertTrue(checkpoint['optimizer_state_dict']['state'])
+            self.assertEqual(checkpoint['optimizer_state_dict']['param_groups'][0]['lr'], 0)
+            student_ids = checkpoint['optimizer_state_dict']['param_groups'][0]['params']
+            self.assertTrue(all(key not in checkpoint['optimizer_state_dict']['state'] for key in student_ids))
 
             resumed = networks()
             for module, key in zip(resumed, ('model_state_dict', 'teacher_state_dict',
@@ -70,6 +87,9 @@ class TrainingResumeTests(unittest.TestCase):
             train_model(*resumed, shapes[:2], config, validation_shapes=shapes[2:], resume=checkpoint)
             final = torch.load(Path(directory) / 'resume.pth', weights_only=True)
             self.assertEqual(final['completed_epochs'], 2)
+            self.assertEqual(final['optimizer_state_dict']['param_groups'][0]['lr'], 0.0001)
+            self.assertTrue(any(not torch.equal(value, initial_asmae[0][key])
+                                for key, value in resumed[0].state_dict().items()))
 
             seed()
             uninterrupted = networks()

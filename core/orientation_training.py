@@ -3,11 +3,11 @@ import torch
 from core.domain_loss import compute_angle_loss
 from models.modules.orientation_module import normalize_pc_torch
 
-CHECKPOINT_VERSION = 3
+CHECKPOINT_VERSION = 4
 
 
-def predicted_alignment_probability(epoch, warmup_epochs, transition_epochs):
-    """Epoch is zero-based; transition gradually replaces known augmentation labels."""
+def correspondence_loss_scale(epoch, warmup_epochs, transition_epochs):
+    """Zero-based epoch: OEM-only warm-up, then ramp ASMAE objectives to full weight."""
     if warmup_epochs < 0 or transition_epochs < 0:
         raise ValueError("Orientation curriculum durations cannot be negative.")
     if epoch < warmup_epochs:
