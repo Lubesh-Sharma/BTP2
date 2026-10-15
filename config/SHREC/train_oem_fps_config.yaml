@@ -1,0 +1,25 @@
+data_dir: input/SHREC/obj/k_10
+train_size: 26
+test_size: 18
+orientation_model:
+  sampling_method: fps
+  sample_fraction: 0.50
+  sample_min_points: 1024
+  sampling_seed: 2026
+training:
+  epochs: 50
+  seed: 42
+  device: cuda
+  validation_size: 2
+  lr: 0.00025
+  ema_alpha: 0.999
+  angle_weight: 250.0
+  angle_weight_init: 350.0
+  angle_warmup_epochs: 10
+  oem_lr_schedule:
+    start_epoch: 31
+    duration_epochs: 20
+    start_lr: 0.00005
+    min_lr: 0.00001
+  checkpoint_dir: checkpoints
+  checkpoint_name: oem_SHREC_fps50.pth

@@ -2,6 +2,25 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+import math
+
+
+@torch.no_grad()
+def farthest_point_indices(points, count, generator=None):
+    """FPS without replacement; random initial vertex, then farthest coverage."""
+    batch, size, _ = points.shape
+    indices = torch.empty((batch, count), dtype=torch.long, device=points.device)
+    distances = torch.full((batch, size), float('inf'), device=points.device)
+    selected = torch.zeros((batch, size), dtype=torch.bool, device=points.device)
+    current = torch.randint(size, (batch,), device=points.device, generator=generator)
+    rows = torch.arange(batch, device=points.device)
+    for step in range(count):
+        indices[:, step] = current
+        selected[rows, current] = True
+        delta = points - points[rows, current].unsqueeze(1)
+        distances = torch.minimum(distances, (delta * delta).sum(-1))
+        current = distances.masked_fill(selected, -1).argmax(-1)
+    return indices
 
 
 class GradReverse(torch.autograd.Function):
@@ -170,6 +189,9 @@ class OrientNet(nn.Module):
         num_class: int = 8,
         sample_points=None,
         sampling_seed: int = 2026,
+        sampling_method: str = 'random',
+        sample_fraction=None,
+        sample_min_points: int = 1024,
     ):
         super(OrientNet, self).__init__()
         self.num_neighs = num_neighs
@@ -179,6 +201,15 @@ class OrientNet(nn.Module):
             raise ValueError("OEM sample_points must cover its largest KNN neighborhood.")
         self.sample_points = sample_points
         self.sampling_seed = sampling_seed
+        if sampling_method not in ('random', 'fps'):
+            raise ValueError('sampling_method must be random or fps')
+        if sample_fraction is not None and not 0 < sample_fraction <= 1:
+            raise ValueError('sample_fraction must be in (0, 1]')
+        if sample_min_points < max(num_neighs, input_neighs):
+            raise ValueError('sample_min_points must cover KNN neighborhoods')
+        self.sampling_method = sampling_method
+        self.sample_fraction = sample_fraction
+        self.sample_min_points = sample_min_points
         
         # Precompute discrete angle bins (nbins=8: [-pi/4, 0, pi/4, pi/2, 3pi/4, pi, 5pi/4, 3pi/2])
         angles = torch.arange(num_class, dtype=torch.float32) * 2.0 * np.pi / num_class - np.pi / 4.0
@@ -229,15 +260,21 @@ class OrientNet(nn.Module):
         reproducible subsets without consuming the training random stream.
         """
         def sample(points, stream):
-            if self.sample_points is None or points.shape[1] <= self.sample_points:
+            count = self.sample_points
+            if self.sample_fraction is not None:
+                count = max(self.sample_min_points, math.ceil(self.sample_fraction * points.shape[1]))
+            if count is None or points.shape[1] <= count:
                 return points
             generator = None
             if not self.training:
                 generator = torch.Generator(device=points.device).manual_seed(self.sampling_seed + stream)
-            indices = torch.stack([
-                torch.randperm(points.shape[1], device=points.device, generator=generator)[:self.sample_points]
-                for _ in range(points.shape[0])
-            ])
+            if self.sampling_method == 'fps':
+                indices = farthest_point_indices(points, count, generator)
+            else:
+                indices = torch.stack([
+                    torch.randperm(points.shape[1], device=points.device, generator=generator)[:count]
+                    for _ in range(points.shape[0])
+                ])
             return points.gather(1, indices.unsqueeze(-1).expand(-1, -1, points.shape[-1]))
         return sample(xyz_s, 0), sample(xyz_t, 1)
 
