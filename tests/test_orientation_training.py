@@ -11,7 +11,7 @@ if torch is not None:
     import numpy as np
     from models.asmae import ASMAE
     from models.modules.orientation_module import OrientNet
-    from core.orientation_training import evaluate_rotation, correspondence_loss_scale, relative_rotation_pair, orientation_is_ready
+    from core.orientation_training import evaluate_rotation, correspondence_loss_scale, relative_rotation_pair, orientation_is_ready, oem_learning_rate
 
 
 @unittest.skipIf(torch is None, 'PyTorch is not installed')
@@ -63,6 +63,18 @@ class OrientationTrainingTests(unittest.TestCase):
         stale[..., -3:] += 100
         torch.testing.assert_close(net.extract_features(features, points),
                                    net.extract_features(stale, points))
+
+    def test_oem_lr_decay_uses_absolute_epochs(self):
+        schedule = dict(start_epoch=31, duration_epochs=20, start_lr=5e-5, min_lr=1e-5)
+        self.assertEqual(oem_learning_rate(29, 2.5e-4, schedule), 2.5e-4)
+        self.assertAlmostEqual(oem_learning_rate(30, 2.5e-4, schedule), 5e-5)
+        self.assertAlmostEqual(oem_learning_rate(49, 2.5e-4, schedule), 1e-5)
+        self.assertAlmostEqual(oem_learning_rate(70, 2.5e-4, schedule), 1e-5)
+        rates = [oem_learning_rate(epoch, 2.5e-4, schedule) for epoch in range(30, 50)]
+        self.assertTrue(all(a >= b for a, b in zip(rates, rates[1:])))
+        self.assertEqual(oem_learning_rate(20, 0.001), 0.001)
+        with self.assertRaises(ValueError):
+            oem_learning_rate(0, 0.001, dict(start_epoch=0, duration_epochs=2, start_lr=1e-4, min_lr=1e-5))
 
     def test_curriculum_boundaries(self):
         self.assertEqual(correspondence_loss_scale(9, 10, 10), 0)

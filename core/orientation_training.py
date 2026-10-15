@@ -98,3 +98,23 @@ def evaluate_rotation(net, shapes, device, base_bins=None, noise_variance=0.0):
     return dict(accuracy=correct / count, reverse_accuracy=reverse_correct / count,
                 angle_error_degrees=total_error / count * 180.0 / torch.pi,
                 loss=total_loss / count, mode_gap=max_mode_gap, count=count)
+
+
+def oem_learning_rate(epoch, base_lr, schedule=None):
+    """Absolute-epoch cosine decay; YAML start_epoch is one-based.
+
+    Stateless scheduling allows a version-5 run to adopt this schedule on resume
+    without resetting Adam moments or changing completed-epoch bookkeeping.
+    """
+    if not schedule:
+        return base_lr
+    start = schedule['start_epoch']
+    duration = schedule['duration_epochs']
+    initial, minimum = schedule['start_lr'], schedule['min_lr']
+    if start < 1 or duration < 1 or not 0 < minimum <= initial:
+        raise ValueError("Invalid OEM learning-rate schedule.")
+    if epoch + 1 < start:
+        return base_lr
+    import math
+    progress = min(1.0, (epoch + 1 - start) / max(1, duration - 1))
+    return minimum + (initial - minimum) * 0.5 * (1.0 + math.cos(math.pi * progress))

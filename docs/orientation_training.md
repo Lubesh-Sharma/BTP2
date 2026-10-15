@@ -26,7 +26,7 @@ starts only when BOTH student and teacher pass the clean held-out rotation gate:
 forward and reverse accuracy at least 85%, mean forward circular angle error at
 most 15 degrees, for two consecutive validation checks. These are configurable
 experimental thresholds, not guarantees of cross-shape alignment. If readiness
-is not reached by `orientation_max_warmup_epochs` (30), training saves progress
+is not reached by `orientation_max_warmup_epochs` (50), training saves progress
 and stops instead of automatically training P2P on unreliable alignments.
 
 Once the gate passes, ASMAE's existing loss and learning-rate multiplier ramp
@@ -61,7 +61,7 @@ angle error and is not a best-geodesic-error checkpoint.
 
 Resume this pipeline by omitting `--fresh`. `epochs` is the total desired number
 of epochs, not the number to add. Training settings and splits must match, apart
-from total epochs, device, checkpoint location, and maximum warm-up duration.
+from total epochs, device, checkpoint location, maximum warm-up duration, and the optional `oem_lr_schedule`.
 The latter can be increased to resume an unready run without forcing ASMAE on. Checkpoints from previous training schedules are rejected
 rather than silently converted from BatchNorm to GroupNorm.
 
@@ -82,3 +82,16 @@ script dependencies installed:
 ```bash
 python -m unittest discover -s tests -v
 ```
+
+## Continue the epoch-30 orientation run
+
+The SHREC configuration now schedules OEM LR at 0.00005 for epoch 31,
+cosine-decaying to 0.00001 at epoch 50 and remaining there afterwards.
+ASMAE's learning rate and readiness conditions are unchanged. Total epochs are
+90, with a maximum OEM-only warm-up of 50. This is an optimization experiment,
+not a guarantee that the readiness gate will pass.
+
+For the existing version-5 epoch-30 checkpoint, run the normal training command
+without `--fresh`. Adam moments, EMA weights, RNG state, and readiness history
+are preserved. The absolute-epoch schedule is applied to the OEM optimizer group
+at the start of each epoch and recorded in the checkpoint's configuration.

@@ -89,10 +89,12 @@ class TrainingResumeTests(unittest.TestCase):
                                             'orient_net_state_dict', 'teacher_orient_net_state_dict')):
                 module.load_state_dict(checkpoint[key])
             config['training']['epochs'] = 2
+            config['training']['oem_lr_schedule'] = dict(start_epoch=2, duration_epochs=3, start_lr=5e-5, min_lr=1e-5)
             train_model(*resumed, shapes[:2], config, validation_shapes=shapes[2:], resume=checkpoint)
             final = torch.load(Path(directory) / 'resume.pth', weights_only=True)
             self.assertEqual(final['completed_epochs'], 2)
             self.assertEqual(final['optimizer_state_dict']['param_groups'][0]['lr'], 0.0001)
+            self.assertAlmostEqual(final['optimizer_state_dict']['param_groups'][1]['lr'], 5e-5)
             self.assertTrue(any(not torch.equal(value, initial_asmae[0][key])
                                 for key, value in resumed[0].state_dict().items()))
 

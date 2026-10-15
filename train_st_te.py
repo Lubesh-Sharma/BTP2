@@ -17,7 +17,7 @@ from core.lgo_loss import compute_lgo_loss
 from core.distortion_loss import compute_distortion_loss
 from core.orientation_loss import compute_orientation_loss
 from core.orientation_training import (CHECKPOINT_VERSION, evaluate_rotation,
-                                       correspondence_loss_scale, orientation_is_ready, relative_rotation_pair)
+                                       correspondence_loss_scale, orientation_is_ready, relative_rotation_pair, oem_learning_rate)
 from core.domain_loss import compute_domain_loss, compute_angle_loss, FocalLoss
 
 
@@ -85,6 +85,8 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
     
     num_epochs = config['training'].get('epochs', 10)
     lr = config['training']['lr']
+    oem_lr_schedule = config['training'].get('oem_lr_schedule')
+    oem_learning_rate(0, lr, oem_lr_schedule)
     
     # Extract student params
     student_mask_ratio = config['training'].get('student_mask_ratio', 0.6)
@@ -246,10 +248,11 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
             # Adam can cancel a uniform gradient rescaling through its moments;
             # ramp the ASMAE learning rate too, so activation is actually gradual.
             optimizer.param_groups[0]['lr'] = lr * asmae_scale
+            optimizer.param_groups[1]['lr'] = oem_learning_rate(epoch, lr, oem_lr_schedule)
             curr_domain_weight = domain_weight * asmae_scale
             stage = "OEM only" if asmae_scale == 0 else "OEM + ASMAE"
             print(f"Training stage: {stage} | ASMAE loss scale={asmae_scale:.2f} | "
-                  f"ASMAE lr={optimizer.param_groups[0]['lr']:.2e}")
+                  f"ASMAE lr={optimizer.param_groups[0]['lr']:.2e} | OEM lr={optimizer.param_groups[1]['lr']:.2e}")
             # Smooth cosine annealing for dynamic loss weights (avoids sudden step shocks)
             if epoch < angle_warmup_epochs:
                 alpha_angle = 0.5 * (1.0 + np.cos(np.pi * epoch / angle_warmup_epochs))
@@ -634,7 +637,7 @@ def main():
                 resume['validation_names'] != [shape['name'] for shape in validation_shapes]:
             raise ValueError("Checkpoint train/validation split differs from this run.")
         old_training = resume['config']['training']
-        mutable = {'epochs', 'device', 'checkpoint_dir', 'checkpoint_name', 'orientation_max_warmup_epochs'}
+        mutable = {'epochs', 'device', 'checkpoint_dir', 'checkpoint_name', 'orientation_max_warmup_epochs', 'oem_lr_schedule'}
         for key in (old_training.keys() | config['training'].keys()) - mutable:
             if old_training.get(key) != config['training'].get(key):
                 raise ValueError(f"Resume must preserve training.{key}; use --fresh for a new experiment.")
