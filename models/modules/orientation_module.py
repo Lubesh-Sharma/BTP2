@@ -94,7 +94,7 @@ class EdgeConvModule(nn.Module):
         super(EdgeConvModule, self).__init__()
         self.k = k
         self.linear = nn.Conv2d(input_size * 2, output_size, kernel_size=1, bias=False)
-        self.bn = nn.BatchNorm2d(output_size)
+        self.bn = nn.GroupNorm(1, output_size)
         self.relu = nn.LeakyReLU(negative_slope=0.2)
 
     def forward(self, x: torch.Tensor, idx=None):
@@ -119,7 +119,7 @@ class OrientModule(nn.Module):
         super(OrientModule, self).__init__()
         self.k = k
         self.linear = nn.Conv2d((input_size + 3) * 2, output_size, kernel_size=1, bias=False)
-        self.bn = nn.BatchNorm2d(output_size)
+        self.bn = nn.GroupNorm(1, output_size)
         self.relu = nn.LeakyReLU(negative_slope=0.2)
 
     def forward(self, xyz_s: torch.Tensor, xyz_t: torch.Tensor, feature_s: torch.Tensor, feature_t: torch.Tensor):
@@ -193,10 +193,10 @@ class OrientNet(nn.Module):
         pair_dim = 2 * (latent_dim + output_dim)
         self.global_netD1 = nn.Sequential(
             nn.Conv1d(pair_dim, 256, 1),
-            nn.BatchNorm1d(256),
+            nn.GroupNorm(1, 256),
             nn.ReLU(),
             nn.Conv1d(256, 128, 1),
-            nn.BatchNorm1d(128),
+            nn.GroupNorm(1, 128),
             nn.ReLU(),
         )
         self.global_netD2 = nn.Linear(128, 2)

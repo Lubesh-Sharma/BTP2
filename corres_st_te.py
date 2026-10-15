@@ -8,6 +8,7 @@ from scipy.spatial.distance import cdist
 from models.asmae import ASMAE
 from models.modules.orientation_module import OrientNet, normalize_pc_torch
 from core.preprocessing import process_geometry, normalize_pc
+from core.orientation_training import CHECKPOINT_VERSION
 
 # -------------------------------------------------
 # Sinkhorn (numpy, stable)
@@ -28,7 +29,20 @@ def sinkhorn(cost, eps=0.05, n_iter=100):
 # Load ASMAE & OrientNet
 # -------------------------------------------------
 def load_models(config, feature_dim, device, network="student"):
-    model_cfg = config.get(f'{network}_model', config.get('student_model', config.get('model', {})))
+    checkpoint_path = config['correspondence']['checkpoint_path']
+    if not os.path.exists(checkpoint_path):
+        raise FileNotFoundError(f"Checkpoint not found at: {checkpoint_path}")
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
+    if checkpoint.get('oem_version') != CHECKPOINT_VERSION:
+        raise ValueError("This checkpoint predates GroupNorm and aligned XYZ inputs. "
+                         "Train the new pipeline with --fresh first.")
+    if checkpoint['feature_dim'] != feature_dim:
+        raise ValueError("Checkpoint feature dimension differs from preprocessing output.")
+    saved_config = checkpoint['config']
+    for key, default in [('k', None), ('t', None), ('neigvecs', 300)]:
+        if saved_config['geometry'].get(key, default) != config['geometry'].get(key, default):
+            raise ValueError(f"Inference geometry.{key} must match the checkpoint training config.")
+    model_cfg = saved_config.get(f'{network}_model', saved_config.get('student_model', saved_config.get('model', {})))
     model = ASMAE(
         feature_dim=feature_dim,
         embed_dim=model_cfg['embed_dim'],
@@ -48,11 +62,6 @@ def load_models(config, feature_dim, device, network="student"):
 
     orient_net = OrientNet().to(device)
 
-    checkpoint_path = config['correspondence']['checkpoint_path']
-    if not os.path.exists(checkpoint_path):
-        raise FileNotFoundError(f"Checkpoint not found at: {checkpoint_path}")
-        
-    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=True)
     model_key = "model_state_dict" if network == "student" else "teacher_state_dict"
     oem_key = "orient_net_state_dict" if network == "student" else "teacher_orient_net_state_dict"
     if model_key not in checkpoint or oem_key not in checkpoint:
@@ -62,8 +71,7 @@ def load_models(config, feature_dim, device, network="student"):
     try:
         orient_net.load_state_dict(checkpoint[oem_key])
     except RuntimeError as exc:
-        raise ValueError("Legacy OEM checkpoint: resume training with the updated "
-                         "pipeline to initialize and train the pair discriminator.") from exc
+        raise ValueError("OEM checkpoint architecture is incompatible with this pipeline.") from exc
     model.eval()
     orient_net.eval()
     print(f"Loaded {network} ASMAE and its matching OEM.")

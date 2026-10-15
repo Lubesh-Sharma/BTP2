@@ -5,6 +5,7 @@ import sys
 import yaml
 import argparse
 import copy
+import random
 
 from core.preprocessing import process_geometry, normalize_pc
 from models.asmae import ASMAE
@@ -15,6 +16,8 @@ from core.cycle_loss import compute_cycle_loss
 from core.lgo_loss import compute_lgo_loss
 from core.distortion_loss import compute_distortion_loss
 from core.orientation_loss import compute_orientation_loss
+from core.orientation_training import (CHECKPOINT_VERSION, evaluate_rotation,
+                                       predicted_alignment_probability)
 from core.domain_loss import compute_domain_loss, compute_angle_loss, FocalLoss
 
 
@@ -31,13 +34,13 @@ def update_teacher_ema(student, teacher, alpha=0.999):
                 value.copy_(student_state[name])
 
 
-def load_train_shapes(data_dir, k, t, neigvecs, max_shapes, output_dir):
+def load_train_shapes(data_dir, k, t, neigvecs, max_shapes, output_dir, filenames=None):
     """Load all .obj files from directory"""
     print(f"\n{'='*60}")
     print(f"Loading {max_shapes} train shapes from: {data_dir}")
     print(f"{'='*60}")
     
-    obj_files = sorted([f for f in os.listdir(data_dir) if f.endswith('.obj')])
+    obj_files = filenames if filenames is not None else sorted([f for f in os.listdir(data_dir) if f.endswith('.obj')])
     if max_shapes:
         obj_files = obj_files[:max_shapes]
         
@@ -72,7 +75,9 @@ def load_train_shapes(data_dir, k, t, neigvecs, max_shapes, output_dir):
     return shapes
 
 
-def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, config):
+def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, config, validation_shapes=None, resume=None):
+    validation_shapes = validation_shapes or []
+    resume = resume or {}
     device = config['training'].get('device', 'cuda')
     if device == 'cuda' and not torch.cuda.is_available():
         print("CUDA not available, using CPU")
@@ -115,10 +120,21 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
     angle_weight_init = config['training'].get('angle_weight_init', 8.0)
     angle_warmup_epochs = config['training'].get('angle_warmup_epochs', 5)
     domain_weight = config['training'].get('domain_weight', 1.0)
+    oem_warmup = config['training'].get('orientation_warmup_epochs', 10)
+    oem_transition = config['training'].get('orientation_transition_epochs', 10)
+    validation_every = config['training'].get('validation_every', 1)
+    if validation_every < 1:
+        raise ValueError("validation_every must be positive.")
+    # Validate durations before starting the expensive training loop.
+    predicted_alignment_probability(0, oem_warmup, oem_transition)
+    checkpoint_path = os.path.join(config['training']['checkpoint_dir'],
+                                   config['training']['checkpoint_name'])
     
     print(f"\n{'='*60}")
     print("STUDENT-TEACHER TRAINING PHASE (WITH DYNAMIC ORIENTATION WARMUP)")
-    print(f"  Training shapes: {len(train_shapes)}")
+    print(f"  Training shapes: {len(train_shapes)} | Validation shapes: {len(validation_shapes)}")
+    print(f"  Known alignment for {oem_warmup} epochs, then {oem_transition} epoch transition to predicted alignment")
+    print("  OEM uses GroupNorm: no running-statistics or inference overrides")
     print(f"  Epochs: {num_epochs}")
     print(f"  Device: {device}")
     print(f"  Student Masking Ratio (Nodes/Feats): {student_mask_ratio} / {student_feat_ratio}")
@@ -152,9 +168,55 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
     teacher_orient_net.eval()
     teacher.eval() # Teacher does not get trained by backprop natively
     
-    epoch = 0
+    if resume:
+        optimizer.load_state_dict(resume['optimizer_state_dict'])
+        torch.set_rng_state(resume['torch_rng_state'].cpu())
+        if torch.cuda.is_available() and resume.get('cuda_rng_state'):
+            torch.cuda.set_rng_state_all([value.cpu() for value in resume['cuda_rng_state']])
+        numpy_state = resume['numpy_rng_state']
+        np.random.set_state((numpy_state[0], np.asarray(numpy_state[1], dtype=np.uint32),
+                             numpy_state[2], numpy_state[3], numpy_state[4]))
+        random.setstate(resume['python_rng_state'])
+    start_epoch = resume.get('completed_epochs', 0)
+    best_rotation_error = resume.get('best_rotation_error', float('inf'))
+
+    def save_progress(completed_epochs, metrics, is_best=False):
+        numpy_state = np.random.get_state()
+        payload = {
+            'model_state_dict': student.state_dict(),
+            'teacher_state_dict': teacher.state_dict(),
+            'orient_net_state_dict': orient_net.state_dict(),
+            'teacher_orient_net_state_dict': teacher_orient_net.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'oem_version': CHECKPOINT_VERSION,
+            'completed_epochs': completed_epochs,
+            'feature_dim': train_shapes[0]['feat'].shape[1],
+            'train_size': len(train_shapes),
+            'train_names': [shape['name'] for shape in train_shapes],
+            'validation_names': [shape['name'] for shape in validation_shapes],
+            'config': config,
+            'rotation_metrics': metrics,
+            'best_rotation_error': best_rotation_error,
+            'torch_rng_state': torch.get_rng_state(),
+            'cuda_rng_state': torch.cuda.get_rng_state_all() if torch.cuda.is_available() else [],
+            'numpy_rng_state': (numpy_state[0], numpy_state[1].tolist(), *numpy_state[2:]),
+            'python_rng_state': random.getstate(),
+        }
+        temporary = checkpoint_path + '.tmp'
+        torch.save(payload, temporary)
+        os.replace(temporary, checkpoint_path)
+        if is_best:
+            best_path = os.path.splitext(checkpoint_path)[0] + '_best_rotation.pth'
+            torch.save(payload, best_path + '.tmp')
+            os.replace(best_path + '.tmp', best_path)
+        print(f"Checkpoint saved after epoch {completed_epochs}: {checkpoint_path}")
+
     try:
-        for epoch in range(num_epochs):
+        for epoch in range(start_epoch, num_epochs):
+            predicted_probability = predicted_alignment_probability(epoch, oem_warmup, oem_transition)
+            # Adversarial adaptation starts with the predicted-alignment transition.
+            curr_domain_weight = domain_weight * predicted_probability
+            print(f"Alignment curriculum: predicted probability={predicted_probability:.2f}")
             # Smooth cosine annealing for dynamic loss weights (avoids sudden step shocks)
             if epoch < angle_warmup_epochs:
                 alpha_angle = 0.5 * (1.0 + np.cos(np.pi * epoch / angle_warmup_epochs))
@@ -220,8 +282,12 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
                     fl_global,
                 )
 
-                # Correspondence uses the actual cross-shape prediction, as at inference.
-                pred_angle_idx = orient_out["angle_x"].argmax(dim=-1)
+                # Start from known augmentation alignment, then transition to the
+                # actual cross-shape prediction used at inference. No angle labels
+                # are invented for different shapes.
+                use_prediction = np.random.random() < predicted_probability
+                pred_angle_idx = (orient_out["angle_x"].argmax(dim=-1)
+                                  if use_prediction else rotated_gt)
                 p2_aligned = orient_net.rotate_point_cloud(p2_student, pred_angle_idx, inverse=True)
 
                 # The EMA teacher has its own OEM and aligns the clean pair.
@@ -230,9 +296,9 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
                         normalize_pc_torch(p1_raw), p2_norm_clean,
                     )
                     teacher_angle_idx = teacher_orient_out["angle_x"].argmax(dim=-1)
-                    p2_teacher_aligned = teacher_orient_net.rotate_point_cloud(
+                    p2_teacher_aligned = (teacher_orient_net.rotate_point_cloud(
                         p2_raw, teacher_angle_idx, inverse=True,
-                    )
+                    ) if use_prediction else p2_raw)
                 p1_aligned = p1_student
 
 
@@ -320,7 +386,7 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
                         (dist_weight * loss_dist) +
                         (orient_weight * loss_orient) +
                         (curr_angle_weight * loss_angle) +
-                        (domain_weight * loss_domain))
+                        (curr_domain_weight * loss_domain))
                 
                 optimizer.zero_grad()
                 loss.backward()
@@ -355,15 +421,30 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
             
             print(f"Epoch {epoch+1:3d}/{num_epochs} | Tot: {avg_loss:.4f} | Rec: {avg_rec:.4f} | Cons: {avg_cons:.4f} | Contra: {avg_contra:.4f} | Cycle: {avg_cycle:.4f} | Lgo: {avg_lgo:.4f} | Dist: {avg_dist:.4f} | Orient: {avg_orient:.4f} | Angle: {avg_angle:.4f} (w={curr_angle_weight:.1f}) | Dom: {avg_domain:.4f}")
 
-        
+            metrics = {}
+            is_best = False
+            if (epoch + 1) % validation_every == 0 or epoch + 1 == num_epochs:
+                for label, module in [('student', orient_net), ('teacher', teacher_orient_net)]:
+                    for split, shapes in [('train', train_shapes[:2]), ('validation', validation_shapes)]:
+                        if not shapes:
+                            continue
+                        result = evaluate_rotation(module, shapes, device)
+                        metrics[f'{label}_{split}'] = result
+                        print(f"OEM {label} {split}: accuracy={result['accuracy']:.1%} | "
+                              f"reverse={result['reverse_accuracy']:.1%} | "
+                              f"angle error={result['angle_error_degrees']:.2f} deg | "
+                              f"CE={result['loss']:.4f} | train/eval gap={result['mode_gap']:.2e}")
+                validation = metrics.get('student_validation')
+                if validation and validation['angle_error_degrees'] < best_rotation_error:
+                    best_rotation_error = validation['angle_error_degrees']
+                    is_best = True
+            save_progress(epoch + 1, metrics, is_best)
+
     except KeyboardInterrupt:
-        if epoch >= 1:
-            print(f"\nTraining interrupted at epoch {epoch+1}. Saving progress as requested...")
-        else:
-            print(f"\nTraining interrupted at epoch {epoch+1}. Not saving because < 1 epoch was completed.")
-            raise
-            
-    print("\nTraining complete!")
+        print("Training interrupted. Resume from the last completed epoch checkpoint; "
+              "the incomplete epoch has not overwritten it.")
+
+    print("Training stopped." if start_epoch >= num_epochs else "Training run finished.")
     return student, orient_net
 
 
@@ -376,6 +457,12 @@ def main():
     with open(args.config, 'r') as f:
         config = yaml.safe_load(f)
         
+    seed = config['training'].get('seed', 42)
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
     os.makedirs(config['training']['checkpoint_dir'], exist_ok=True)
     
     config_train_size = config.get('train_size', 60)
@@ -399,7 +486,19 @@ def main():
     t = config['geometry']['t']
     neigvecs = config['geometry'].get('neigvecs', 300)
     
-    train_shapes = load_train_shapes(data_dir, k, t, neigvecs, max_shapes=train_size, output_dir=output_dir)
+    validation_size = config['training'].get('validation_size', 2)
+    if validation_size < 1 or train_size - validation_size < 2:
+        raise ValueError("Reserve at least one validation shape and two training shapes.")
+    training_files = obj_files[:train_size - validation_size]
+    validation_files = obj_files[train_size - validation_size:train_size]
+    print(f"Training-pool split: {len(training_files)} train, {len(validation_files)} validation; "
+          f"{test_size} test shapes remain outside training and validation")
+    train_shapes = load_train_shapes(data_dir, k, t, neigvecs, max_shapes=len(training_files),
+                                     output_dir=output_dir, filenames=training_files)
+    validation_shapes = load_train_shapes(data_dir, k, t, neigvecs, max_shapes=len(validation_files),
+                                          output_dir=output_dir, filenames=validation_files)
+    if not validation_shapes:
+        raise ValueError("No validation shapes were loaded.")
     if len(train_shapes) < 2:
         print("Not enough shapes for training.")
         return
@@ -451,36 +550,34 @@ def main():
     # Initialize teacher exactly with student's weights initially
     teacher.load_state_dict(student.state_dict())
     
-    # Check if a checkpoint exists and load weights unless --fresh flag is passed
+    # Fresh runs never require pretrained weights. Only version-matched complete
+    # checkpoints may resume; silently migrating BatchNorm weights would hide the fix.
     checkpoint_path = os.path.join(config['training']['checkpoint_dir'], config['training']['checkpoint_name'])
+    resume = None
     if not args.fresh and os.path.exists(checkpoint_path):
-        print(f"\n[RESUME TRAINING] Found existing checkpoint at: {checkpoint_path}")
-        ckpt = torch.load(checkpoint_path, map_location='cpu')
-        if 'model_state_dict' in ckpt:
-            student.load_state_dict(ckpt['model_state_dict'], strict=False)
-            teacher.load_state_dict(ckpt.get('teacher_state_dict', ckpt['model_state_dict']), strict=False)
-            print("Successfully restored student and teacher weights from checkpoint.")
-        if 'orient_net_state_dict' in ckpt:
-            # Legacy checkpoints have an individual-shape discriminator. Retain
-            # compatible angle weights and initialize the new pair discriminator.
-            def load_oem_weights(module, state):
-                current = module.state_dict()
-                compatible = {key: value for key, value in state.items()
-                              if key in current and current[key].shape == value.shape}
-                missing, unexpected = module.load_state_dict(compatible, strict=False)
-                if missing:
-                    print(f"OEM checkpoint migration: initialized {len(missing)} missing tensors.")
-            load_oem_weights(orient_net, ckpt['orient_net_state_dict'])
-            teacher_orient_net.load_state_dict(orient_net.state_dict())
-            if 'teacher_orient_net_state_dict' in ckpt:
-                load_oem_weights(teacher_orient_net, ckpt['teacher_orient_net_state_dict'])
-            print("Restored student/teacher OEM weights; legacy teacher OEM starts from student.")
+        resume = torch.load(checkpoint_path, map_location='cpu', weights_only=True)
+        if resume.get('oem_version') != CHECKPOINT_VERSION:
+            raise ValueError("Legacy checkpoint uses a different OEM pipeline. "
+                             "Use --fresh to train the GroupNorm pipeline from scratch.")
+        if resume['train_names'] != [shape['name'] for shape in train_shapes] or \
+                resume['validation_names'] != [shape['name'] for shape in validation_shapes]:
+            raise ValueError("Checkpoint train/validation split differs from this run.")
+        old_training = resume['config']['training']
+        mutable = {'epochs', 'device', 'checkpoint_dir', 'checkpoint_name'}
+        for key in (old_training.keys() | config['training'].keys()) - mutable:
+            if old_training.get(key) != config['training'].get(key):
+                raise ValueError(f"Resume must preserve training.{key}; use --fresh for a new experiment.")
+        for key in ('geometry', 'student_model', 'teacher_model', 'model'):
+            if resume['config'].get(key) != config.get(key):
+                raise ValueError(f"Resume must preserve {key}.")
+        student.load_state_dict(resume['model_state_dict'])
+        teacher.load_state_dict(resume['teacher_state_dict'])
+        orient_net.load_state_dict(resume['orient_net_state_dict'])
+        teacher_orient_net.load_state_dict(resume['teacher_orient_net_state_dict'])
+        print(f"Resuming after completed epoch {resume['completed_epochs']}.")
     else:
-        if args.fresh:
-            print(f"\n[FRESH START] --fresh flag set. Ignoring existing checkpoint and training from scratch.")
-        else:
-            print(f"\n[NEW TRAINING] No existing checkpoint found. Starting from scratch.")
-    
+        print("Fresh initialization: student, teacher, and OEMs; no pretrained weights loaded.")
+
     # Lock teacher parameters against standard backprop
     for param in list(teacher.parameters()) + list(teacher_orient_net.parameters()):
         param.requires_grad = False
@@ -491,19 +588,9 @@ def main():
     print(f"  Student parameters: {num_params_student:,}")
     print(f"  OrientNet parameters: {num_params_orient:,}")
 
-    student, orient_net = train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, config)
-    
-    checkpoint_path = os.path.join(config['training']['checkpoint_dir'], config['training']['checkpoint_name'])
-    torch.save({
-        'model_state_dict': student.state_dict(),
-        'orient_net_state_dict': orient_net.state_dict(),
-        'teacher_state_dict': teacher.state_dict(),
-        'teacher_orient_net_state_dict': teacher_orient_net.state_dict(),
-        'oem_version': 2,
-        'feature_dim': feature_dim,
-        'train_size': len(train_shapes),
-    }, checkpoint_path)
-    print(f"\nCheckpoint saved: {checkpoint_path}")
+    train_model(student, teacher, orient_net, teacher_orient_net, train_shapes,
+                config, validation_shapes=validation_shapes, resume=resume)
+
 
 
 if __name__ == "__main__":

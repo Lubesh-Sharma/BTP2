@@ -88,7 +88,22 @@ class ASMAE(nn.Module):
         loss_div = ((sim_matrix - I) ** 2).mean()
         return loss_div
 
+    @staticmethod
+    def features_in_coordinate_frame(x, pos):
+        """Keep appended XYZ channels in the actual encoder coordinate frame.
+
+        Preprocessing appends per-axis [0, 1] coordinates; descriptor channels
+        and the caller's reconstruction targets remain unchanged.
+        """
+        if x.shape[-1] < 3 or x.shape[:2] != pos.shape[:2]:
+            raise ValueError("Expected descriptors with appended XYZ and matching points.")
+        minimum = pos.amin(dim=1, keepdim=True)
+        extent = pos.amax(dim=1, keepdim=True) - minimum
+        xyz = (pos - minimum) / extent.clamp_min(1e-8)
+        return torch.cat((x[..., :-3], xyz), dim=-1)
+
     def forward_encoder(self, x, pos, mask_binary=None):
+        x = self.features_in_coordinate_frame(x, pos)
         x_emb = self.feature_embed(x)
         if mask_binary is not None:
              pass 
@@ -110,6 +125,8 @@ class ASMAE(nn.Module):
         return self.decoder_norm(base)
 
     def forward(self, x_source, pos_source, x_target, pos_target, mask_ratio=None, feature_ratio=0.2):
+        x_source = self.features_in_coordinate_frame(x_source, pos_source)
+        x_target = self.features_in_coordinate_frame(x_target, pos_target)
         active_queries = None
         if mask_ratio is not None:
              B, N, _ = x_source.shape
