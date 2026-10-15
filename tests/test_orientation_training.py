@@ -11,7 +11,7 @@ if torch is not None:
     import numpy as np
     from models.asmae import ASMAE
     from models.modules.orientation_module import OrientNet
-    from core.orientation_training import evaluate_rotation, correspondence_loss_scale
+    from core.orientation_training import evaluate_rotation, correspondence_loss_scale, relative_rotation_pair, orientation_is_ready
 
 
 @unittest.skipIf(torch is None, 'PyTorch is not installed')
@@ -72,6 +72,39 @@ class OrientationTrainingTests(unittest.TestCase):
         self.assertEqual(correspondence_loss_scale(0, 0, 0), 1)
         with self.assertRaises(ValueError):
             correspondence_loss_scale(0, -1, 10)
+
+    def test_reference_labels_hold_for_every_start_direction(self):
+        points = torch.randn(1, 9, 3)
+        for base_index in range(8):
+            for relative_index in range(8):
+                before_rng = torch.get_rng_state().clone()
+                base, relative = torch.tensor([base_index]), torch.tensor([relative_index])
+                source, target = relative_rotation_pair(self.net, points, base, relative, 0.0)
+                torch.testing.assert_close(torch.get_rng_state(), before_rng)
+                restored = self.net.rotate_point_cloud(target, relative, inverse=True)
+                torch.testing.assert_close(restored, source, atol=2e-6, rtol=2e-6)
+        with self.assertRaises(ValueError):
+            relative_rotation_pair(self.net, points, base, relative, -1)
+
+    def test_readiness_requires_both_networks_and_both_directions(self):
+        good = dict(accuracy=0.9, reverse_accuracy=0.9, angle_error_degrees=10)
+        metrics = dict(student_validation=good.copy(), teacher_validation=good.copy())
+        self.assertTrue(orientation_is_ready(metrics, 0.85, 15))
+        metrics['teacher_validation']['reverse_accuracy'] = 0.5
+        self.assertFalse(orientation_is_ready(metrics, 0.85, 15))
+        self.assertFalse(orientation_is_ready({}, 0.85, 15))
+        metrics['teacher_validation'] = good.copy()
+        metrics['student_validation']['angle_error_degrees'] = 20
+        self.assertFalse(orientation_is_ready(metrics, 0.85, 15))
+
+    def test_noisy_validation_reproducible_without_changing_training_rng(self):
+        shapes = [{'pos': np.random.randn(9, 3)}]
+        before = torch.get_rng_state().clone()
+        first = evaluate_rotation(self.net, shapes, 'cpu', base_bins=[1, 5], noise_variance=0.0001)
+        torch.testing.assert_close(torch.get_rng_state(), before)
+        second = evaluate_rotation(self.net, shapes, 'cpu', base_bins=[1, 5], noise_variance=0.0001)
+        self.assertEqual(first, second)
+        self.assertEqual(first['count'], 16)
 
     def test_validation_restores_mode_and_does_not_change_weights(self):
         self.net.train()

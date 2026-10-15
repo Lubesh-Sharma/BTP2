@@ -15,6 +15,12 @@ training:
   validation_every: 1
   orientation_warmup_epochs: 10
   orientation_transition_epochs: 10
+  orientation_max_warmup_epochs: 30
+  orientation_ready_accuracy: 0.85
+  orientation_ready_max_angle_error: 15.0
+  orientation_ready_patience: 2
+  orientation_validation_base_bins: [1, 5]  # Source starts at 0 and 180 degrees.
+  noise_variance: 0.0  # No noise is sampled at zero; enable explicitly in a later experiment.
   lr: 0.00025
   device: "cuda"
   student_mask_ratio: 0.60
