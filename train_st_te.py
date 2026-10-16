@@ -17,7 +17,7 @@ from core.lgo_loss import compute_lgo_loss
 from core.distortion_loss import compute_distortion_loss
 from core.orientation_loss import compute_orientation_loss
 from core.orientation_training import (CHECKPOINT_VERSION, evaluate_rotation,
-                                       correspondence_loss_scale, orientation_is_ready, relative_rotation_pair, oem_learning_rate)
+                                       correspondence_loss_scale, relative_rotation_pair, oem_learning_rate)
 from core.domain_loss import compute_domain_loss, compute_angle_loss, FocalLoss
 
 
@@ -126,16 +126,11 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
     oem_transition = config['training'].get('orientation_transition_epochs', 10)
     noise_variance = config['training'].get('noise_variance', 0.0)
     noise_relative_to_radius = config['training'].get('noise_relative_to_radius', False)
-    max_warmup = config['training'].get('orientation_max_warmup_epochs', 30)
-    ready_accuracy = config['training'].get('orientation_ready_accuracy', 0.85)
-    ready_error = config['training'].get('orientation_ready_max_angle_error', 15.0)
-    ready_patience = config['training'].get('orientation_ready_patience', 2)
-    validation_base_bins = config['training'].get('orientation_validation_base_bins', [1, 5])
-    if noise_variance < 0 or max_warmup < max(1, oem_warmup) or ready_patience < 1:
-        raise ValueError("Invalid noise variance or orientation warm-up settings.")
-    orientation_is_ready({}, ready_accuracy, ready_error)
+    validation_base_bins = config['training'].get('orientation_validation_base_bins', list(range(orient_net.num_class)))
+    if noise_variance < 0:
+        raise ValueError("noise_variance cannot be negative.")
     if not validation_shapes:
-        raise ValueError("Orientation readiness requires held-out validation shapes.")
+        raise ValueError("Held-out validation shapes are required.")
     if not validation_base_bins or any(index < 0 or index >= orient_net.num_class for index in validation_base_bins):
         raise ValueError("Invalid orientation_validation_base_bins.")
     validation_every = config['training'].get('validation_every', 1)
@@ -147,14 +142,13 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
                                    config['training']['checkpoint_name'])
     
     print(f"\n{'='*60}")
-    print("STUDENT-TEACHER TRAINING PHASE (WITH DYNAMIC ORIENTATION WARMUP)")
+    print("STUDENT-TEACHER TRAINING (FIXED OEM-FIRST SCHEDULE)")
     print(f"  Training shapes: {len(train_shapes)} | Validation shapes: {len(validation_shapes)}")
-    print(f"  OEM-only for at least {oem_warmup} epochs; stop if unready by epoch {max_warmup}")
-    print(f"  Gate: both OEMs forward/reverse accuracy >= {ready_accuracy:.0%}, angle error <= {ready_error} deg, {ready_patience} checks")
-    print(f"  Once ready, ramp ASMAE over {oem_transition} epochs | noise variance={noise_variance} | radius-scaled={noise_relative_to_radius}")
+    print(f"  OEM-only: epochs 1–{oem_warmup}; ASMAE ramp: next {oem_transition} epochs")
+    print(f"  Noise variance={noise_variance}")
     print("  All correspondence inputs use OEM-predicted pairwise alignment")
-    print("  OEM uses GroupNorm: no running-statistics or inference overrides")
-    print(f"  OEM sample size: {orient_net.sample_points or 'full cloud'}; ASMAE always receives full shapes")
+    print(f"  OEM sampling: {orient_net.sampling_method}, fraction={orient_net.sample_fraction}, "
+          f"minimum={orient_net.sample_min_points}; ASMAE receives full shapes")
     print(f"  Epochs: {num_epochs}")
     print(f"  Device: {device}")
     print(f"  Student Masking Ratio (Nodes/Feats): {student_mask_ratio} / {student_feat_ratio}")
@@ -202,11 +196,7 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
         random.setstate(resume['python_rng_state'])
     start_epoch = resume.get('completed_epochs', 0)
     best_rotation_error = resume.get('best_rotation_error', float('inf'))
-    joint_start_epoch = resume.get('joint_start_epoch')
-    ready_streak = resume.get('orientation_ready_streak', 0)
-    if joint_start_epoch is None and start_epoch >= max_warmup:
-        print("Warm-up limit already reached without readiness. Increase orientation_max_warmup_epochs to extend this run.")
-        return student, orient_net
+    joint_start_epoch = oem_warmup
 
     def save_progress(completed_epochs, metrics, is_best=False):
         numpy_state = np.random.get_state()
@@ -219,7 +209,6 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
             'oem_version': CHECKPOINT_VERSION,
             'completed_epochs': completed_epochs,
             'joint_start_epoch': joint_start_epoch,
-            'orientation_ready_streak': ready_streak,
             'feature_dim': train_shapes[0]['feat'].shape[1],
             'train_size': len(train_shapes),
             'train_names': [shape['name'] for shape in train_shapes],
@@ -243,8 +232,7 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
 
     try:
         for epoch in range(start_epoch, num_epochs):
-            asmae_scale = (0.0 if joint_start_epoch is None else
-                           correspondence_loss_scale(epoch, joint_start_epoch, oem_transition))
+            asmae_scale = correspondence_loss_scale(epoch, joint_start_epoch, oem_transition)
             # No ASMAE forward passes, gradients, buffer updates, or EMA changes
             # during the OEM-only phase. Adam gets no ASMAE state until activation.
             student.requires_grad_(asmae_scale > 0)
@@ -264,7 +252,7 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
             else:
                 curr_angle_weight = angle_weight_target
                 
-            correspondence_epoch = 0 if joint_start_epoch is None else max(0, epoch - joint_start_epoch)
+            correspondence_epoch = max(0, epoch - joint_start_epoch)
             if correspondence_epoch < lgo_warmup_epochs:
                 alpha_lgo = 0.5 * (1.0 - np.cos(np.pi * correspondence_epoch / lgo_warmup_epochs))
                 curr_lgo_weight = lgo_weight_init + (lgo_weight_target - lgo_weight_init) * alpha_lgo
@@ -485,8 +473,7 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
 
             metrics = {}
             is_best = False
-            if ((epoch + 1) % validation_every == 0 or epoch + 1 == num_epochs
-                    or (joint_start_epoch is None and epoch + 1 == max_warmup)):
+            if (epoch + 1) % validation_every == 0 or epoch + 1 == num_epochs:
                 for label, module in [('student', orient_net), ('teacher', teacher_orient_net)]:
                     for split, shapes in [('train_sample', train_shapes[:2]), ('validation', validation_shapes)]:
                         if not shapes:
@@ -496,7 +483,7 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
                         print(f"OEM {label} {split}: accuracy={result['accuracy']:.1%} | "
                               f"reverse={result['reverse_accuracy']:.1%} | "
                               f"angle error={result['angle_error_degrees']:.2f} deg | "
-                              f"CE={result['loss']:.4f} | train/eval gap={result['mode_gap']:.2e} | cases={result['count']}")
+                              f"CE={result['loss']:.4f} | cases={result['count']}")
                         if split == 'validation' and noise_variance > 0:
                             noisy = evaluate_rotation(module, shapes, device, base_bins=validation_base_bins,
                                                       noise_variance=noise_variance,
@@ -504,21 +491,11 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
                             metrics[f'{label}_validation_noisy'] = noisy
                             print(f"OEM {label} validation noisy: accuracy={noisy['accuracy']:.1%} | "
                                   f"reverse={noisy['reverse_accuracy']:.1%} | angle error={noisy['angle_error_degrees']:.2f} deg")
-                if joint_start_epoch is None:
-                    ready_streak = ready_streak + 1 if orientation_is_ready(metrics, ready_accuracy, ready_error) else 0
-                    print(f"Orientation readiness: {ready_streak}/{ready_patience} consecutive checks passed")
-                    if epoch + 1 >= oem_warmup and ready_streak >= ready_patience:
-                        joint_start_epoch = epoch + 1
-                        print(f"OEM ready: ASMAE ramp begins at epoch {joint_start_epoch + 1}.")
                 validation = metrics.get('student_validation')
                 if validation and validation['angle_error_degrees'] < best_rotation_error:
                     best_rotation_error = validation['angle_error_degrees']
                     is_best = True
             save_progress(epoch + 1, metrics, is_best)
-            if joint_start_epoch is None and epoch + 1 >= max_warmup:
-                print("Stopped at orientation warm-up limit: validation readiness was not met. "
-                      "ASMAE remains frozen; inspect the saved rotation metrics before extending training.")
-                break
 
     except KeyboardInterrupt:
         print("Training interrupted. Resume from the last completed epoch checkpoint; "
@@ -531,7 +508,7 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
 def main():
     parser = argparse.ArgumentParser(description="ASMAE Student-Teacher Training with Orientation Module")
     parser.add_argument('--config', type=str, default='config/FAUST/train_st_te_config.yaml', help='Path to config file')
-    parser.add_argument('--fresh', action='store_true', help='Force training from scratch ignoring existing checkpoint')
+    parser.add_argument('--fresh', action='store_true', help='Force training from scratch ignoring existing checkpoint (writes the configured checkpoint path)')
     args = parser.parse_args()
     
     with open(args.config, 'r') as f:
@@ -643,7 +620,7 @@ def main():
                 resume['validation_names'] != [shape['name'] for shape in validation_shapes]:
             raise ValueError("Checkpoint train/validation split differs from this run.")
         old_training = resume['config']['training']
-        mutable = {'epochs', 'device', 'checkpoint_dir', 'checkpoint_name', 'orientation_max_warmup_epochs', 'oem_lr_schedule'}
+        mutable = {'epochs', 'device', 'checkpoint_dir', 'checkpoint_name', 'oem_lr_schedule'}
         for key in (old_training.keys() | config['training'].keys()) - mutable:
             if old_training.get(key) != config['training'].get(key):
                 raise ValueError(f"Resume must preserve training.{key}; use --fresh for a new experiment.")

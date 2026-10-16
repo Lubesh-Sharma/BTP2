@@ -1,4 +1,4 @@
-"""Regression tests for the mode mismatch, coordinate frame, and curriculum."""
+"""Regression tests for sampling, coordinate frames, evaluation, and curriculum."""
 import copy
 import unittest
 
@@ -11,7 +11,7 @@ if torch is not None:
     import numpy as np
     from models.asmae import ASMAE
     from models.modules.orientation_module import OrientNet, add_noise_to_pointcloud
-    from core.orientation_training import evaluate_rotation, correspondence_loss_scale, relative_rotation_pair, orientation_is_ready, oem_learning_rate
+    from core.orientation_training import evaluate_rotation, correspondence_loss_scale, relative_rotation_pair, oem_learning_rate
 
 
 @unittest.skipIf(torch is None, 'PyTorch is not installed')
@@ -20,25 +20,6 @@ class OrientationTrainingTests(unittest.TestCase):
         torch.manual_seed(17)
         self.net = OrientNet(input_dims=[3, 8], latent_dim=8, output_dim=8,
                              mlps=[16, 8], num_neighs=3, input_neighs=3)
-
-    def test_identical_train_eval_outputs_after_optimizer_step(self):
-        self.assertFalse(any(isinstance(layer, torch.nn.modules.batchnorm._BatchNorm)
-                             for layer in self.net.modules()))
-        source, target = torch.randn(1, 9, 3), torch.randn(1, 11, 3)
-        optimizer = torch.optim.Adam(self.net.parameters(), lr=0.001)
-        self.net.train()
-        output = self.net(source, target)
-        (output['angle_x'].square().mean() + output['global_d_pred'].square().mean()).backward()
-        optimizer.step()
-        train_output = self.net(source, target)
-        self.net.eval()
-        eval_output = self.net(source, target)
-        for key in train_output:
-            torch.testing.assert_close(train_output[key], eval_output[key], atol=1e-6, rtol=1e-6)
-        restored = copy.deepcopy(self.net)
-        restored.load_state_dict(self.net.state_dict())
-        for key, value in restored(source, target).items():
-            torch.testing.assert_close(value, eval_output[key])
 
     def test_xyz_matches_current_positions_without_mutating_targets(self):
         features = torch.randn(1, 7, 8)
@@ -77,6 +58,11 @@ class OrientationTrainingTests(unittest.TestCase):
             oem_learning_rate(0, 0.001, dict(start_epoch=0, duration_epochs=2, start_lr=1e-4, min_lr=1e-5))
 
     def test_curriculum_boundaries(self):
+        self.assertEqual(correspondence_loss_scale(29, 30, 10), 0)
+        self.assertAlmostEqual(correspondence_loss_scale(30, 30, 10), 0.1)
+        self.assertAlmostEqual(correspondence_loss_scale(38, 30, 10), 0.9)
+        self.assertEqual(correspondence_loss_scale(39, 30, 10), 1)
+        self.assertEqual(correspondence_loss_scale(69, 30, 10), 1)
         self.assertEqual(correspondence_loss_scale(9, 10, 10), 0)
         self.assertAlmostEqual(correspondence_loss_scale(10, 10, 10), 0.1)
         self.assertEqual(correspondence_loss_scale(19, 10, 10), 1)
@@ -120,18 +106,6 @@ class OrientationTrainingTests(unittest.TestCase):
             torch.testing.assert_close(a, b)
         self.assertFalse(torch.equal(first[0], first[1]))
 
-    def test_sampling_validation_compares_identical_subsets_between_modes(self):
-        self.net.sample_points = 5
-        self.net.eval()
-        source, target = self.net.sample_pair(torch.randn(1, 15, 3), torch.randn(1, 17, 3))
-        expected = self.net(source, target, sample_inputs=False)
-        self.net.train()
-        actual = self.net(source, target, sample_inputs=False)
-        for key in expected:
-            torch.testing.assert_close(actual[key], expected[key])
-        metrics = evaluate_rotation(self.net, [{'pos': np.random.randn(15, 3)}], 'cpu')
-        self.assertEqual(metrics['mode_gap'], 0)
-
     def test_reference_labels_hold_for_every_start_direction(self):
         points = torch.randn(1, 9, 3)
         for base_index in range(8):
@@ -144,17 +118,6 @@ class OrientationTrainingTests(unittest.TestCase):
                 torch.testing.assert_close(restored, source, atol=2e-6, rtol=2e-6)
         with self.assertRaises(ValueError):
             relative_rotation_pair(self.net, points, base, relative, -1)
-
-    def test_readiness_requires_both_networks_and_both_directions(self):
-        good = dict(accuracy=0.9, reverse_accuracy=0.9, angle_error_degrees=10)
-        metrics = dict(student_validation=good.copy(), teacher_validation=good.copy())
-        self.assertTrue(orientation_is_ready(metrics, 0.85, 15))
-        metrics['teacher_validation']['reverse_accuracy'] = 0.5
-        self.assertFalse(orientation_is_ready(metrics, 0.85, 15))
-        self.assertFalse(orientation_is_ready({}, 0.85, 15))
-        metrics['teacher_validation'] = good.copy()
-        metrics['student_validation']['angle_error_degrees'] = 20
-        self.assertFalse(orientation_is_ready(metrics, 0.85, 15))
 
     def test_noisy_validation_reproducible_without_changing_training_rng(self):
         shapes = [{'pos': np.random.randn(9, 3)}]
@@ -170,7 +133,6 @@ class OrientationTrainingTests(unittest.TestCase):
         before = copy.deepcopy(self.net.state_dict())
         metrics = evaluate_rotation(self.net, [{'pos': np.random.randn(9, 3)}], 'cpu')
         self.assertTrue(self.net.training)
-        self.assertLess(metrics['mode_gap'], 1e-6)
         self.assertTrue(0 <= metrics['accuracy'] <= 1)
         self.assertTrue(0 <= metrics['angle_error_degrees'] <= 180.0001)
         for key, value in self.net.state_dict().items():

@@ -1,146 +1,52 @@
-# Fresh orientation and correspondence training
+# Fresh OEM-first student–teacher training
 
-Start SHREC training with random weights:
+Use `config/SHREC/train_st_te_config.yaml` for the normal SHREC pipeline.
+No pretrained checkpoints are required. Version 6 prevents accidental resume of
+old readiness-gated experiments.
+
+## Schedule
+
+- Epochs 1–30: train student OEM by synthetic rotation cross-entropy; update its EMA OEM. ASMAE receives no forward passes, gradients, or EMA changes.
+- Epochs 31–40: continue OEM angle training; ramp ASMAE loss scale and learning rate from 0.1 to 1.0. Ramp the cross-shape domain-loss weight too.
+- Epochs 41–70: train the full pipeline together at full correspondence weight.
+
+Validation reports forward/reverse rotation accuracy, circular angle error, and
+CE. It never gates or delays the schedule. There are no training/evaluation
+normalization comparisons. GroupNorm remains in OEM. Noise variance is zero.
+The 24/2/18 train/validation/test shape split remains unchanged.
+
+## Sampling and alignment
+
+OEM independently samples each input uniformly without replacement. The count is
+`min(N, max(1024, ceil(0.70 * N)))`: 3,500 points for a 5,000-point shape.
+Training draws new subsets; evaluation uses fixed private seeds. Sampling does
+not mutate the full inputs. Predict rotation on subsets, apply it to the full
+target, and give all vertices to ASMAE. Feature XYZ channels follow the aligned
+coordinates. Both correspondence loaders and the visualization notebook restore
+the sampling configuration from the saved full-pipeline checkpoint.
+
+## Run
 
 ```bash
 python train_st_te.py --config config/SHREC/train_st_te_config.yaml --fresh
 ```
 
-No historical checkpoint is required. OEM uses GroupNorm throughout, including
-its pair discriminator. It has no running statistics or inference overrides.
-ASMAE regenerates appended XYZ input channels from its actual coordinates in
-both training and feature extraction. Original descriptor reconstruction targets
-are retained; XYZ channels were already excluded from feature masking.
-
-The SHREC configuration reserves two shapes from the 26-shape training pool:
-24 optimize the model, two validate rotation, and the existing 18 test shapes
-remain outside optimization and validation. File ordering follows the existing
-lexicographic split. Checkpoint metadata records the actual shape names.
-
-OEM reference training first applies a random discrete starting rotation to a
-shape, then a second, known relative rotation to its copy. The label describes
-the second rotation, not either shape's absolute facing direction.
-
-ASMAE stays frozen for at least `orientation_warmup_epochs` (10). Afterwards it
-starts only when BOTH student and teacher pass the clean held-out rotation gate:
-forward and reverse accuracy at least 85%, mean forward circular angle error at
-most 15 degrees, for two consecutive validation checks. These are configurable
-experimental thresholds, not guarantees of cross-shape alignment. If readiness
-is not reached by `orientation_max_warmup_epochs` (50), training saves progress
-and stops instead of automatically training P2P on unreliable alignments.
-
-Once the gate passes, ASMAE's existing loss and learning-rate multiplier ramp
-from 0.1 to 1.0 over ten epochs. All correspondence inputs use OEM predictions,
-including during the ramp. OEM angle learning continues, and pair-domain
-adaptation ramps with ASMAE. LGO's own ramp starts when ASMAE activates.
-Known augmentation labels never supervise a different-shape angle. P2P losses
-cannot differentiate through the hard angle argmax; OEM learns through its angle
-and domain objectives.
-
-`training.noise_variance: 0.0` disables all coordinate noise: no random noise is
-allocated or sampled. When explicitly enabled in a later experiment, the same
-variance controls training noise and additional noisy validation checks. Clean
-validation always runs and controls readiness. Validation uses deterministic
-starting bins `[1, 5]` (0 and 180 degrees) and all eight relative angle bins;
-optional validation noise uses a private RNG and cannot perturb training RNG.
-
-Each validation interval reports normal-evaluation rotation accuracy, reverse
-accuracy, circular angle error, cross-entropy, and maximum train/eval logit gap
-for student and teacher. The printed training metric is explicitly a two-shape
-`train_sample`, not the accuracy over all 24 optimization shapes. The gap should be zero up to numerical precision.
-These are same-shape known-rotation tests, not measurements of cross-shape
-physical orientation or P2P quality. Use the notebook's correspondence and
-geodesic checks separately; a low rotation loss does not guarantee low P2P error.
-
-The main checkpoint is written atomically after every completed epoch. It contains
-both ASMAEs, both OEMs, Adam state, completed epochs, configuration, shape splits,
-random-generator states, readiness streak, and the actual ASMAE start epoch. Interrupting an epoch leaves the previous completed
-epoch checkpoint available; that incomplete epoch is repeated when resumed.
-The `_best_rotation.pth` file selects the lowest student validation circular
-angle error and is not a best-geodesic-error checkpoint.
-
-Resume this pipeline by omitting `--fresh`. `epochs` is the total desired number
-of epochs, not the number to add. Training settings and splits must match, apart
-from total epochs, device, checkpoint location, maximum warm-up duration, and the optional `oem_lr_schedule`.
-The latter can be increased to resume an unready run without forcing ASMAE on. Checkpoints from previous training schedules are rejected
-rather than silently converted from BatchNorm to GroupNorm.
-
-Inference retains the existing flags:
+`--fresh` overwrites the configured checkpoint as epochs complete; preserve an
+existing file first if needed. Omit `--fresh` to resume the last completed epoch.
+Checkpoints include both ASMAEs, both OEMs, optimizer, configuration, split, and RNG
+states. An interrupted incomplete epoch does not overwrite completed progress.
+The `_best_rotation.pth` file tracks OEM validation, not best P2P performance;
+use the final main checkpoint to evaluate the fully trained pipeline.
 
 ```bash
-python corres_st_te.py --config config/SHREC/corres.yaml --network student --output-dir p2p_student
-python corres_greedy.py --config config/SHREC/corres.yaml --network teacher --out_dir p2p_teacher
+python corres_st_te.py --config config/SHREC/corres.yaml --output-dir p2p_results_st_te_SHREC
+python corres_greedy.py --config config/SHREC/corres.yaml --out_dir p2p_results_greedy_SHREC
 ```
 
-Both loaders use the architecture recorded in the selected version-5 checkpoint
-and check feature preprocessing parameters. The visualization notebook uses this
-same loader. Its default ASMAE-only checks do not require DINO.
+Both default to the student; pass `--network teacher` for the EMA pair. DINO is
+disabled unless explicitly enabled in the greedy script. Run
+`feature_visualization.ipynb` from the top. Run `checker.ipynb` afterward, selecting
+which output directory to inspect. This repository has no `check.ipynb`.
 
-Run the CPU regression tests in an environment with PyTorch and the training
-script dependencies installed:
-
-```bash
-python -m unittest discover -s tests -v
-```
-
-## Continue the epoch-30 orientation run
-
-The SHREC configuration now schedules OEM LR at 0.00005 for epoch 31,
-cosine-decaying to 0.00001 at epoch 50 and remaining there afterwards.
-ASMAE's learning rate and readiness conditions are unchanged. Total epochs are
-90, with a maximum OEM-only warm-up of 50. This is an optimization experiment,
-not a guarantee that the readiness gate will pass.
-
-For the existing version-5 epoch-30 checkpoint, run the normal training command
-without `--fresh`. Adam moments, EMA weights, RNG state, and readiness history
-are preserved. The absolute-epoch schedule is applied to the OEM optimizer group
-at the start of each epoch and recorded in the checkpoint's configuration.
-
-## Separate small-noise experiment
-
-The clean baseline config and checkpoint paths are unchanged. To test noise alone:
-
-```bash
-python train_st_te.py --config config/SHREC/train_st_te_noise_config.yaml --fresh
-```
-
-The experiment uses variance 0.000004 with `noise_relative_to_radius: true`:
-per-axis Gaussian standard deviation is 0.002 times each cloud's centered maximum
-radius. Training reference source and target receive independent noise. No point
-sampling augmentation is introduced. The geometry, split, seed, losses, learning
-rate schedule, and readiness gate match the clean baseline. Clean validation still
-controls readiness; additional noisy validation uses the same relative variance.
-The experiment writes `st_te_model_SHREC_noise_small.pth` and a separate geometry
-output directory. Resume that experiment by omitting `--fresh` from this command.
-Compare clean validation at comparable training epochs; noise is not guaranteed
-to improve either training or held-out accuracy.
-
-## Independent OEM point sampling experiment
-
-```bash
-python train_st_te.py --config config/SHREC/train_st_te_sampling_config.yaml --fresh
-```
-
-This separate experiment keeps coordinate noise at zero and records
-`orientation_model.sample_points: 1024` and `sampling_seed: 2026` in its checkpoint.
-Only OEM inputs are subsampled. Student OEM draws independent subsets for source
-and target on each training forward. Teacher, validation, and inference OEMs use
-fixed independent subsets with private seeds; their calls do not consume training
-RNG state. Clouds smaller than the limit are kept whole. Inputs must still cover
-the OEM's largest KNN neighborhood.
-
-The predicted angle rotates the FULL target coordinates. Both student and teacher
-ASMAEs receive full point sets and descriptors in original vertex order, and P2P
-maps still include every target vertex. Both correspondence loaders construct
-OEM with the checkpoint's saved sampling configuration; the notebook shares that
-loader. The train/eval normalization check freezes one sampled pair before mode
-switching, so sampling augmentation is not mistaken for a normalization failure.
-
-This writes `st_te_model_SHREC_sampling.pth` and leaves clean and noise experiment
-checkpoints untouched. Sampling is an augmentation experiment, not a guarantee of
-accurate alignment. Validate rotation and held-out geodesic error separately.
-
-Use `config/SHREC/corres_sampling.yaml` with either correspondence script to select
-the sampling checkpoint and a separate output directory. In the notebook, set
-`config_path` to the sampling training YAML and `checkpoint_path` to
-`./checkpoints/st_te_model_SHREC_sampling.pth`, then rerun setup and shape loading.
+The standalone OEM trainer and its FPS/random50 configs, older noise/sampling
+experiment configs, and obsolete sampling correspondence config have been removed.

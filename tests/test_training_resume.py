@@ -35,7 +35,7 @@ class TrainingResumeTests(unittest.TestCase):
         def networks():
             student = ASMAE(feature_dim=8, **model_config)
             teacher = copy.deepcopy(student)
-            oem = OrientNet(sample_points=28, sampling_seed=2026)
+            oem = OrientNet(sample_fraction=0.70, sample_min_points=27, sampling_seed=2026)
             teacher_oem = copy.deepcopy(oem)
             for module in (teacher, teacher_oem):
                 for parameter in module.parameters():
@@ -49,13 +49,12 @@ class TrainingResumeTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory, contextlib.redirect_stdout(io.StringIO()):
             config = dict(geometry=dict(k=5, t=1, neigvecs=8),
-                          orientation_model=dict(sample_points=28, sampling_seed=2026),
+                          orientation_model=dict(sample_fraction=0.70, sample_min_points=27, sampling_seed=2026),
                           student_model=model_config, teacher_model=model_config,
                           training=dict(epochs=1, lr=0.0001, device='cpu',
                                         checkpoint_dir=directory, checkpoint_name='resume.pth',
                                         orientation_warmup_epochs=1, orientation_transition_epochs=1,
-                                        orientation_ready_accuracy=0.0, orientation_ready_max_angle_error=180.0,
-                                        orientation_ready_patience=1, orientation_validation_base_bins=[1],
+                                        orientation_validation_base_bins=[1],
                                         noise_variance=0.0,
                                         cycle_n_iter=3, distortion_samples=16))
             seed()
@@ -77,9 +76,8 @@ class TrainingResumeTests(unittest.TestCase):
                                 for key, value in first[2].state_dict().items()))
             checkpoint = torch.load(Path(directory) / 'resume.pth', weights_only=True)
             self.assertEqual(checkpoint['completed_epochs'], 1)
-            self.assertEqual(checkpoint['oem_version'], 5)
+            self.assertEqual(checkpoint['oem_version'], 6)
             self.assertEqual(checkpoint['joint_start_epoch'], 1)
-            self.assertEqual(checkpoint['rotation_metrics']['student_validation']['mode_gap'], 0)
             self.assertTrue(checkpoint['optimizer_state_dict']['state'])
             self.assertEqual(checkpoint['optimizer_state_dict']['param_groups'][0]['lr'], 0)
             student_ids = checkpoint['optimizer_state_dict']['param_groups'][0]['params']
@@ -123,45 +121,11 @@ class TrainingResumeTests(unittest.TestCase):
                     asmae, oem = loader(inference_config, 8, 'cpu', network=network)
                     self.assertFalse(asmae.training)
                     self.assertFalse(oem.training)
-                    self.assertEqual(oem.sample_points, 28)
+                    self.assertEqual(oem.sample_fraction, 0.70)
                     for loaded, expected in [(asmae, resumed[offset]), (oem, resumed[2 + offset])]:
                         for key, value in loaded.state_dict().items():
                             torch.testing.assert_close(value, expected.state_dict()[key])
 
-    def test_failed_readiness_stops_with_asmae_unchanged(self):
-        model_config = dict(embed_dim=8, depth=1, num_heads=2, decoder_embed_dim=8,
-                            decoder_depth=1, decoder_num_heads=2, mlk_ratio=2,
-                            num_mask_queries=8, encoder_k=3, aamg_k=3,
-                            aamg_emb_dim=8, pos_embed_dim=8, temperature=0.1)
-        student = ASMAE(feature_dim=8, **model_config)
-        teacher = copy.deepcopy(student)
-        oem = OrientNet()
-        teacher_oem = copy.deepcopy(oem)
-        for module in (teacher, teacher_oem):
-            module.requires_grad_(False)
-        before = copy.deepcopy(student.state_dict())
-        rng = np.random.default_rng(5)
-        shapes = [dict(name=str(i), pos=rng.normal(size=(32, 3)).astype('float32'),
-                       feat=rng.normal(size=(32, 8)).astype('float32')) for i in range(3)]
-        failed = dict(accuracy=0.125, reverse_accuracy=0.125, angle_error_degrees=90,
-                      loss=2.1, mode_gap=0, count=8)
-        with tempfile.TemporaryDirectory() as directory, contextlib.redirect_stdout(io.StringIO()):
-            config = dict(geometry=dict(k=5, t=1), student_model=model_config,
-                          teacher_model=model_config,
-                          training=dict(epochs=5, lr=0.0001, device='cpu',
-                                        checkpoint_dir=directory, checkpoint_name='failed.pth',
-                                        orientation_warmup_epochs=1, orientation_max_warmup_epochs=1,
-                                        orientation_ready_accuracy=0.85, orientation_ready_patience=2,
-                                        noise_variance=0.0))
-            with patch('train_st_te.evaluate_rotation', return_value=failed):
-                train_model(student, teacher, oem, teacher_oem, shapes[:2], config,
-                            validation_shapes=shapes[2:])
-            saved = torch.load(Path(directory) / 'failed.pth', weights_only=True)
-            self.assertEqual(saved['completed_epochs'], 1)
-            self.assertIsNone(saved['joint_start_epoch'])
-            self.assertEqual(saved['orientation_ready_streak'], 0)
-            for key, value in student.state_dict().items():
-                torch.testing.assert_close(value, before[key], rtol=0, atol=0)
 
 
 if __name__ == '__main__':

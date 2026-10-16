@@ -3,7 +3,7 @@ import torch
 from core.domain_loss import compute_angle_loss
 from models.modules.orientation_module import normalize_pc_torch, add_noise_to_pointcloud
 
-CHECKPOINT_VERSION = 5
+CHECKPOINT_VERSION = 6
 
 
 def correspondence_loss_scale(epoch, warmup_epochs, transition_epochs):
@@ -15,21 +15,6 @@ def correspondence_loss_scale(epoch, warmup_epochs, transition_epochs):
     if transition_epochs == 0:
         return 1.0
     return min(1.0, (epoch - warmup_epochs + 1) / transition_epochs)
-
-
-def orientation_is_ready(metrics, minimum_accuracy, maximum_error):
-    """Both OEMs must pass clean held-out forward/reverse rotation checks."""
-    if not 0 <= minimum_accuracy <= 1 or not 0 <= maximum_error <= 180:
-        raise ValueError("Readiness thresholds must be accuracy [0,1], error [0,180].")
-    for name in ('student_validation', 'teacher_validation'):
-        result = metrics.get(name)
-        if result is None or not (
-            result['accuracy'] >= minimum_accuracy
-            and result['reverse_accuracy'] >= minimum_accuracy
-            and result['angle_error_degrees'] <= maximum_error
-        ):
-            return False
-    return True
 
 
 def relative_rotation_pair(net, points, base_indices, relative_indices, noise_variance=0.0,
@@ -64,7 +49,7 @@ def evaluate_rotation(net, shapes, device, base_bins=None, noise_variance=0.0,
     generator = torch.Generator(device=device).manual_seed(12345)
     was_training = net.training
     correct = reverse_correct = count = 0
-    total_loss = total_error = max_mode_gap = 0.0
+    total_loss = total_error = 0.0
     try:
         net.eval()
         for shape in shapes:
@@ -76,9 +61,7 @@ def evaluate_rotation(net, shapes, device, base_bins=None, noise_variance=0.0,
                     source, target = relative_rotation_pair(net, points, base, label,
                                                             noise_variance, generator, noise_relative_to_radius)
                     source, target = normalize_pc_torch(source), normalize_pc_torch(target)
-                    # Hold subsets fixed when comparing normalization modes.
-                    # Fresh random training subsets are intentional augmentation,
-                    # not a train/eval normalization mismatch.
+                    # Evaluation uses deterministic OEM subsets.
                     source, target = net.sample_pair(source, target)
                     out = net(source, target, sample_inputs=False)
                     pred = out['angle_x'].argmax(dim=-1)
@@ -91,18 +74,11 @@ def evaluate_rotation(net, shapes, device, base_bins=None, noise_variance=0.0,
                     reverse_correct += (reverse == inverse_label).sum().item()
                     count += 1
                     total_loss += compute_angle_loss(out['angle_x'], out['angle_y'], label).item()
-                    if index == 1:
-                        net.train()
-                        train_out = net(source, target, sample_inputs=False)
-                        net.eval()
-                        gap = max((train_out[key] - out[key]).abs().max().item()
-                                  for key in ('angle_x', 'angle_y'))
-                        max_mode_gap = max(max_mode_gap, gap)
     finally:
         net.train(was_training)
     return dict(accuracy=correct / count, reverse_accuracy=reverse_correct / count,
                 angle_error_degrees=total_error / count * 180.0 / torch.pi,
-                loss=total_loss / count, mode_gap=max_mode_gap, count=count)
+                loss=total_loss / count, count=count)
 
 
 def oem_learning_rate(epoch, base_lr, schedule=None):
