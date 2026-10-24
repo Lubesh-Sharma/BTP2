@@ -11,9 +11,9 @@ geometry:
 # OEM subsets only; aligned full shapes always pass to ASMAE.
 orientation_model:
   sampling_method: random
-  sample_fraction: 0.75
+  sample_fraction: 0.70
   sample_min_points: 1024
-  sampling_seed: 31
+  sampling_seed: 2026
 
 training:
   epochs: 70
@@ -31,10 +31,10 @@ training:
     start_lr: 0.00005
     min_lr: 0.00001
   device: "cuda"
-  student_mask_ratio: 0.75
-  student_feature_ratio: 0.75
-  teacher_mask_ratio: 0.25
-  teacher_feature_ratio: 0.25
+  student_mask_ratio: 0.60
+  student_feature_ratio: 0.35
+  teacher_mask_ratio: 0.10
+  teacher_feature_ratio: 0.10
   ema_alpha: 0.999
   checkpoint_dir: "checkpoints"
   checkpoint_name: "st_te_model_SHREC.pth"
@@ -46,8 +46,8 @@ training:
   cycle_weight: 100.0
   lgo_eps: 0.020
   lgo_target_eps: 0.015
-  lgo_weight: 350.0
-  lgo_weight_init: 150.0
+  lgo_weight: 250.0
+  lgo_weight_init: 100.0
   lgo_warmup_epochs: 5
   distortion_weight: 350.0
   distortion_tau: 0.015

@@ -10,7 +10,10 @@ except ImportError:
 if torch is not None:
     import numpy as np
     from models.asmae import ASMAE
-    from models.modules.orientation_module import OrientNet, add_noise_to_pointcloud
+    from models.modules.orientation_module import (OrientNet, add_noise_to_pointcloud,
+                                                   nearest_angle_bins, rotate_y_radians,
+                                                   rotate_by_y_axis)
+    from core.domain_loss import compute_angle_loss
     from core.orientation_training import evaluate_rotation, correspondence_loss_scale, relative_rotation_pair, oem_learning_rate
 
 
@@ -20,6 +23,55 @@ class OrientationTrainingTests(unittest.TestCase):
         torch.manual_seed(17)
         self.net = OrientNet(input_dims=[3, 8], latent_dim=8, output_dim=8,
                              mlps=[16, 8], num_neighs=3, input_neighs=3)
+
+    def test_arbitrary_angle_labels_boundaries_and_wraparound(self):
+        degrees = torch.tensor([20., 30., 80., 350., -20., -30., 22.49, 22.51,
+                                337.49, 337.51, 360., 720.])
+        labels = nearest_angle_bins(torch.deg2rad(degrees), self.net.ANGLE)
+        self.assertEqual(labels.tolist(), [1, 2, 3, 1, 1, 0, 1, 2, 0, 1, 1, 1])
+        delta = torch.deg2rad(degrees) - self.net.ANGLE[labels]
+        self.assertLessEqual(torch.atan2(delta.sin(), delta.cos()).abs().max().item(),
+                             torch.pi / 8 + 1e-6)
+
+    def test_continuous_rotation_preserves_geometry_and_is_not_snapped(self):
+        points = torch.randn(2, 12, 3) + 5
+        angles = torch.deg2rad(torch.tensor([20., 30.]))
+        rotated = rotate_y_radians(points, angles)
+        torch.testing.assert_close(rotated.mean(1), points.mean(1))
+        torch.testing.assert_close(torch.cdist(rotated, rotated), torch.cdist(points, points))
+        torch.testing.assert_close(rotate_y_radians(rotated, -angles), points)
+        labels = nearest_angle_bins(angles, self.net.ANGLE)
+        snapped = self.net.rotate_point_cloud(points, labels, inverse=False)
+        self.assertFalse(torch.allclose(rotated, snapped))
+        base = torch.tensor([1, 5])
+        source, target = relative_rotation_pair(self.net, points, base, labels,
+                                                relative_radians=angles)
+        torch.testing.assert_close(rotate_y_radians(target, -angles), source)
+
+    def test_random_augmentation_uses_angles_inside_bins(self):
+        points = torch.randn(256, 7, 3)
+        rotated, labels = rotate_by_y_axis(points)
+        snapped = self.net.rotate_point_cloud(points, labels, inverse=False)
+        self.assertFalse(torch.allclose(rotated, snapped))
+        self.assertEqual(set(labels.tolist()), set(range(8)))
+
+    def test_angle_loss_accepts_independent_reverse_label(self):
+        forward = torch.full((1, 8), -10.)
+        reverse = torch.full((1, 8), -10.)
+        forward[0, 1] = reverse[0, 0] = 10
+        self.assertLess(compute_angle_loss(forward, reverse, torch.tensor([1]),
+                                         reverse_gt=torch.tensor([0])).item(), 0.001)
+
+    def test_arbitrary_validation_is_reproducible_and_reports_rounding_floor(self):
+        shapes = [{'pos': np.random.default_rng(9).normal(size=(9, 3))}]
+        state = torch.get_rng_state().clone()
+        first = evaluate_rotation(self.net, shapes, 'cpu', arbitrary_angles=True)
+        second = evaluate_rotation(self.net, shapes, 'cpu', arbitrary_angles=True)
+        self.assertEqual(first, second)
+        torch.testing.assert_close(state, torch.get_rng_state())
+        self.assertTrue(0 < first['quantization_error_degrees'] <= 22.5)
+        self.assertGreaterEqual(first['angle_error_degrees'] + 1e-4,
+                                first['quantization_error_degrees'])
 
     def test_xyz_matches_current_positions_without_mutating_targets(self):
         features = torch.randn(1, 7, 8)

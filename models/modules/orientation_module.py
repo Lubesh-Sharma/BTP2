@@ -378,38 +378,29 @@ class OrientNet(nn.Module):
 # Data Augmentation Utilities
 # -------------------------------------------------------------------------
 
+def nearest_angle_bins(radians, angle_centers):
+    """Nearest bin by circular distance; ties choose the first bin index."""
+    delta = radians.unsqueeze(-1) - angle_centers.to(radians)
+    return torch.atan2(delta.sin(), delta.cos()).abs().argmin(dim=-1)
+
+
+def rotate_y_radians(points, radians):
+    """Centroid-preserving, differentiable row-vector Y rotation in radians."""
+    c, s = radians.cos(), radians.sin()
+    zero, one = torch.zeros_like(c), torch.ones_like(c)
+    matrix = torch.stack((c, zero, s, zero, one, zero, -s, zero, c), -1)
+    matrix = matrix.reshape(-1, 3, 3)
+    center = points.mean(dim=1, keepdim=True)
+    return torch.bmm(points - center, matrix) + center
+
+
 def rotate_by_y_axis(batch_data: torch.Tensor, nbins: int = 8):
-    """
-    Rotate point cloud batch along vertical Y-axis by a random discrete angle bin.
-    Args:
-        batch_data: [B, N, 3]
-        nbins: int (default: 8)
-    Returns:
-        rotated_data: [B, N, 3]
-        rotated_gt: [B] ground truth bin index
-    """
-    B = batch_data.shape[0]
-    device = batch_data.device
-    angles = torch.arange(nbins, dtype=torch.float32, device=device) * 2.0 * np.pi / nbins - np.pi / 4.0
-    rotated_gt = torch.randint(0, nbins, (B,), device=device)
-    rot_angles = angles[rotated_gt]
-    
-    rotated_data = torch.zeros_like(batch_data)
-    for b in range(B):
-        cosval = torch.cos(rot_angles[b])
-        sinval = torch.sin(rot_angles[b])
-        R = torch.tensor([
-            [cosval, 0.0, sinval],
-            [0.0,    1.0, 0.0],
-            [-sinval, 0.0, cosval]
-        ], dtype=torch.float32, device=device)
-        
-        pts = batch_data[b, :, 0:3]
-        centroid = torch.mean(pts, dim=0, keepdim=True)
-        pts_centered = pts - centroid
-        rotated_data[b, :, 0:3] = torch.mm(pts_centered, R) + centroid
-        
-    return rotated_data, rotated_gt
+    """Apply a uniform continuous Y rotation; return its nearest-bin label."""
+    radians = torch.rand(batch_data.shape[0], device=batch_data.device,
+                         dtype=batch_data.dtype) * (2 * math.pi)
+    centers = torch.arange(nbins, device=batch_data.device, dtype=batch_data.dtype)
+    centers = centers * (2 * math.pi / nbins) - math.pi / 4
+    return rotate_y_radians(batch_data, radians), nearest_angle_bins(radians, centers)
 
 
 def add_noise_to_pointcloud(batch_data: torch.Tensor, noise_variance: float = 0.0001,
