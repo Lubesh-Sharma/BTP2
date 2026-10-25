@@ -2,9 +2,9 @@
 import torch
 from core.domain_loss import compute_angle_loss
 from models.modules.orientation_module import (normalize_pc_torch, add_noise_to_pointcloud,
-                                               nearest_angle_bins, rotate_y_radians)
+                                               nearest_angle_bins)
 
-CHECKPOINT_VERSION = 8
+CHECKPOINT_VERSION = 9
 
 
 def correspondence_loss_scale(epoch, warmup_epochs, transition_epochs):
@@ -18,14 +18,23 @@ def correspondence_loss_scale(epoch, warmup_epochs, transition_epochs):
     return min(1.0, (epoch - warmup_epochs + 1) / transition_epochs)
 
 
+def orientation_loss_weights(epoch, angle_initial, angle_target, duration, domain_initial):
+    """Start both losses at full weight; preserve their ratio during cosine decay."""
+    if angle_initial <= 0 or angle_target < 0 or domain_initial < 0 or duration < 0:
+        raise ValueError("Invalid angle/domain loss-weight schedule")
+    import math
+    fraction = 0.5 * (1 + math.cos(math.pi * epoch / duration)) if duration and epoch < duration else 0.0
+    angle = angle_target + (angle_initial - angle_target) * fraction
+    return angle, domain_initial * angle / angle_initial
+
+
 def relative_rotation_pair(net, points, base_indices, relative_indices, noise_variance=0.0,
-                           generator=None, noise_relative_to_radius=False, relative_radians=None):
-    """Known relative Y rotation, optionally in exact radians; no cross-shape labels."""
+                           generator=None, noise_relative_to_radius=False):
+    """Known exact bin-center relative Y rotation; no cross-shape labels."""
     if noise_variance < 0:
         raise ValueError("noise_variance cannot be negative.")
     source = net.rotate_point_cloud(points, base_indices, inverse=False)
-    target = (net.rotate_point_cloud(source, relative_indices, inverse=False)
-              if relative_radians is None else rotate_y_radians(source, relative_radians))
+    target = net.rotate_point_cloud(source, relative_indices, inverse=False)
     # At zero variance do not allocate noise or consume random numbers.
     if noise_variance > 0:
         source = add_noise_to_pointcloud(source, noise_variance, noise_relative_to_radius, generator)
@@ -35,7 +44,7 @@ def relative_rotation_pair(net, points, base_indices, relative_indices, noise_va
 
 @torch.no_grad()
 def evaluate_rotation(net, shapes, device, base_bins=None, noise_variance=0.0,
-                      noise_relative_to_radius=False, arbitrary_angles=False):
+                      noise_relative_to_radius=False):
     """Same-shape relative rotations at deterministic starting directions in eval mode.
 
     Uses a private RNG for optional noise, leaving training randomness untouched.
@@ -51,7 +60,7 @@ def evaluate_rotation(net, shapes, device, base_bins=None, noise_variance=0.0,
     generator = torch.Generator(device=device).manual_seed(12345)
     was_training = net.training
     correct = reverse_correct = count = 0
-    total_loss = total_error = total_quantization_error = 0.0
+    total_loss = total_error = 0.0
     try:
         net.eval()
         for shape in shapes:
@@ -61,15 +70,9 @@ def evaluate_rotation(net, shapes, device, base_bins=None, noise_variance=0.0,
                 for index in range(net.num_class):
                     label = torch.tensor([index], device=device)
                     actual = net.ANGLE[label]
-                    if arbitrary_angles:
-                        # Stratified uniform angles: cover every bin's interior.
-                        offset = (torch.rand((1,), device=device, generator=generator) - 0.5)
-                        actual = actual + offset * (2 * torch.pi / net.num_class)
-                        label = nearest_angle_bins(actual, net.ANGLE)
                     inverse_label = nearest_angle_bins(-actual, net.ANGLE)
                     source, target = relative_rotation_pair(net, points, base, label,
-                                                            noise_variance, generator, noise_relative_to_radius,
-                                                            relative_radians=actual if arbitrary_angles else None)
+                                                            noise_variance, generator, noise_relative_to_radius)
                     source, target = normalize_pc_torch(source), normalize_pc_torch(target)
                     # Evaluation uses deterministic OEM subsets.
                     source, target = net.sample_pair(source, target)
@@ -78,8 +81,6 @@ def evaluate_rotation(net, shapes, device, base_bins=None, noise_variance=0.0,
                     reverse = out['angle_y'].argmax(dim=-1)
                     difference = net.ANGLE[pred] - actual
                     total_error += torch.atan2(difference.sin(), difference.cos()).abs().sum().item()
-                    quantization = net.ANGLE[label] - actual
-                    total_quantization_error += torch.atan2(quantization.sin(), quantization.cos()).abs().sum().item()
                     correct += (pred == label).sum().item()
                     reverse_correct += (reverse == inverse_label).sum().item()
                     count += 1
@@ -89,7 +90,6 @@ def evaluate_rotation(net, shapes, device, base_bins=None, noise_variance=0.0,
         net.train(was_training)
     return dict(accuracy=correct / count, reverse_accuracy=reverse_correct / count,
                 angle_error_degrees=total_error / count * 180.0 / torch.pi,
-                quantization_error_degrees=total_quantization_error / count * 180.0 / torch.pi,
                 loss=total_loss / count, count=count)
 
 

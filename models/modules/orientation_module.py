@@ -384,36 +384,17 @@ def nearest_angle_bins(radians, angle_centers):
     return torch.atan2(delta.sin(), delta.cos()).abs().argmin(dim=-1)
 
 
-def sample_training_angles(batch_size, angle_centers, generator=None):
-    """Sample within +/- one third of a bin spacing, excluding boundary regions.
-
-    For 45-degree spacing this retains +/-15 degrees around each center and
-    excludes the middle 15 degrees between consecutive centers.
-    """
-    indices = torch.randint(angle_centers.numel(), (batch_size,),
-                            device=angle_centers.device, generator=generator)
-    offset = torch.rand((batch_size,), device=angle_centers.device,
-                        dtype=angle_centers.dtype, generator=generator) * 2 - 1
-    radius = (2 * math.pi / angle_centers.numel()) / 3
-    return (angle_centers[indices] + offset * radius).remainder(2 * math.pi)
-
-
-def rotate_y_radians(points, radians):
-    """Centroid-preserving, differentiable row-vector Y rotation in radians."""
-    c, s = radians.cos(), radians.sin()
-    zero, one = torch.zeros_like(c), torch.ones_like(c)
-    matrix = torch.stack((c, zero, s, zero, one, zero, -s, zero, c), -1)
-    matrix = matrix.reshape(-1, 3, 3)
-    center = points.mean(dim=1, keepdim=True)
-    return torch.bmm(points - center, matrix) + center
-
-
 def rotate_by_y_axis(batch_data: torch.Tensor, nbins: int = 8):
-    """Apply a continuous training rotation away from bin decision boundaries."""
+    """Apply a random exact bin-center Y rotation and return its bin label."""
     centers = torch.arange(nbins, device=batch_data.device, dtype=batch_data.dtype)
     centers = centers * (2 * math.pi / nbins) - math.pi / 4
-    radians = sample_training_angles(batch_data.shape[0], centers)
-    return rotate_y_radians(batch_data, radians), nearest_angle_bins(radians, centers)
+    labels = torch.randint(nbins, (batch_data.shape[0],), device=batch_data.device)
+    radians = centers[labels]
+    c, s = radians.cos(), radians.sin()
+    zero, one = torch.zeros_like(c), torch.ones_like(c)
+    matrix = torch.stack((c, zero, s, zero, one, zero, -s, zero, c), -1).reshape(-1, 3, 3)
+    center = batch_data.mean(dim=1, keepdim=True)
+    return torch.bmm(batch_data - center, matrix) + center, labels
 
 
 def add_noise_to_pointcloud(batch_data: torch.Tensor, noise_variance: float = 0.0001,

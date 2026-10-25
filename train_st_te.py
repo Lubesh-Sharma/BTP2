@@ -9,8 +9,7 @@ import random
 
 from core.preprocessing import process_geometry, normalize_pc
 from models.asmae import ASMAE
-from models.modules.orientation_module import (OrientNet, DataAugment, normalize_pc_torch,
-                                                nearest_angle_bins, sample_training_angles)
+from models.modules.orientation_module import OrientNet, DataAugment, normalize_pc_torch
 from core.consistency_loss import compute_consistency_loss
 from core.contrastive_loss import compute_contrastive_loss
 from core.cycle_loss import compute_cycle_loss
@@ -18,7 +17,7 @@ from core.lgo_loss import compute_lgo_loss
 from core.distortion_loss import compute_distortion_loss
 from core.orientation_loss import compute_orientation_loss
 from core.orientation_training import (CHECKPOINT_VERSION, evaluate_rotation,
-                                       correspondence_loss_scale, relative_rotation_pair, oem_learning_rate)
+                                       correspondence_loss_scale, relative_rotation_pair, oem_learning_rate, orientation_loss_weights)
 from core.domain_loss import compute_domain_loss, compute_angle_loss, FocalLoss
 
 
@@ -123,6 +122,7 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
     angle_weight_init = config['training'].get('angle_weight_init', 8.0)
     angle_warmup_epochs = config['training'].get('angle_warmup_epochs', 5)
     domain_weight = config['training'].get('domain_weight', 1.0)
+    orientation_loss_weights(0, angle_weight_init, angle_weight_target, angle_warmup_epochs, domain_weight)
     oem_warmup = config['training'].get('orientation_warmup_epochs', 10)
     oem_transition = config['training'].get('orientation_transition_epochs', 10)
     noise_variance = config['training'].get('noise_variance', 0.0)
@@ -147,7 +147,7 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
     print(f"  Training shapes: {len(train_shapes)} | Validation shapes: {len(validation_shapes)}")
     print(f"  OEM-only: epochs 1–{oem_warmup}; ASMAE ramp: next {oem_transition} epochs")
     print(f"  Noise variance={noise_variance}")
-    print("  Arbitrary relative rotations within +/-15 degrees of bin centers; 8-bin inference")
+    print("  Exact bin-center rotations; angle and domain losses active from epoch 1")
     print("  All correspondence inputs use OEM-predicted pairwise alignment")
     print(f"  OEM sampling: {orient_net.sampling_method}, fraction={orient_net.sample_fraction}, "
           f"minimum={orient_net.sample_min_points}; ASMAE receives full shapes")
@@ -243,17 +243,13 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
             # ramp the ASMAE learning rate too, so activation is actually gradual.
             optimizer.param_groups[0]['lr'] = lr * asmae_scale
             optimizer.param_groups[1]['lr'] = oem_learning_rate(epoch, lr, oem_lr_schedule)
-            curr_domain_weight = domain_weight * asmae_scale
             stage = "OEM only" if asmae_scale == 0 else "OEM + ASMAE"
             print(f"Training stage: {stage} | ASMAE loss scale={asmae_scale:.2f} | "
                   f"ASMAE lr={optimizer.param_groups[0]['lr']:.2e} | OEM lr={optimizer.param_groups[1]['lr']:.2e}")
-            # Smooth cosine annealing for dynamic loss weights (avoids sudden step shocks)
-            if epoch < angle_warmup_epochs:
-                alpha_angle = 0.5 * (1.0 + np.cos(np.pi * epoch / angle_warmup_epochs))
-                curr_angle_weight = angle_weight_target + (angle_weight_init - angle_weight_target) * alpha_angle
-            else:
-                curr_angle_weight = angle_weight_target
-                
+            curr_angle_weight, curr_domain_weight = orientation_loss_weights(
+                epoch, angle_weight_init, angle_weight_target, angle_warmup_epochs, domain_weight)
+            print(f"Orientation weights: angle={curr_angle_weight:.3f}, domain={curr_domain_weight:.3f}")
+
             correspondence_epoch = max(0, epoch - joint_start_epoch)
             if correspondence_epoch < lgo_warmup_epochs:
                 alpha_lgo = 0.5 * (1.0 - np.cos(np.pi * correspondence_epoch / lgo_warmup_epochs))
@@ -296,20 +292,16 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
                 p1_norm_student = normalize_pc_torch(p1_student)
                 p2_norm_student = normalize_pc_torch(p2_student)
                 
-                orient_out = (orient_net(p1_norm_student, p2_norm_student)
-                              if asmae_scale > 0 else None)
+                orient_out = orient_net(p1_norm_student, p2_norm_student)
                 
                 # Randomize the reference SOURCE direction, then apply a known
                 # relative rotation to its copy. These labels never supervise a
                 # different-shape pair.
                 base_bin = torch.randint(orient_net.num_class, (p2_raw.shape[0],), device=device)
-                relative_radians = sample_training_angles(p2_raw.shape[0], orient_net.ANGLE)
-                relative_bin = nearest_angle_bins(relative_radians, orient_net.ANGLE)
-                reverse_bin = nearest_angle_bins(-relative_radians, orient_net.ANGLE)
+                relative_bin = torch.randint(orient_net.num_class, (p2_raw.shape[0],), device=device)
                 ref_source, ref_target = relative_rotation_pair(
                     orient_net, p2_raw, base_bin, relative_bin, noise_variance,
                     noise_relative_to_radius=noise_relative_to_radius,
-                    relative_radians=relative_radians,
                 )
                 p2_norm_clean = normalize_pc_torch(p2_raw)
                 orient_out_target = orient_net(normalize_pc_torch(ref_source), normalize_pc_torch(ref_target))
@@ -318,18 +310,17 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
                     orient_out_target["angle_x"],
                     orient_out_target["angle_y"],
                     relative_bin,
-                    reverse_gt=reverse_bin,
                 )
-                loss_domain = (compute_domain_loss(
+                loss_domain = compute_domain_loss(
                     orient_out_target["global_d_pred"],
                     orient_out["global_d_pred"],
                     fl_global,
-                ) if orient_out is not None else loss_angle.new_zeros(()))
+                )
 
                 if asmae_scale == 0:
-                    # Warm-up learns the known rotation task only. Neither the
+                    # Angle supervision and domain adaptation both train OEM. Neither the
                     # student nor teacher ASMAE is invoked on unaligned pairs.
-                    loss = curr_angle_weight * loss_angle
+                    loss = curr_angle_weight * loss_angle + curr_domain_weight * loss_domain
                     optimizer.zero_grad(set_to_none=True)
                     loss.backward()
                     optimizer.step()
@@ -484,19 +475,16 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
                     for split, shapes in [('train_sample', train_shapes[:2]), ('validation', validation_shapes)]:
                         if not shapes:
                             continue
-                        result = evaluate_rotation(module, shapes, device, base_bins=validation_base_bins,
-                                                   arbitrary_angles=True)
+                        result = evaluate_rotation(module, shapes, device, base_bins=validation_base_bins)
                         metrics[f'{label}_{split}'] = result
                         print(f"OEM {label} {split}: accuracy={result['accuracy']:.1%} | "
                               f"reverse={result['reverse_accuracy']:.1%} | "
                               f"angle error={result['angle_error_degrees']:.2f} deg | "
-                              f"nearest-bin floor={result['quantization_error_degrees']:.2f} deg | "
                               f"CE={result['loss']:.4f} | cases={result['count']}")
                         if split == 'validation' and noise_variance > 0:
                             noisy = evaluate_rotation(module, shapes, device, base_bins=validation_base_bins,
                                                       noise_variance=noise_variance,
-                                                      noise_relative_to_radius=noise_relative_to_radius,
-                                                      arbitrary_angles=True)
+                                                      noise_relative_to_radius=noise_relative_to_radius)
                             metrics[f'{label}_validation_noisy'] = noisy
                             print(f"OEM {label} validation noisy: accuracy={noisy['accuracy']:.1%} | "
                                   f"reverse={noisy['reverse_accuracy']:.1%} | angle error={noisy['angle_error_degrees']:.2f} deg")

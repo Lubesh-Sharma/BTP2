@@ -1,13 +1,13 @@
 # Fresh OEM-first student–teacher training
 
 Use `config/SHREC/train_st_te_config.yaml` for the normal SHREC pipeline.
-No pretrained checkpoints are required. Version 8 prevents accidental resume of
-old fixed-angle training experiments.
+No pretrained checkpoints are required. Version 9 prevents accidental resume of
+old angle-only warm-up experiments.
 
 ## Schedule
 
-- Epochs 1–30: train student OEM by synthetic rotation cross-entropy; update its EMA OEM. ASMAE receives no forward passes, gradients, or EMA changes.
-- Epochs 31–40: continue OEM angle training; ramp ASMAE loss scale and learning rate from 0.1 to 1.0. Ramp the cross-shape domain-loss weight too.
+- Epochs 1–30: train student OEM by synthetic rotation cross-entropy and cross-shape adversarial domain loss from the first update; update its EMA OEM. ASMAE receives no forward passes, gradients, or EMA changes.
+- Epochs 31–40: continue OEM angle training; ramp ASMAE loss scale and learning rate from 0.1 to 1.0. Domain adaptation continues independently of the ASMAE ramp.
 - Epochs 41–70: train the full pipeline together at full correspondence weight.
 
 Validation reports forward/reverse rotation accuracy, circular angle error, and
@@ -51,24 +51,21 @@ which output directory to inspect. This repository has no `check.ipynb`.
 The standalone OEM trainer and its FPS/random50 configs, older noise/sampling
 experiment configs, and obsolete sampling correspondence config have been removed.
 
-## Arbitrary-angle augmentation
+## Rotation and orientation losses
 
-Training chooses a bin uniformly and a relative Y rotation within +/-15 degrees
-of its center (wrapped over 0–360 degrees). The actual
-angle is applied to coordinates; forward and reverse CE labels are independently
-chosen as the nearest bin to that angle and its negative, using circular distance.
-For eight bins, 20 degrees maps to bin 1 (0 degrees), and 30 degrees to bin 2
-(45 degrees). P2P input augmentation also uses arbitrary rotations. Inference
-still applies the inverse of the predicted bin center.
+Both reference-pair augmentation and P2P input augmentation sample exact bin-center
+rotations: -45, 0, 45, 90, 135, 180, 225, or 270 degrees. Arbitrary-angle sampling
+and exclusion of boundary intervals have been removed. Validation also uses exact
+bin-center rotations.
 
-Training validation now uses deterministic arbitrary relative rotations stratified
-over all eight bins. Accuracy compares nearest-bin labels, while angle error
-compares predictions with actual angles. The printed nearest-bin floor is the
-mean unavoidable rounding error for those validation angles; it is not a learned
-error. Notebook exact-bin checks remain available as a separate diagnostic.
-No YAML setting is required for this augmentation change.
+Cross-shape pairs pass through OEM during warm-up as well as joint training.
+Same-shape rotated-copy pairs supervise angle CE; same-shape versus cross-shape
+pairs supervise the discriminator through focal loss and gradient reversal.
+The warm-up does not call either ASMAE.
 
-Training excludes the middle third between bin centers: for example 15–30
-degrees between 0 and 45. Both OEM references and P2P augmentation use this
-rule. Validation deliberately retains the full angular range, including excluded
-training intervals. This does not establish better performance on those intervals.
+Domain weight starts at the full configured `domain_weight`, independently of
+P2P activation. It decays by the same factor as the angle weight:
+`domain(epoch) = domain_weight * angle(epoch) / angle_weight_init`.
+With the current YAML, angle decays from 350 to 250 over ten epochs and domain
+from 150 to approximately 107.143, then both hold. There is no low-to-high ramp.
+No YAML changes were needed; 70% random sampling and zero noise remain.
