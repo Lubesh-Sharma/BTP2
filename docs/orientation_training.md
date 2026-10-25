@@ -1,7 +1,7 @@
 # Fresh OEM-first student–teacher training
 
 Use `config/SHREC/train_st_te_config.yaml` for the normal SHREC pipeline.
-No pretrained checkpoints are required. Version 7 prevents accidental resume of
+No pretrained checkpoints are required. Version 8 prevents accidental resume of
 old fixed-angle training experiments.
 
 ## Schedule
@@ -53,7 +53,8 @@ experiment configs, and obsolete sampling correspondence config have been remove
 
 ## Arbitrary-angle augmentation
 
-Training samples a relative Y rotation uniformly over 0–360 degrees. The actual
+Training chooses a bin uniformly and a relative Y rotation within +/-15 degrees
+of its center (wrapped over 0–360 degrees). The actual
 angle is applied to coordinates; forward and reverse CE labels are independently
 chosen as the nearest bin to that angle and its negative, using circular distance.
 For eight bins, 20 degrees maps to bin 1 (0 degrees), and 30 degrees to bin 2
@@ -66,3 +67,8 @@ compares predictions with actual angles. The printed nearest-bin floor is the
 mean unavoidable rounding error for those validation angles; it is not a learned
 error. Notebook exact-bin checks remain available as a separate diagnostic.
 No YAML setting is required for this augmentation change.
+
+Training excludes the middle third between bin centers: for example 15–30
+degrees between 0 and 45. Both OEM references and P2P augmentation use this
+rule. Validation deliberately retains the full angular range, including excluded
+training intervals. This does not establish better performance on those intervals.

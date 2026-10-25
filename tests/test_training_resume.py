@@ -76,7 +76,7 @@ class TrainingResumeTests(unittest.TestCase):
                                 for key, value in first[2].state_dict().items()))
             checkpoint = torch.load(Path(directory) / 'resume.pth', weights_only=True)
             self.assertEqual(checkpoint['completed_epochs'], 1)
-            self.assertEqual(checkpoint['oem_version'], 7)
+            self.assertEqual(checkpoint['oem_version'], 8)
             self.assertEqual(checkpoint['joint_start_epoch'], 1)
             self.assertTrue(checkpoint['optimizer_state_dict']['state'])
             self.assertEqual(checkpoint['optimizer_state_dict']['param_groups'][0]['lr'], 0)

@@ -10,7 +10,7 @@ import random
 from core.preprocessing import process_geometry, normalize_pc
 from models.asmae import ASMAE
 from models.modules.orientation_module import (OrientNet, DataAugment, normalize_pc_torch,
-                                                nearest_angle_bins)
+                                                nearest_angle_bins, sample_training_angles)
 from core.consistency_loss import compute_consistency_loss
 from core.contrastive_loss import compute_contrastive_loss
 from core.cycle_loss import compute_cycle_loss
@@ -147,7 +147,7 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
     print(f"  Training shapes: {len(train_shapes)} | Validation shapes: {len(validation_shapes)}")
     print(f"  OEM-only: epochs 1–{oem_warmup}; ASMAE ramp: next {oem_transition} epochs")
     print(f"  Noise variance={noise_variance}")
-    print("  Uniform arbitrary relative rotations; nearest-bin labels; 8-bin inference")
+    print("  Arbitrary relative rotations within +/-15 degrees of bin centers; 8-bin inference")
     print("  All correspondence inputs use OEM-predicted pairwise alignment")
     print(f"  OEM sampling: {orient_net.sampling_method}, fraction={orient_net.sample_fraction}, "
           f"minimum={orient_net.sample_min_points}; ASMAE receives full shapes")
@@ -303,7 +303,7 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
                 # relative rotation to its copy. These labels never supervise a
                 # different-shape pair.
                 base_bin = torch.randint(orient_net.num_class, (p2_raw.shape[0],), device=device)
-                relative_radians = torch.rand(p2_raw.shape[0], device=device) * (2 * torch.pi)
+                relative_radians = sample_training_angles(p2_raw.shape[0], orient_net.ANGLE)
                 relative_bin = nearest_angle_bins(relative_radians, orient_net.ANGLE)
                 reverse_bin = nearest_angle_bins(-relative_radians, orient_net.ANGLE)
                 ref_source, ref_target = relative_rotation_pair(

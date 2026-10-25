@@ -4,7 +4,7 @@ from core.domain_loss import compute_angle_loss
 from models.modules.orientation_module import (normalize_pc_torch, add_noise_to_pointcloud,
                                                nearest_angle_bins, rotate_y_radians)
 
-CHECKPOINT_VERSION = 7
+CHECKPOINT_VERSION = 8
 
 
 def correspondence_loss_scale(epoch, warmup_epochs, transition_epochs):

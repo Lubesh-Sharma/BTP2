@@ -12,7 +12,7 @@ if torch is not None:
     from models.asmae import ASMAE
     from models.modules.orientation_module import (OrientNet, add_noise_to_pointcloud,
                                                    nearest_angle_bins, rotate_y_radians,
-                                                   rotate_by_y_axis)
+                                                   rotate_by_y_axis, sample_training_angles)
     from core.domain_loss import compute_angle_loss
     from core.orientation_training import evaluate_rotation, correspondence_loss_scale, relative_rotation_pair, oem_learning_rate
 
@@ -54,6 +54,20 @@ class OrientationTrainingTests(unittest.TestCase):
         snapped = self.net.rotate_point_cloud(points, labels, inverse=False)
         self.assertFalse(torch.allclose(rotated, snapped))
         self.assertEqual(set(labels.tolist()), set(range(8)))
+
+    def test_training_angles_exclude_middle_third_between_centers(self):
+        generator = torch.Generator().manual_seed(10)
+        angles = sample_training_angles(10000, self.net.ANGLE, generator)
+        labels = nearest_angle_bins(angles, self.net.ANGLE)
+        delta = angles - self.net.ANGLE[labels]
+        degrees = torch.rad2deg(torch.atan2(delta.sin(), delta.cos()))
+        self.assertLessEqual(degrees.abs().max().item(), 15.0001)
+        self.assertEqual(set(labels.tolist()), set(range(8)))
+        self.assertTrue((degrees > 10).any())
+        self.assertTrue((degrees < -10).any())
+        # Includes both sides of zero; avoids clipping rotations at 360 degrees.
+        self.assertTrue((angles < torch.deg2rad(torch.tensor(15.))).any())
+        self.assertTrue((angles > torch.deg2rad(torch.tensor(345.))).any())
 
     def test_angle_loss_accepts_independent_reverse_label(self):
         forward = torch.full((1, 8), -10.)
