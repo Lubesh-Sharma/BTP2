@@ -18,7 +18,8 @@ from core.distortion_loss import compute_distortion_loss
 from core.orientation_loss import compute_orientation_loss
 from core.orientation_training import (CHECKPOINT_VERSION, evaluate_rotation,
                                        correspondence_loss_scale, relative_rotation_pair, oem_learning_rate, orientation_loss_weights)
-from core.domain_loss import compute_domain_loss, compute_angle_loss, FocalLoss
+from core.domain_loss import compute_domain_loss, FocalLoss
+from core.rotation_loss import multibin_rotation_loss, subset_rotation_consistency
 
 
 def update_teacher_ema(student, teacher, alpha=0.999):
@@ -122,6 +123,10 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
     angle_weight_init = config['training'].get('angle_weight_init', 8.0)
     angle_warmup_epochs = config['training'].get('angle_warmup_epochs', 5)
     domain_weight = config['training'].get('domain_weight', 1.0)
+    residual_weight = config['training'].get('oem_residual_weight', 1.0)
+    subset_weight = config['training'].get('oem_subset_consistency_weight', 0.1)
+    if residual_weight < 0 or subset_weight < 0:
+        raise ValueError('OEM residual and subset consistency weights must be nonnegative')
     orientation_loss_weights(0, angle_weight_init, angle_weight_target, angle_warmup_epochs, domain_weight)
     oem_warmup = config['training'].get('orientation_warmup_epochs', 10)
     oem_transition = config['training'].get('orientation_transition_epochs', 10)
@@ -147,7 +152,7 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
     print(f"  Training shapes: {len(train_shapes)} | Validation shapes: {len(validation_shapes)}")
     print(f"  OEM-only: epochs 1–{oem_warmup}; ASMAE ramp: next {oem_transition} epochs")
     print(f"  Noise variance={noise_variance}")
-    print("  Exact bin-center rotations; angle and domain losses active from epoch 1")
+    print("  Continuous rotations, overlapping bins + residuals; angle/domain active from epoch 1")
     print("  All correspondence inputs use OEM-predicted pairwise alignment")
     print(f"  OEM sampling: {orient_net.sampling_method}, fraction={orient_net.sample_fraction}, "
           f"minimum={orient_net.sample_min_points}; ASMAE receives full shapes")
@@ -267,6 +272,7 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
             epoch_orient_loss = 0
             epoch_angle_loss = 0
             epoch_domain_loss = 0
+            epoch_residual_loss = epoch_subset_loss = 0
             num_pairs = 0
             
             # All N x N pairs (all pairs i != j)
@@ -298,19 +304,33 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
                 # relative rotation to its copy. These labels never supervise a
                 # different-shape pair.
                 base_bin = torch.randint(orient_net.num_class, (p2_raw.shape[0],), device=device)
-                relative_bin = torch.randint(orient_net.num_class, (p2_raw.shape[0],), device=device)
+                relative_bin = None
+                relative_radians = torch.rand(p2_raw.shape[0], device=device) * (2 * torch.pi)
                 ref_source, ref_target = relative_rotation_pair(
                     orient_net, p2_raw, base_bin, relative_bin, noise_variance,
                     noise_relative_to_radius=noise_relative_to_radius,
+                    relative_radians=relative_radians,
                 )
                 p2_norm_clean = normalize_pc_torch(p2_raw)
-                orient_out_target = orient_net(normalize_pc_torch(ref_source), normalize_pc_torch(ref_target))
-                
-                loss_angle = compute_angle_loss(
-                    orient_out_target["angle_x"],
-                    orient_out_target["angle_y"],
-                    relative_bin,
-                )
+                ref_source_norm = normalize_pc_torch(ref_source)
+                ref_target_norm = normalize_pc_torch(ref_target)
+                orient_out_target = orient_net(ref_source_norm, ref_target_norm)
+                loss_class, loss_residual = multibin_rotation_loss(
+                    orient_out_target, relative_radians, orient_net.ANGLE, orient_net.angle_overlap)
+                loss_subset = loss_class.new_zeros(())
+                if subset_weight > 0:
+                    # Same full clouds and rotations; only the OEM subsets differ.
+                    second_reference = orient_net(ref_source_norm, ref_target_norm)
+                    second_cross = orient_net(p1_norm_student, p2_norm_student)
+                    second_class, second_residual = multibin_rotation_loss(
+                        second_reference, relative_radians, orient_net.ANGLE, orient_net.angle_overlap)
+                    loss_class = (loss_class + second_class) / 2
+                    loss_residual = (loss_residual + second_residual) / 2
+                    loss_subset = (subset_rotation_consistency(orient_out_target, second_reference)
+                                   + subset_rotation_consistency(orient_out, second_cross)) / 2
+                loss_angle = loss_class + residual_weight * loss_residual + subset_weight * loss_subset
+                epoch_residual_loss += loss_residual.item()
+                epoch_subset_loss += loss_subset.item()
                 loss_domain = compute_domain_loss(
                     orient_out_target["global_d_pred"],
                     orient_out["global_d_pred"],
@@ -333,18 +353,16 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
 
                 # Every P2P update uses the same predicted pairwise alignment as
                 # inference. Known augmentation labels supervise OEM only.
-                pred_angle_idx = orient_out["angle_x"].argmax(dim=-1)
-                p2_aligned = orient_net.rotate_point_cloud(p2_student, pred_angle_idx, inverse=True)
+                # Keep P2P gradients out of OEM: its dedicated losses train rotation.
+                with torch.no_grad():
+                    p2_aligned = orient_net.align_target(p2_student, orient_out)
 
                 # The EMA teacher has its own OEM and aligns the clean pair.
                 with torch.no_grad():
                     teacher_orient_out = teacher_orient_net(
                         normalize_pc_torch(p1_raw), p2_norm_clean,
                     )
-                    teacher_angle_idx = teacher_orient_out["angle_x"].argmax(dim=-1)
-                    p2_teacher_aligned = teacher_orient_net.rotate_point_cloud(
-                        p2_raw, teacher_angle_idx, inverse=True,
-                    )
+                    p2_teacher_aligned = teacher_orient_net.align_target(p2_raw, teacher_orient_out)
                 p1_aligned = p1_student
 
 
@@ -468,6 +486,8 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
             
             print(f"Epoch {epoch+1:3d}/{num_epochs} | Tot: {avg_loss:.4f} | Rec: {avg_rec:.4f} | Cons: {avg_cons:.4f} | Contra: {avg_contra:.4f} | Cycle: {avg_cycle:.4f} | Lgo: {avg_lgo:.4f} | Dist: {avg_dist:.4f} | Orient: {avg_orient:.4f} | Angle: {avg_angle:.4f} (w={curr_angle_weight:.1f}) | Dom: {avg_domain:.4f}")
 
+            print(f"OEM residual loss={epoch_residual_loss / max(1, num_pairs):.4f} | "
+                  f"subset consistency={epoch_subset_loss / max(1, num_pairs):.4f}")
             metrics = {}
             is_best = False
             if (epoch + 1) % validation_every == 0 or epoch + 1 == num_epochs:
@@ -480,6 +500,9 @@ def train_model(student, teacher, orient_net, teacher_orient_net, train_shapes, 
                         print(f"OEM {label} {split}: accuracy={result['accuracy']:.1%} | "
                               f"reverse={result['reverse_accuracy']:.1%} | "
                               f"angle error={result['angle_error_degrees']:.2f} deg | "
+                              f"coarse error={result['coarse_angle_error_degrees']:.2f} deg | "
+                              f"within 5/10/15 deg={result['accuracy_5deg']:.1%}/{result['accuracy_10deg']:.1%}/{result['accuracy_15deg']:.1%} | "
+                              f"large errors (>90 deg)={result['large_error_fraction']:.1%} | "
                               f"CE={result['loss']:.4f} | cases={result['count']}")
                         if split == 'validation' and noise_variance > 0:
                             noisy = evaluate_rotation(module, shapes, device, base_bins=validation_base_bins,

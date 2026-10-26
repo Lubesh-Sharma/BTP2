@@ -171,8 +171,7 @@ def main():
                 p1_norm = normalize_pc_torch(p1_tensor)
                 p2_norm = normalize_pc_torch(p2_tensor)
                 orient_out = orient_net(p1_norm, p2_norm)
-                pred_angle = orient_out["angle_x"].argmax(dim=-1)
-                p2_aligned = orient_net.rotate_point_cloud(p2_tensor, pred_angle, inverse=True)
+                p2_aligned = orient_net.align_target(p2_tensor, orient_out)
                 
                 # Extract ASMAE features on orientation-aligned coordinates
                 z2 = model.extract_features(f2_tensor, p2_aligned).squeeze(0).cpu().numpy()

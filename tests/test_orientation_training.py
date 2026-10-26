@@ -24,11 +24,13 @@ class OrientationTrainingTests(unittest.TestCase):
         self.net = OrientNet(input_dims=[3, 8], latent_dim=8, output_dim=8,
                              mlps=[16, 8], num_neighs=3, input_neighs=3)
 
-    def test_discrete_augmentation_matches_returned_bin(self):
+    def test_continuous_augmentation_preserves_geometry_without_snapping(self):
         points = torch.randn(64, 9, 3)
         rotated, labels = rotate_by_y_axis(points)
         expected = self.net.rotate_point_cloud(points, labels, inverse=False)
-        torch.testing.assert_close(rotated, expected)
+        self.assertFalse(torch.allclose(rotated, expected))
+        torch.testing.assert_close(rotated.mean(1), points.mean(1))
+        torch.testing.assert_close(torch.cdist(rotated, rotated), torch.cdist(points, points))
 
     def test_domain_weight_starts_full_and_tracks_angle_decay(self):
         angle, domain = orientation_loss_weights(0, 350, 250, 10, 150)

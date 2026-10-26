@@ -192,11 +192,15 @@ class OrientNet(nn.Module):
         sampling_method: str = 'random',
         sample_fraction=None,
         sample_min_points: int = 1024,
+        angle_overlap: float = 1.5,
     ):
         super(OrientNet, self).__init__()
         self.num_neighs = num_neighs
         self.input_neighs = input_neighs
         self.num_class = num_class
+        if not 1 <= angle_overlap < 2:
+            raise ValueError('angle_overlap must be in [1, 2)')
+        self.angle_overlap = angle_overlap
         if sample_points is not None and sample_points < max(num_neighs, input_neighs):
             raise ValueError("OEM sample_points must cover its largest KNN neighborhood.")
         self.sample_points = sample_points
@@ -252,6 +256,12 @@ class OrientNet(nn.Module):
             mlp_in = dim
 
         self.classifier = nn.Conv1d(mlp_in, self.num_class, 1, bias=False)
+        # MultiBin-style per-bin unit vectors: (cos residual, sin residual).
+        self.residual_head = nn.Conv1d(mlp_in, self.num_class * 2, 1)
+        nn.init.zeros_(self.residual_head.weight)
+        with torch.no_grad():
+            self.residual_head.bias.view(self.num_class, 2)[:, 0].fill_(1)
+            self.residual_head.bias.view(self.num_class, 2)[:, 1].zero_()
 
     def sample_pair(self, xyz_s, xyz_t):
         """Independent OEM subsets; never mutate, reorder, or truncate caller inputs.
@@ -330,13 +340,27 @@ class OrientNet(nn.Module):
 
         angle_x = self.classifier(x).squeeze(-1)  # [B, num_class]
         angle_y = self.classifier(y).squeeze(-1)  # [B, num_class]
+        residual_x = F.normalize(self.residual_head(x).reshape(batch_size, self.num_class, 2), dim=-1)
+        residual_y = F.normalize(self.residual_head(y).reshape(batch_size, self.num_class, 2), dim=-1)
 
         return {
             "angle_x": angle_x,
             "angle_y": angle_y,
+            "residual_x": residual_x,
+            "residual_y": residual_y,
             "global_d_pred": global_d_pred,
         }
 
+    def predict_angle(self, output, direction='x'):
+        """Select one mode, then add its continuous residual; never average modes."""
+        logits = output[f'angle_{direction}']
+        indices = logits.argmax(dim=-1)
+        residual = output[f'residual_{direction}'][torch.arange(len(indices), device=indices.device), indices]
+        return self.ANGLE[indices] + torch.atan2(residual[:, 1], residual[:, 0])
+
+    def align_target(self, points, output):
+        """Apply the predicted continuous inverse rotation to all target vertices."""
+        return rotate_y_radians(points, -self.predict_angle(output))
 
 
     def rotate_point_cloud(self, xyz: torch.Tensor, angle_indices: torch.Tensor, inverse: bool = True):
@@ -384,17 +408,21 @@ def nearest_angle_bins(radians, angle_centers):
     return torch.atan2(delta.sin(), delta.cos()).abs().argmin(dim=-1)
 
 
-def rotate_by_y_axis(batch_data: torch.Tensor, nbins: int = 8):
-    """Apply a random exact bin-center Y rotation and return its bin label."""
-    centers = torch.arange(nbins, device=batch_data.device, dtype=batch_data.dtype)
-    centers = centers * (2 * math.pi / nbins) - math.pi / 4
-    labels = torch.randint(nbins, (batch_data.shape[0],), device=batch_data.device)
-    radians = centers[labels]
+def rotate_y_radians(points, radians):
+    """Centroid-preserving Y rotation in the existing row-vector convention."""
     c, s = radians.cos(), radians.sin()
     zero, one = torch.zeros_like(c), torch.ones_like(c)
     matrix = torch.stack((c, zero, s, zero, one, zero, -s, zero, c), -1).reshape(-1, 3, 3)
-    center = batch_data.mean(dim=1, keepdim=True)
-    return torch.bmm(batch_data - center, matrix) + center, labels
+    center = points.mean(dim=1, keepdim=True)
+    return torch.bmm(points - center, matrix) + center
+
+
+def rotate_by_y_axis(batch_data: torch.Tensor, nbins: int = 8):
+    """Apply a full-range continuous rotation and return its nearest coarse bin."""
+    centers = torch.arange(nbins, device=batch_data.device, dtype=batch_data.dtype)
+    centers = centers * (2 * math.pi / nbins) - math.pi / 4
+    radians = torch.rand(batch_data.shape[0], device=batch_data.device, dtype=batch_data.dtype) * (2 * math.pi)
+    return rotate_y_radians(batch_data, radians), nearest_angle_bins(radians, centers)
 
 
 def add_noise_to_pointcloud(batch_data: torch.Tensor, noise_variance: float = 0.0001,

@@ -35,7 +35,7 @@ class TrainingResumeTests(unittest.TestCase):
         def networks():
             student = ASMAE(feature_dim=8, **model_config)
             teacher = copy.deepcopy(student)
-            oem = OrientNet(sample_fraction=0.70, sample_min_points=27, sampling_seed=2026)
+            oem = OrientNet(sample_fraction=0.70, sample_min_points=27, sampling_seed=2026, angle_overlap=1.25)
             teacher_oem = copy.deepcopy(oem)
             for module in (teacher, teacher_oem):
                 for parameter in module.parameters():
@@ -49,7 +49,7 @@ class TrainingResumeTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as directory, contextlib.redirect_stdout(io.StringIO()):
             config = dict(geometry=dict(k=5, t=1, neigvecs=8),
-                          orientation_model=dict(sample_fraction=0.70, sample_min_points=27, sampling_seed=2026),
+                          orientation_model=dict(sample_fraction=0.70, sample_min_points=27, sampling_seed=2026, angle_overlap=1.25),
                           student_model=model_config, teacher_model=model_config,
                           training=dict(epochs=1, lr=0.0001, device='cpu',
                                         checkpoint_dir=directory, checkpoint_name='resume.pth',
@@ -74,13 +74,15 @@ class TrainingResumeTests(unittest.TestCase):
                 self.assertTrue(all(parameter.grad is None for parameter in module.parameters()))
             self.assertTrue(any(not torch.equal(value, initial_oem[key])
                                 for key, value in first[2].state_dict().items()))
+            self.assertFalse(torch.equal(first[2].residual_head.weight,
+                                         initial_oem['residual_head.weight']))
             self.assertFalse(torch.equal(first[2].global_netD2.weight,
                                          initial_oem['global_netD2.weight']))
             self.assertIsNotNone(first[2].global_netD2.weight.grad)
             self.assertGreater(first[2].global_netD2.weight.grad.abs().sum().item(), 0)
             checkpoint = torch.load(Path(directory) / 'resume.pth', weights_only=True)
             self.assertEqual(checkpoint['completed_epochs'], 1)
-            self.assertEqual(checkpoint['oem_version'], 9)
+            self.assertEqual(checkpoint['oem_version'], 10)
             self.assertEqual(checkpoint['joint_start_epoch'], 1)
             self.assertTrue(checkpoint['optimizer_state_dict']['state'])
             self.assertEqual(checkpoint['optimizer_state_dict']['param_groups'][0]['lr'], 0)
@@ -126,6 +128,7 @@ class TrainingResumeTests(unittest.TestCase):
                     self.assertFalse(asmae.training)
                     self.assertFalse(oem.training)
                     self.assertEqual(oem.sample_fraction, 0.70)
+                    self.assertEqual(oem.angle_overlap, 1.25)
                     for loaded, expected in [(asmae, resumed[offset]), (oem, resumed[2 + offset])]:
                         for key, value in loaded.state_dict().items():
                             torch.testing.assert_close(value, expected.state_dict()[key])
