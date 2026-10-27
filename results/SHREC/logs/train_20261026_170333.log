@@ -1,0 +1,10 @@
+[log] train.py --config config/SHREC/train_config.yaml --fresh
+[log] writing to results/SHREC/logs/train_20261026_170333.log
+Traceback (most recent call last):
+  File "/data/home/user/Supon/lubesh_btp2/train.py", line 339, in <module>
+    main()
+  File "/data/home/user/Supon/lubesh_btp2/train.py", line 309, in main
+    train_files, val_files, test_files = dataset_split(config)
+  File "/data/home/user/Supon/lubesh_btp2/utils/data.py", line 24, in dataset_split
+    obj_files = sorted(f for f in os.listdir(data_dir) if f.endswith('.obj'))
+FileNotFoundError: [Errno 2] No such file or directory: 'input/SHREC/obj/k_10'

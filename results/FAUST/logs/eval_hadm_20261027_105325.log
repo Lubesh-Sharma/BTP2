@@ -1,0 +1,3 @@
+[log] geodesic_error.py --config config/FAUST/corres_config.yaml --method hadm
+[log] writing to results/FAUST/logs/eval_hadm_20261027_105325.log
+[!] No predictions found in results/FAUST/p2p_hadm for the ground-truth pairs (expected names p2p_{target}_to_{source}.txt)

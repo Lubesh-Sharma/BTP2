@@ -1,0 +1,480 @@
+[log] corres.py --config config/FAUST/corres_config.yaml --checkpoint results/SHREC/checkpoints/model_SHREC_best.pth --result_dir results/SHREC_to_FAUST
+[log] writing to results/SHREC_to_FAUST/logs/corres_hadm_20261027_101527.log
+Checkpoint: results/SHREC/checkpoints/model_SHREC_best.pth (trained on input/SHREC/obj/k_10)
+
+============================================================
+Loading 20 test shapes from: /data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10
+============================================================
+[1/20] tr_reg_080.obj ... OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.70)
+[2/20] tr_reg_081.obj ... OK (5001 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[3/20] tr_reg_082.obj ... OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.67)
+[4/20] tr_reg_083.obj ... OK (5002 vertices, 53 features, DINO 384-d, mean conf 0.61)
+[5/20] tr_reg_084.obj ... OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.70)
+[6/20] tr_reg_085.obj ... [/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_085.obj] Loading...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_085.obj] Running FPS (k=50)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_085.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_085.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+[2D] Loading dinov2_vits14 (facebookresearch/dinov2)...
+/data/home/user/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)
+  warnings.warn("xFormers is not available (SwiGLU)")
+/data/home/user/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)
+  warnings.warn("xFormers is not available (Attention)")
+/data/home/user/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)
+  warnings.warn("xFormers is not available (Block)")
+OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[7/20] tr_reg_086.obj ... [/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_086.obj] Loading...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_086.obj] Running FPS (k=50)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_086.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_086.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5001 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[8/20] tr_reg_087.obj ... [/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_087.obj] Loading...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_087.obj] Running FPS (k=50)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_087.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_087.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.68)
+[9/20] tr_reg_088.obj ... [/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_088.obj] Loading...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_088.obj] Running FPS (k=50)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_088.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_088.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.67)
+[10/20] tr_reg_089.obj ... [/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_089.obj] Loading...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_089.obj] Running FPS (k=50)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_089.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_089.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.65)
+[11/20] tr_reg_090.obj ... [/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_090.obj] Loading...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_090.obj] Running FPS (k=50)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_090.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_090.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.67)
+[12/20] tr_reg_091.obj ... [/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_091.obj] Loading...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_091.obj] Running FPS (k=50)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_091.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_091.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.74)
+[13/20] tr_reg_092.obj ... [/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_092.obj] Loading...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_092.obj] Running FPS (k=50)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_092.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_092.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5001 vertices, 53 features, DINO 384-d, mean conf 0.65)
+[14/20] tr_reg_093.obj ... [/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_093.obj] Loading...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_093.obj] Running FPS (k=50)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_093.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_093.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5001 vertices, 53 features, DINO 384-d, mean conf 0.62)
+[15/20] tr_reg_094.obj ... [/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_094.obj] Loading...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_094.obj] Running FPS (k=50)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_094.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_094.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.66)
+[16/20] tr_reg_095.obj ... [/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_095.obj] Loading...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_095.obj] Running FPS (k=50)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_095.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_095.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.70)
+[17/20] tr_reg_096.obj ... [/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_096.obj] Loading...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_096.obj] Running FPS (k=50)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_096.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_096.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5001 vertices, 53 features, DINO 384-d, mean conf 0.70)
+[18/20] tr_reg_097.obj ... [/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_097.obj] Loading...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_097.obj] Running FPS (k=50)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_097.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_097.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.68)
+[19/20] tr_reg_098.obj ... [/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_098.obj] Loading...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_098.obj] Running FPS (k=50)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_098.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_098.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5001 vertices, 53 features, DINO 384-d, mean conf 0.68)
+[20/20] tr_reg_099.obj ... [/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_099.obj] Loading...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_099.obj] Running FPS (k=50)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_099.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10/tr_reg_099.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.65)
+Loaded 20 test shapes
+
+Matching 380 pairs | method=hadm | DINO=on | device=cuda
+[1/380] tr_reg_080 -> tr_reg_081 | yaw 5.4 deg | anchors 160 | 6.6s
+[2/380] tr_reg_080 -> tr_reg_082 | yaw 1.7 deg | anchors 160 | 5.9s
+[3/380] tr_reg_080 -> tr_reg_083 | yaw -0.5 deg | anchors 160 | 5.9s
+[4/380] tr_reg_080 -> tr_reg_084 | yaw -3.2 deg | anchors 160 | 5.9s
+[5/380] tr_reg_080 -> tr_reg_085 | yaw 1.7 deg | anchors 160 | 5.9s
+[6/380] tr_reg_080 -> tr_reg_086 | yaw -83.4 deg | anchors 160 | 5.9s
+[7/380] tr_reg_080 -> tr_reg_087 | yaw -19.8 deg | anchors 160 | 6.0s
+[8/380] tr_reg_080 -> tr_reg_088 | yaw 96.3 deg | anchors 160 | 5.9s
+[9/380] tr_reg_080 -> tr_reg_089 | yaw -0.5 deg | anchors 160 | 5.9s
+[10/380] tr_reg_080 -> tr_reg_090 | yaw 3.4 deg | anchors 160 | 5.9s
+[11/380] tr_reg_080 -> tr_reg_091 | yaw 2.8 deg | anchors 160 | 5.9s
+[12/380] tr_reg_080 -> tr_reg_092 | yaw 6.1 deg | anchors 160 | 5.9s
+[13/380] tr_reg_080 -> tr_reg_093 | yaw -7.5 deg | anchors 160 | 6.0s
+[14/380] tr_reg_080 -> tr_reg_094 | yaw -3.9 deg | anchors 160 | 5.9s
+[15/380] tr_reg_080 -> tr_reg_095 | yaw 3.2 deg | anchors 160 | 5.9s
+[16/380] tr_reg_080 -> tr_reg_096 | yaw -78.2 deg | anchors 160 | 5.9s
+[17/380] tr_reg_080 -> tr_reg_097 | yaw 161.8 deg | anchors 160 | 6.0s
+[18/380] tr_reg_080 -> tr_reg_098 | yaw 87.2 deg | anchors 160 | 5.9s
+[19/380] tr_reg_080 -> tr_reg_099 | yaw 178.5 deg | anchors 160 | 5.9s
+[20/380] tr_reg_081 -> tr_reg_080 | yaw 5.3 deg | anchors 160 | 5.9s
+[21/380] tr_reg_081 -> tr_reg_082 | yaw 1.3 deg | anchors 160 | 5.9s
+[22/380] tr_reg_081 -> tr_reg_083 | yaw 5.6 deg | anchors 160 | 5.9s
+[23/380] tr_reg_081 -> tr_reg_084 | yaw -5.3 deg | anchors 160 | 5.9s
+[24/380] tr_reg_081 -> tr_reg_085 | yaw -1.9 deg | anchors 160 | 5.9s
+[25/380] tr_reg_081 -> tr_reg_086 | yaw -8.0 deg | anchors 160 | 5.9s
+[26/380] tr_reg_081 -> tr_reg_087 | yaw -15.5 deg | anchors 160 | 5.9s
+[27/380] tr_reg_081 -> tr_reg_088 | yaw -8.1 deg | anchors 160 | 5.9s
+[28/380] tr_reg_081 -> tr_reg_089 | yaw 0.4 deg | anchors 160 | 5.9s
+[29/380] tr_reg_081 -> tr_reg_090 | yaw 2.8 deg | anchors 160 | 5.9s
+[30/380] tr_reg_081 -> tr_reg_091 | yaw -0.7 deg | anchors 160 | 5.9s
+[31/380] tr_reg_081 -> tr_reg_092 | yaw 5.3 deg | anchors 160 | 5.9s
+[32/380] tr_reg_081 -> tr_reg_093 | yaw 1.5 deg | anchors 160 | 5.7s
+[33/380] tr_reg_081 -> tr_reg_094 | yaw -6.6 deg | anchors 160 | 5.8s
+[34/380] tr_reg_081 -> tr_reg_095 | yaw 1.1 deg | anchors 160 | 5.8s
+[35/380] tr_reg_081 -> tr_reg_096 | yaw -4.4 deg | anchors 160 | 5.7s
+[36/380] tr_reg_081 -> tr_reg_097 | yaw -11.6 deg | anchors 160 | 5.9s
+[37/380] tr_reg_081 -> tr_reg_098 | yaw -169.1 deg | anchors 160 | 6.0s
+[38/380] tr_reg_081 -> tr_reg_099 | yaw 0.9 deg | anchors 160 | 6.1s
+[39/380] tr_reg_082 -> tr_reg_080 | yaw 0.4 deg | anchors 160 | 5.9s
+[40/380] tr_reg_082 -> tr_reg_081 | yaw -6.5 deg | anchors 160 | 6.0s
+[41/380] tr_reg_082 -> tr_reg_083 | yaw -11.9 deg | anchors 160 | 5.8s
+[42/380] tr_reg_082 -> tr_reg_084 | yaw -0.9 deg | anchors 160 | 5.9s
+[43/380] tr_reg_082 -> tr_reg_085 | yaw -1.4 deg | anchors 160 | 5.9s
+[44/380] tr_reg_082 -> tr_reg_086 | yaw 101.6 deg | anchors 160 | 5.9s
+[45/380] tr_reg_082 -> tr_reg_087 | yaw -28.3 deg | anchors 160 | 5.9s
+[46/380] tr_reg_082 -> tr_reg_088 | yaw -63.5 deg | anchors 160 | 5.9s
+[47/380] tr_reg_082 -> tr_reg_089 | yaw -14.2 deg | anchors 160 | 6.0s
+[48/380] tr_reg_082 -> tr_reg_090 | yaw 2.1 deg | anchors 160 | 5.9s
+[49/380] tr_reg_082 -> tr_reg_091 | yaw 178.5 deg | anchors 160 | 5.9s
+[50/380] tr_reg_082 -> tr_reg_092 | yaw 4.7 deg | anchors 160 | 5.9s
+[51/380] tr_reg_082 -> tr_reg_093 | yaw -36.8 deg | anchors 160 | 5.9s
+[52/380] tr_reg_082 -> tr_reg_094 | yaw 10.5 deg | anchors 160 | 5.9s
+[53/380] tr_reg_082 -> tr_reg_095 | yaw 1.2 deg | anchors 160 | 5.9s
+[54/380] tr_reg_082 -> tr_reg_096 | yaw -73.8 deg | anchors 160 | 5.9s
+[55/380] tr_reg_082 -> tr_reg_097 | yaw -37.0 deg | anchors 160 | 5.9s
+[56/380] tr_reg_082 -> tr_reg_098 | yaw -81.9 deg | anchors 160 | 5.9s
+[57/380] tr_reg_082 -> tr_reg_099 | yaw -46.4 deg | anchors 160 | 6.0s
+[58/380] tr_reg_083 -> tr_reg_080 | yaw 73.0 deg | anchors 160 | 6.0s
+[59/380] tr_reg_083 -> tr_reg_081 | yaw -5.4 deg | anchors 160 | 5.9s
+[60/380] tr_reg_083 -> tr_reg_082 | yaw -106.6 deg | anchors 160 | 6.0s
+[61/380] tr_reg_083 -> tr_reg_084 | yaw -90.0 deg | anchors 160 | 5.9s
+[62/380] tr_reg_083 -> tr_reg_085 | yaw 45.1 deg | anchors 160 | 6.0s
+[63/380] tr_reg_083 -> tr_reg_086 | yaw -10.6 deg | anchors 160 | 5.9s
+[64/380] tr_reg_083 -> tr_reg_087 | yaw -51.2 deg | anchors 160 | 6.0s
+[65/380] tr_reg_083 -> tr_reg_088 | yaw -53.8 deg | anchors 160 | 5.9s
+[66/380] tr_reg_083 -> tr_reg_089 | yaw -3.3 deg | anchors 160 | 5.9s
+[67/380] tr_reg_083 -> tr_reg_090 | yaw -52.1 deg | anchors 160 | 6.0s
+[68/380] tr_reg_083 -> tr_reg_091 | yaw -10.8 deg | anchors 160 | 5.9s
+[69/380] tr_reg_083 -> tr_reg_092 | yaw -34.1 deg | anchors 160 | 5.9s
+[70/380] tr_reg_083 -> tr_reg_093 | yaw -0.6 deg | anchors 160 | 5.9s
+[71/380] tr_reg_083 -> tr_reg_094 | yaw 104.4 deg | anchors 160 | 5.9s
+[72/380] tr_reg_083 -> tr_reg_095 | yaw 51.6 deg | anchors 160 | 6.0s
+[73/380] tr_reg_083 -> tr_reg_096 | yaw -11.6 deg | anchors 160 | 5.9s
+[74/380] tr_reg_083 -> tr_reg_097 | yaw 79.6 deg | anchors 160 | 5.9s
+[75/380] tr_reg_083 -> tr_reg_098 | yaw 39.5 deg | anchors 160 | 5.0s
+[76/380] tr_reg_083 -> tr_reg_099 | yaw -2.8 deg | anchors 160 | 5.8s
+[77/380] tr_reg_084 -> tr_reg_080 | yaw -179.3 deg | anchors 160 | 5.8s
+[78/380] tr_reg_084 -> tr_reg_081 | yaw -12.3 deg | anchors 160 | 5.8s
+[79/380] tr_reg_084 -> tr_reg_082 | yaw -174.5 deg | anchors 160 | 5.7s
+[80/380] tr_reg_084 -> tr_reg_083 | yaw -45.5 deg | anchors 160 | 5.6s
+[81/380] tr_reg_084 -> tr_reg_085 | yaw 4.0 deg | anchors 160 | 5.9s
+[82/380] tr_reg_084 -> tr_reg_086 | yaw 102.1 deg | anchors 160 | 6.0s
+[83/380] tr_reg_084 -> tr_reg_087 | yaw -16.4 deg | anchors 160 | 5.9s
+[84/380] tr_reg_084 -> tr_reg_088 | yaw 105.8 deg | anchors 160 | 5.9s
+[85/380] tr_reg_084 -> tr_reg_089 | yaw -13.6 deg | anchors 160 | 5.9s
+[86/380] tr_reg_084 -> tr_reg_090 | yaw -170.2 deg | anchors 160 | 5.9s
+[87/380] tr_reg_084 -> tr_reg_091 | yaw -1.1 deg | anchors 160 | 5.9s
+[88/380] tr_reg_084 -> tr_reg_092 | yaw 4.4 deg | anchors 160 | 5.9s
+[89/380] tr_reg_084 -> tr_reg_093 | yaw -58.3 deg | anchors 160 | 5.9s
+[90/380] tr_reg_084 -> tr_reg_094 | yaw 8.0 deg | anchors 160 | 6.0s
+[91/380] tr_reg_084 -> tr_reg_095 | yaw 6.1 deg | anchors 160 | 5.9s
+[92/380] tr_reg_084 -> tr_reg_096 | yaw -78.3 deg | anchors 160 | 5.9s
+[93/380] tr_reg_084 -> tr_reg_097 | yaw -27.0 deg | anchors 160 | 5.9s
+[94/380] tr_reg_084 -> tr_reg_098 | yaw 119.2 deg | anchors 160 | 5.9s
+[95/380] tr_reg_084 -> tr_reg_099 | yaw 126.3 deg | anchors 160 | 6.0s
+[96/380] tr_reg_085 -> tr_reg_080 | yaw 5.6 deg | anchors 160 | 6.0s
+[97/380] tr_reg_085 -> tr_reg_081 | yaw 1.1 deg | anchors 160 | 6.0s
+[98/380] tr_reg_085 -> tr_reg_082 | yaw 5.0 deg | anchors 160 | 5.9s
+[99/380] tr_reg_085 -> tr_reg_083 | yaw 175.0 deg | anchors 160 | 5.9s
+[100/380] tr_reg_085 -> tr_reg_084 | yaw 0.7 deg | anchors 160 | 5.9s
+[101/380] tr_reg_085 -> tr_reg_086 | yaw -123.0 deg | anchors 160 | 6.0s
+[102/380] tr_reg_085 -> tr_reg_087 | yaw -19.4 deg | anchors 160 | 6.0s
+[103/380] tr_reg_085 -> tr_reg_088 | yaw 100.2 deg | anchors 160 | 5.9s
+[104/380] tr_reg_085 -> tr_reg_089 | yaw 173.2 deg | anchors 160 | 5.9s
+[105/380] tr_reg_085 -> tr_reg_090 | yaw 6.3 deg | anchors 160 | 5.9s
+[106/380] tr_reg_085 -> tr_reg_091 | yaw 175.7 deg | anchors 160 | 6.0s
+[107/380] tr_reg_085 -> tr_reg_092 | yaw 8.5 deg | anchors 160 | 5.9s
+[108/380] tr_reg_085 -> tr_reg_093 | yaw 172.3 deg | anchors 160 | 6.0s
+[109/380] tr_reg_085 -> tr_reg_094 | yaw 3.7 deg | anchors 160 | 5.9s
+[110/380] tr_reg_085 -> tr_reg_095 | yaw 2.1 deg | anchors 160 | 5.9s
+[111/380] tr_reg_085 -> tr_reg_096 | yaw -86.9 deg | anchors 160 | 5.9s
+[112/380] tr_reg_085 -> tr_reg_097 | yaw 154.7 deg | anchors 160 | 5.9s
+[113/380] tr_reg_085 -> tr_reg_098 | yaw 92.3 deg | anchors 160 | 5.9s
+[114/380] tr_reg_085 -> tr_reg_099 | yaw 173.2 deg | anchors 160 | 6.0s
+[115/380] tr_reg_086 -> tr_reg_080 | yaw 78.6 deg | anchors 160 | 5.9s
+[116/380] tr_reg_086 -> tr_reg_081 | yaw 4.8 deg | anchors 160 | 5.9s
+[117/380] tr_reg_086 -> tr_reg_082 | yaw 74.3 deg | anchors 160 | 5.9s
+[118/380] tr_reg_086 -> tr_reg_083 | yaw 3.6 deg | anchors 160 | 6.0s
+[119/380] tr_reg_086 -> tr_reg_084 | yaw -84.6 deg | anchors 160 | 5.9s
+[120/380] tr_reg_086 -> tr_reg_085 | yaw -100.3 deg | anchors 160 | 5.9s
+[121/380] tr_reg_086 -> tr_reg_087 | yaw 76.7 deg | anchors 160 | 5.9s
+[122/380] tr_reg_086 -> tr_reg_088 | yaw -6.2 deg | anchors 160 | 5.9s
+[123/380] tr_reg_086 -> tr_reg_089 | yaw -95.8 deg | anchors 160 | 6.0s
+[124/380] tr_reg_086 -> tr_reg_090 | yaw -102.3 deg | anchors 160 | 5.9s
+[125/380] tr_reg_086 -> tr_reg_091 | yaw -93.0 deg | anchors 160 | 6.0s
+[126/380] tr_reg_086 -> tr_reg_092 | yaw -102.6 deg | anchors 160 | 5.9s
+[127/380] tr_reg_086 -> tr_reg_093 | yaw -2.1 deg | anchors 160 | 5.9s
+[128/380] tr_reg_086 -> tr_reg_094 | yaw -101.2 deg | anchors 160 | 5.8s
+[129/380] tr_reg_086 -> tr_reg_095 | yaw -103.0 deg | anchors 160 | 5.9s
+[130/380] tr_reg_086 -> tr_reg_096 | yaw -1.8 deg | anchors 160 | 5.9s
+[131/380] tr_reg_086 -> tr_reg_097 | yaw 77.7 deg | anchors 160 | 5.9s
+[132/380] tr_reg_086 -> tr_reg_098 | yaw 8.0 deg | anchors 160 | 5.9s
+[133/380] tr_reg_086 -> tr_reg_099 | yaw -6.7 deg | anchors 160 | 5.9s
+[134/380] tr_reg_087 -> tr_reg_080 | yaw -171.3 deg | anchors 160 | 5.9s
+[135/380] tr_reg_087 -> tr_reg_081 | yaw 4.0 deg | anchors 160 | 5.9s
+[136/380] tr_reg_087 -> tr_reg_082 | yaw 12.2 deg | anchors 160 | 6.0s
+[137/380] tr_reg_087 -> tr_reg_083 | yaw -51.6 deg | anchors 160 | 5.9s
+[138/380] tr_reg_087 -> tr_reg_084 | yaw -0.6 deg | anchors 160 | 6.0s
+[139/380] tr_reg_087 -> tr_reg_085 | yaw 2.5 deg | anchors 160 | 6.0s
+[140/380] tr_reg_087 -> tr_reg_086 | yaw -75.9 deg | anchors 160 | 5.9s
+[141/380] tr_reg_087 -> tr_reg_088 | yaw -72.3 deg | anchors 160 | 5.9s
+[142/380] tr_reg_087 -> tr_reg_089 | yaw -1.7 deg | anchors 160 | 5.8s
+[143/380] tr_reg_087 -> tr_reg_090 | yaw 3.3 deg | anchors 160 | 5.9s
+[144/380] tr_reg_087 -> tr_reg_091 | yaw -0.9 deg | anchors 160 | 6.0s
+[145/380] tr_reg_087 -> tr_reg_092 | yaw -173.5 deg | anchors 160 | 5.9s
+[146/380] tr_reg_087 -> tr_reg_093 | yaw -60.3 deg | anchors 160 | 6.0s
+[147/380] tr_reg_087 -> tr_reg_094 | yaw -1.5 deg | anchors 160 | 5.9s
+[148/380] tr_reg_087 -> tr_reg_095 | yaw -175.9 deg | anchors 160 | 5.9s
+[149/380] tr_reg_087 -> tr_reg_096 | yaw -76.2 deg | anchors 160 | 5.9s
+[150/380] tr_reg_087 -> tr_reg_097 | yaw 8.5 deg | anchors 160 | 5.9s
+[151/380] tr_reg_087 -> tr_reg_098 | yaw 114.5 deg | anchors 160 | 5.9s
+[152/380] tr_reg_087 -> tr_reg_099 | yaw -140.9 deg | anchors 160 | 6.0s
+[153/380] tr_reg_088 -> tr_reg_080 | yaw 90.7 deg | anchors 160 | 5.8s
+[154/380] tr_reg_088 -> tr_reg_081 | yaw -63.6 deg | anchors 160 | 5.6s
+[155/380] tr_reg_088 -> tr_reg_082 | yaw 61.9 deg | anchors 160 | 5.7s
+[156/380] tr_reg_088 -> tr_reg_083 | yaw -7.8 deg | anchors 160 | 5.7s
+[157/380] tr_reg_088 -> tr_reg_084 | yaw -102.7 deg | anchors 160 | 5.6s
+[158/380] tr_reg_088 -> tr_reg_085 | yaw -97.7 deg | anchors 160 | 5.7s
+[159/380] tr_reg_088 -> tr_reg_086 | yaw -11.2 deg | anchors 160 | 5.7s
+[160/380] tr_reg_088 -> tr_reg_087 | yaw 90.9 deg | anchors 160 | 5.7s
+[161/380] tr_reg_088 -> tr_reg_089 | yaw 89.3 deg | anchors 160 | 5.6s
+[162/380] tr_reg_088 -> tr_reg_090 | yaw -80.8 deg | anchors 160 | 5.7s
+[163/380] tr_reg_088 -> tr_reg_091 | yaw 87.4 deg | anchors 160 | 5.7s
+[164/380] tr_reg_088 -> tr_reg_092 | yaw -100.2 deg | anchors 160 | 5.6s
+[165/380] tr_reg_088 -> tr_reg_093 | yaw -0.4 deg | anchors 160 | 5.7s
+[166/380] tr_reg_088 -> tr_reg_094 | yaw 120.8 deg | anchors 160 | 5.7s
+[167/380] tr_reg_088 -> tr_reg_095 | yaw -89.9 deg | anchors 160 | 5.8s
+[168/380] tr_reg_088 -> tr_reg_096 | yaw -12.2 deg | anchors 160 | 5.5s
+[169/380] tr_reg_088 -> tr_reg_097 | yaw 106.0 deg | anchors 160 | 5.6s
+[170/380] tr_reg_088 -> tr_reg_098 | yaw 7.5 deg | anchors 160 | 5.7s
+[171/380] tr_reg_088 -> tr_reg_099 | yaw -64.8 deg | anchors 160 | 5.7s
+[172/380] tr_reg_089 -> tr_reg_080 | yaw -176.6 deg | anchors 160 | 5.6s
+[173/380] tr_reg_089 -> tr_reg_081 | yaw -2.4 deg | anchors 160 | 5.7s
+[174/380] tr_reg_089 -> tr_reg_082 | yaw 6.5 deg | anchors 160 | 5.7s
+[175/380] tr_reg_089 -> tr_reg_083 | yaw 4.3 deg | anchors 160 | 5.7s
+[176/380] tr_reg_089 -> tr_reg_084 | yaw 1.2 deg | anchors 160 | 5.8s
+[177/380] tr_reg_089 -> tr_reg_085 | yaw 3.7 deg | anchors 160 | 5.7s
+[178/380] tr_reg_089 -> tr_reg_086 | yaw -99.2 deg | anchors 160 | 5.7s
+[179/380] tr_reg_089 -> tr_reg_087 | yaw -9.0 deg | anchors 160 | 5.8s
+[180/380] tr_reg_089 -> tr_reg_088 | yaw -72.9 deg | anchors 160 | 5.8s
+[181/380] tr_reg_089 -> tr_reg_090 | yaw -177.3 deg | anchors 160 | 5.7s
+[182/380] tr_reg_089 -> tr_reg_091 | yaw 174.6 deg | anchors 160 | 5.7s
+[183/380] tr_reg_089 -> tr_reg_092 | yaw -175.8 deg | anchors 160 | 5.6s
+[184/380] tr_reg_089 -> tr_reg_093 | yaw 4.7 deg | anchors 160 | 5.7s
+[185/380] tr_reg_089 -> tr_reg_094 | yaw -3.2 deg | anchors 160 | 5.6s
+[186/380] tr_reg_089 -> tr_reg_095 | yaw -179.3 deg | anchors 160 | 5.6s
+[187/380] tr_reg_089 -> tr_reg_096 | yaw -93.1 deg | anchors 160 | 5.7s
+[188/380] tr_reg_089 -> tr_reg_097 | yaw -8.6 deg | anchors 160 | 5.6s
+[189/380] tr_reg_089 -> tr_reg_098 | yaw -71.6 deg | anchors 160 | 5.7s
+[190/380] tr_reg_089 -> tr_reg_099 | yaw -5.7 deg | anchors 160 | 5.6s
+[191/380] tr_reg_090 -> tr_reg_080 | yaw -1.6 deg | anchors 160 | 5.7s
+[192/380] tr_reg_090 -> tr_reg_081 | yaw -1.6 deg | anchors 160 | 5.6s
+[193/380] tr_reg_090 -> tr_reg_082 | yaw -1.6 deg | anchors 160 | 5.7s
+[194/380] tr_reg_090 -> tr_reg_083 | yaw 3.6 deg | anchors 160 | 5.6s
+[195/380] tr_reg_090 -> tr_reg_084 | yaw -14.5 deg | anchors 160 | 5.6s
+[196/380] tr_reg_090 -> tr_reg_085 | yaw -1.2 deg | anchors 160 | 5.7s
+[197/380] tr_reg_090 -> tr_reg_086 | yaw -103.4 deg | anchors 160 | 5.6s
+[198/380] tr_reg_090 -> tr_reg_087 | yaw -21.1 deg | anchors 160 | 5.7s
+[199/380] tr_reg_090 -> tr_reg_088 | yaw 108.4 deg | anchors 160 | 5.2s
+[200/380] tr_reg_090 -> tr_reg_089 | yaw 9.4 deg | anchors 160 | 5.6s
+[201/380] tr_reg_090 -> tr_reg_091 | yaw 1.2 deg | anchors 160 | 5.9s
+[202/380] tr_reg_090 -> tr_reg_092 | yaw 2.7 deg | anchors 160 | 5.9s
+[203/380] tr_reg_090 -> tr_reg_093 | yaw -57.4 deg | anchors 160 | 5.8s
+[204/380] tr_reg_090 -> tr_reg_094 | yaw -11.8 deg | anchors 160 | 5.9s
+[205/380] tr_reg_090 -> tr_reg_095 | yaw 3.8 deg | anchors 160 | 5.8s
+[206/380] tr_reg_090 -> tr_reg_096 | yaw -93.8 deg | anchors 160 | 5.9s
+[207/380] tr_reg_090 -> tr_reg_097 | yaw 161.9 deg | anchors 160 | 5.9s
+[208/380] tr_reg_090 -> tr_reg_098 | yaw -60.4 deg | anchors 160 | 5.8s
+[209/380] tr_reg_090 -> tr_reg_099 | yaw -5.0 deg | anchors 160 | 5.8s
+[210/380] tr_reg_091 -> tr_reg_080 | yaw 6.3 deg | anchors 160 | 5.6s
+[211/380] tr_reg_091 -> tr_reg_081 | yaw 2.0 deg | anchors 160 | 5.7s
+[212/380] tr_reg_091 -> tr_reg_082 | yaw 3.9 deg | anchors 160 | 5.7s
+[213/380] tr_reg_091 -> tr_reg_083 | yaw 11.5 deg | anchors 160 | 5.8s
+[214/380] tr_reg_091 -> tr_reg_084 | yaw -1.6 deg | anchors 160 | 5.8s
+[215/380] tr_reg_091 -> tr_reg_085 | yaw 6.7 deg | anchors 160 | 5.6s
+[216/380] tr_reg_091 -> tr_reg_086 | yaw -0.0 deg | anchors 160 | 5.7s
+[217/380] tr_reg_091 -> tr_reg_087 | yaw -11.4 deg | anchors 160 | 5.9s
+[218/380] tr_reg_091 -> tr_reg_088 | yaw -45.3 deg | anchors 160 | 5.8s
+[219/380] tr_reg_091 -> tr_reg_089 | yaw 7.8 deg | anchors 160 | 5.7s
+[220/380] tr_reg_091 -> tr_reg_090 | yaw 5.0 deg | anchors 160 | 5.8s
+[221/380] tr_reg_091 -> tr_reg_092 | yaw 7.6 deg | anchors 160 | 5.8s
+[222/380] tr_reg_091 -> tr_reg_093 | yaw 2.1 deg | anchors 160 | 5.7s
+[223/380] tr_reg_091 -> tr_reg_094 | yaw -3.1 deg | anchors 160 | 5.7s
+[224/380] tr_reg_091 -> tr_reg_095 | yaw 5.7 deg | anchors 160 | 5.8s
+[225/380] tr_reg_091 -> tr_reg_096 | yaw -6.0 deg | anchors 160 | 5.8s
+[226/380] tr_reg_091 -> tr_reg_097 | yaw 175.4 deg | anchors 160 | 5.8s
+[227/380] tr_reg_091 -> tr_reg_098 | yaw 2.2 deg | anchors 160 | 5.7s
+[228/380] tr_reg_091 -> tr_reg_099 | yaw 6.0 deg | anchors 160 | 5.8s
+[229/380] tr_reg_092 -> tr_reg_080 | yaw -2.7 deg | anchors 160 | 5.7s
+[230/380] tr_reg_092 -> tr_reg_081 | yaw -4.0 deg | anchors 160 | 5.8s
+[231/380] tr_reg_092 -> tr_reg_082 | yaw -4.5 deg | anchors 160 | 5.8s
+[232/380] tr_reg_092 -> tr_reg_083 | yaw -5.0 deg | anchors 160 | 5.6s
+[233/380] tr_reg_092 -> tr_reg_084 | yaw -12.7 deg | anchors 160 | 5.8s
+[234/380] tr_reg_092 -> tr_reg_085 | yaw -7.3 deg | anchors 160 | 5.9s
+[235/380] tr_reg_092 -> tr_reg_086 | yaw -99.3 deg | anchors 160 | 5.7s
+[236/380] tr_reg_092 -> tr_reg_087 | yaw -19.7 deg | anchors 160 | 5.8s
+[237/380] tr_reg_092 -> tr_reg_088 | yaw 107.3 deg | anchors 160 | 5.8s
+[238/380] tr_reg_092 -> tr_reg_089 | yaw 3.0 deg | anchors 160 | 5.8s
+[239/380] tr_reg_092 -> tr_reg_090 | yaw -2.1 deg | anchors 160 | 5.8s
+[240/380] tr_reg_092 -> tr_reg_091 | yaw -5.6 deg | anchors 160 | 5.6s
+[241/380] tr_reg_092 -> tr_reg_093 | yaw -0.9 deg | anchors 160 | 5.8s
+[242/380] tr_reg_092 -> tr_reg_094 | yaw -12.0 deg | anchors 160 | 5.8s
+[243/380] tr_reg_092 -> tr_reg_095 | yaw -4.1 deg | anchors 160 | 5.8s
+[244/380] tr_reg_092 -> tr_reg_096 | yaw -85.7 deg | anchors 160 | 5.7s
+[245/380] tr_reg_092 -> tr_reg_097 | yaw -12.4 deg | anchors 160 | 5.8s
+[246/380] tr_reg_092 -> tr_reg_098 | yaw -62.8 deg | anchors 160 | 5.7s
+[247/380] tr_reg_092 -> tr_reg_099 | yaw -1.7 deg | anchors 160 | 5.7s
+[248/380] tr_reg_093 -> tr_reg_080 | yaw 43.9 deg | anchors 160 | 5.8s
+[249/380] tr_reg_093 -> tr_reg_081 | yaw -5.8 deg | anchors 160 | 5.8s
+[250/380] tr_reg_093 -> tr_reg_082 | yaw 122.5 deg | anchors 160 | 5.7s
+[251/380] tr_reg_093 -> tr_reg_083 | yaw 7.6 deg | anchors 160 | 5.8s
+[252/380] tr_reg_093 -> tr_reg_084 | yaw -84.7 deg | anchors 160 | 5.7s
+[253/380] tr_reg_093 -> tr_reg_085 | yaw -103.8 deg | anchors 160 | 5.8s
+[254/380] tr_reg_093 -> tr_reg_086 | yaw -3.2 deg | anchors 160 | 5.7s
+[255/380] tr_reg_093 -> tr_reg_087 | yaw -99.1 deg | anchors 160 | 5.8s
+[256/380] tr_reg_093 -> tr_reg_088 | yaw 130.2 deg | anchors 160 | 5.7s
+[257/380] tr_reg_093 -> tr_reg_089 | yaw 0.2 deg | anchors 160 | 5.7s
+[258/380] tr_reg_093 -> tr_reg_090 | yaw -34.6 deg | anchors 160 | 5.7s
+[259/380] tr_reg_093 -> tr_reg_091 | yaw -12.9 deg | anchors 160 | 5.6s
+[260/380] tr_reg_093 -> tr_reg_092 | yaw -5.1 deg | anchors 160 | 5.8s
+[261/380] tr_reg_093 -> tr_reg_094 | yaw -43.1 deg | anchors 160 | 5.8s
+[262/380] tr_reg_093 -> tr_reg_095 | yaw -74.7 deg | anchors 160 | 5.7s
+[263/380] tr_reg_093 -> tr_reg_096 | yaw -5.3 deg | anchors 160 | 5.8s
+[264/380] tr_reg_093 -> tr_reg_097 | yaw 41.7 deg | anchors 160 | 5.8s
+[265/380] tr_reg_093 -> tr_reg_098 | yaw -2.7 deg | anchors 160 | 5.7s
+[266/380] tr_reg_093 -> tr_reg_099 | yaw 179.7 deg | anchors 160 | 5.6s
+[267/380] tr_reg_094 -> tr_reg_080 | yaw -5.2 deg | anchors 160 | 5.7s
+[268/380] tr_reg_094 -> tr_reg_081 | yaw 169.4 deg | anchors 160 | 5.6s
+[269/380] tr_reg_094 -> tr_reg_082 | yaw -1.6 deg | anchors 160 | 5.8s
+[270/380] tr_reg_094 -> tr_reg_083 | yaw -49.2 deg | anchors 160 | 5.7s
+[271/380] tr_reg_094 -> tr_reg_084 | yaw -10.5 deg | anchors 160 | 5.7s
+[272/380] tr_reg_094 -> tr_reg_085 | yaw -3.1 deg | anchors 160 | 5.7s
+[273/380] tr_reg_094 -> tr_reg_086 | yaw 87.1 deg | anchors 160 | 5.7s
+[274/380] tr_reg_094 -> tr_reg_087 | yaw -9.2 deg | anchors 160 | 5.7s
+[275/380] tr_reg_094 -> tr_reg_088 | yaw -73.9 deg | anchors 160 | 5.5s
+[276/380] tr_reg_094 -> tr_reg_089 | yaw -7.1 deg | anchors 160 | 5.7s
+[277/380] tr_reg_094 -> tr_reg_090 | yaw -0.1 deg | anchors 160 | 5.7s
+[278/380] tr_reg_094 -> tr_reg_091 | yaw -10.1 deg | anchors 160 | 5.7s
+[279/380] tr_reg_094 -> tr_reg_092 | yaw 2.5 deg | anchors 160 | 5.6s
+[280/380] tr_reg_094 -> tr_reg_093 | yaw -99.3 deg | anchors 160 | 5.7s
+[281/380] tr_reg_094 -> tr_reg_095 | yaw 0.5 deg | anchors 160 | 5.6s
+[282/380] tr_reg_094 -> tr_reg_096 | yaw -86.1 deg | anchors 160 | 5.7s
+[283/380] tr_reg_094 -> tr_reg_097 | yaw -13.0 deg | anchors 160 | 5.6s
+[284/380] tr_reg_094 -> tr_reg_098 | yaw 117.5 deg | anchors 160 | 5.7s
+[285/380] tr_reg_094 -> tr_reg_099 | yaw 126.2 deg | anchors 160 | 5.7s
+[286/380] tr_reg_095 -> tr_reg_080 | yaw -0.7 deg | anchors 160 | 5.7s
+[287/380] tr_reg_095 -> tr_reg_081 | yaw -2.6 deg | anchors 160 | 5.7s
+[288/380] tr_reg_095 -> tr_reg_082 | yaw -2.7 deg | anchors 160 | 5.7s
+[289/380] tr_reg_095 -> tr_reg_083 | yaw -179.5 deg | anchors 160 | 5.6s
+[290/380] tr_reg_095 -> tr_reg_084 | yaw -11.8 deg | anchors 160 | 5.6s
+[291/380] tr_reg_095 -> tr_reg_085 | yaw -0.7 deg | anchors 160 | 5.4s
+[292/380] tr_reg_095 -> tr_reg_086 | yaw 90.7 deg | anchors 160 | 5.6s
+[293/380] tr_reg_095 -> tr_reg_087 | yaw -24.2 deg | anchors 160 | 5.6s
+[294/380] tr_reg_095 -> tr_reg_088 | yaw 115.1 deg | anchors 160 | 5.6s
+[295/380] tr_reg_095 -> tr_reg_089 | yaw -0.7 deg | anchors 160 | 5.7s
+[296/380] tr_reg_095 -> tr_reg_090 | yaw -2.1 deg | anchors 160 | 5.7s
+[297/380] tr_reg_095 -> tr_reg_091 | yaw 177.2 deg | anchors 160 | 5.7s
+[298/380] tr_reg_095 -> tr_reg_092 | yaw 3.6 deg | anchors 160 | 5.5s
+[299/380] tr_reg_095 -> tr_reg_093 | yaw 139.7 deg | anchors 160 | 5.6s
+[300/380] tr_reg_095 -> tr_reg_094 | yaw -5.1 deg | anchors 160 | 5.6s
+[301/380] tr_reg_095 -> tr_reg_096 | yaw -88.6 deg | anchors 160 | 5.6s
+[302/380] tr_reg_095 -> tr_reg_097 | yaw 155.8 deg | anchors 160 | 5.6s
+[303/380] tr_reg_095 -> tr_reg_098 | yaw -73.3 deg | anchors 160 | 5.7s
+[304/380] tr_reg_095 -> tr_reg_099 | yaw 173.3 deg | anchors 160 | 5.7s
+[305/380] tr_reg_096 -> tr_reg_080 | yaw 79.5 deg | anchors 160 | 5.8s
+[306/380] tr_reg_096 -> tr_reg_081 | yaw -3.0 deg | anchors 160 | 5.7s
+[307/380] tr_reg_096 -> tr_reg_082 | yaw 61.2 deg | anchors 160 | 5.6s
+[308/380] tr_reg_096 -> tr_reg_083 | yaw 0.0 deg | anchors 160 | 5.6s
+[309/380] tr_reg_096 -> tr_reg_084 | yaw -86.8 deg | anchors 160 | 5.7s
+[310/380] tr_reg_096 -> tr_reg_085 | yaw -101.9 deg | anchors 160 | 5.7s
+[311/380] tr_reg_096 -> tr_reg_086 | yaw 1.2 deg | anchors 160 | 5.6s
+[312/380] tr_reg_096 -> tr_reg_087 | yaw 74.4 deg | anchors 160 | 5.7s
+[313/380] tr_reg_096 -> tr_reg_088 | yaw -1.2 deg | anchors 160 | 5.6s
+[314/380] tr_reg_096 -> tr_reg_089 | yaw 76.1 deg | anchors 160 | 5.7s
+[315/380] tr_reg_096 -> tr_reg_090 | yaw -100.3 deg | anchors 160 | 5.6s
+[316/380] tr_reg_096 -> tr_reg_091 | yaw -1.0 deg | anchors 160 | 5.6s
+[317/380] tr_reg_096 -> tr_reg_092 | yaw 77.5 deg | anchors 160 | 5.6s
+[318/380] tr_reg_096 -> tr_reg_093 | yaw -0.2 deg | anchors 160 | 5.7s
+[319/380] tr_reg_096 -> tr_reg_094 | yaw -102.3 deg | anchors 160 | 5.7s
+[320/380] tr_reg_096 -> tr_reg_095 | yaw -102.2 deg | anchors 160 | 5.7s
+[321/380] tr_reg_096 -> tr_reg_097 | yaw 93.4 deg | anchors 160 | 5.8s
+[322/380] tr_reg_096 -> tr_reg_098 | yaw 11.4 deg | anchors 160 | 5.7s
+[323/380] tr_reg_096 -> tr_reg_099 | yaw 26.7 deg | anchors 160 | 5.7s
+[324/380] tr_reg_097 -> tr_reg_080 | yaw -170.3 deg | anchors 160 | 5.7s
+[325/380] tr_reg_097 -> tr_reg_081 | yaw 2.4 deg | anchors 160 | 5.7s
+[326/380] tr_reg_097 -> tr_reg_082 | yaw 12.6 deg | anchors 160 | 5.6s
+[327/380] tr_reg_097 -> tr_reg_083 | yaw -150.9 deg | anchors 160 | 5.7s
+[328/380] tr_reg_097 -> tr_reg_084 | yaw 41.5 deg | anchors 160 | 5.7s
+[329/380] tr_reg_097 -> tr_reg_085 | yaw 27.8 deg | anchors 160 | 5.7s
+[330/380] tr_reg_097 -> tr_reg_086 | yaw -80.7 deg | anchors 160 | 5.6s
+[331/380] tr_reg_097 -> tr_reg_087 | yaw -2.1 deg | anchors 160 | 5.6s
+[332/380] tr_reg_097 -> tr_reg_088 | yaw -72.7 deg | anchors 160 | 5.7s
+[333/380] tr_reg_097 -> tr_reg_089 | yaw 1.0 deg | anchors 160 | 5.7s
+[334/380] tr_reg_097 -> tr_reg_090 | yaw -174.9 deg | anchors 160 | 5.6s
+[335/380] tr_reg_097 -> tr_reg_091 | yaw 1.2 deg | anchors 160 | 5.7s
+[336/380] tr_reg_097 -> tr_reg_092 | yaw 9.7 deg | anchors 160 | 5.8s
+[337/380] tr_reg_097 -> tr_reg_093 | yaw -49.4 deg | anchors 160 | 5.6s
+[338/380] tr_reg_097 -> tr_reg_094 | yaw -47.3 deg | anchors 160 | 5.7s
+[339/380] tr_reg_097 -> tr_reg_095 | yaw 28.2 deg | anchors 160 | 5.7s
+[340/380] tr_reg_097 -> tr_reg_096 | yaw -85.6 deg | anchors 160 | 5.6s
+[341/380] tr_reg_097 -> tr_reg_098 | yaw -72.5 deg | anchors 160 | 5.6s
+[342/380] tr_reg_097 -> tr_reg_099 | yaw 179.5 deg | anchors 160 | 5.6s
+[343/380] tr_reg_098 -> tr_reg_080 | yaw 73.7 deg | anchors 160 | 5.6s
+[344/380] tr_reg_098 -> tr_reg_081 | yaw -49.0 deg | anchors 160 | 5.7s
+[345/380] tr_reg_098 -> tr_reg_082 | yaw 71.1 deg | anchors 160 | 5.7s
+[346/380] tr_reg_098 -> tr_reg_083 | yaw 76.6 deg | anchors 160 | 5.6s
+[347/380] tr_reg_098 -> tr_reg_084 | yaw -119.3 deg | anchors 160 | 5.6s
+[348/380] tr_reg_098 -> tr_reg_085 | yaw -119.7 deg | anchors 160 | 5.7s
+[349/380] tr_reg_098 -> tr_reg_086 | yaw -11.3 deg | anchors 160 | 5.6s
+[350/380] tr_reg_098 -> tr_reg_087 | yaw 85.3 deg | anchors 160 | 5.7s
+[351/380] tr_reg_098 -> tr_reg_088 | yaw -6.0 deg | anchors 160 | 5.7s
+[352/380] tr_reg_098 -> tr_reg_089 | yaw 76.2 deg | anchors 160 | 5.6s
+[353/380] tr_reg_098 -> tr_reg_090 | yaw 81.5 deg | anchors 160 | 5.7s
+[354/380] tr_reg_098 -> tr_reg_091 | yaw -51.9 deg | anchors 160 | 5.7s
+[355/380] tr_reg_098 -> tr_reg_092 | yaw 79.9 deg | anchors 160 | 5.6s
+[356/380] tr_reg_098 -> tr_reg_093 | yaw 46.5 deg | anchors 160 | 5.7s
+[357/380] tr_reg_098 -> tr_reg_094 | yaw 86.5 deg | anchors 160 | 5.6s
+[358/380] tr_reg_098 -> tr_reg_095 | yaw 61.0 deg | anchors 160 | 5.7s
+[359/380] tr_reg_098 -> tr_reg_096 | yaw -8.6 deg | anchors 160 | 5.7s
+[360/380] tr_reg_098 -> tr_reg_097 | yaw 92.3 deg | anchors 160 | 5.7s
+[361/380] tr_reg_098 -> tr_reg_099 | yaw -86.9 deg | anchors 160 | 5.7s
+[362/380] tr_reg_099 -> tr_reg_080 | yaw 153.1 deg | anchors 160 | 5.7s
+[363/380] tr_reg_099 -> tr_reg_081 | yaw -7.0 deg | anchors 160 | 5.6s
+[364/380] tr_reg_099 -> tr_reg_082 | yaw -55.0 deg | anchors 160 | 5.8s
+[365/380] tr_reg_099 -> tr_reg_083 | yaw 2.2 deg | anchors 160 | 5.7s
+[366/380] tr_reg_099 -> tr_reg_084 | yaw -76.2 deg | anchors 160 | 5.7s
+[367/380] tr_reg_099 -> tr_reg_085 | yaw 127.9 deg | anchors 160 | 5.7s
+[368/380] tr_reg_099 -> tr_reg_086 | yaw -57.1 deg | anchors 160 | 5.7s
+[369/380] tr_reg_099 -> tr_reg_087 | yaw -36.3 deg | anchors 160 | 5.7s
+[370/380] tr_reg_099 -> tr_reg_088 | yaw -63.6 deg | anchors 160 | 5.7s
+[371/380] tr_reg_099 -> tr_reg_089 | yaw 6.9 deg | anchors 160 | 5.6s
+[372/380] tr_reg_099 -> tr_reg_090 | yaw -7.3 deg | anchors 160 | 5.6s
+[373/380] tr_reg_099 -> tr_reg_091 | yaw -1.4 deg | anchors 160 | 5.7s
+[374/380] tr_reg_099 -> tr_reg_092 | yaw -2.8 deg | anchors 160 | 5.7s
+[375/380] tr_reg_099 -> tr_reg_093 | yaw -2.0 deg | anchors 160 | 5.6s
+[376/380] tr_reg_099 -> tr_reg_094 | yaw 141.2 deg | anchors 160 | 5.8s
+[377/380] tr_reg_099 -> tr_reg_095 | yaw -31.7 deg | anchors 157 | 5.8s
+[378/380] tr_reg_099 -> tr_reg_096 | yaw -55.6 deg | anchors 160 | 5.7s
+[379/380] tr_reg_099 -> tr_reg_097 | yaw 177.4 deg | anchors 160 | 5.7s
+[380/380] tr_reg_099 -> tr_reg_098 | yaw -59.9 deg | anchors 160 | 5.6s
+
+Saved maps to results/SHREC_to_FAUST/p2p_hadm (per-pair log: results/SHREC_to_FAUST/p2p_hadm/matching_log.jsonl)
+Evaluate: python geodesic_error.py --config config/FAUST/corres_config.yaml --method hadm

@@ -1,0 +1,185 @@
+{
+  "data_dir": "input/SHREC/obj/k_10",
+  "output_dir": "results/SHREC/preprocess",
+  "result_dir": "results/SHREC",
+  "cache_dir": "cache/SHREC",
+  "gt": {
+    "format": "map",
+    "map_dir": "input/SHREC/map",
+    "mat_dir": "input/SHREC/mat",
+    "off_dir": "input/SHREC/off",
+    "exclude": [
+      "40"
+    ]
+  },
+  "split": {
+    "mode": "all",
+    "validation_pairs": 4
+  },
+  "geometry": {
+    "k": 50,
+    "t": 100,
+    "neigvecs": 300,
+    "n_biharmonic": 100
+  },
+  "dino": {
+    "enabled": true,
+    "cache_dir": "cache/SHREC/dino",
+    "upsampler": "bilinear",
+    "variant": "dinov2_vits14",
+    "views": "orbit",
+    "projection": "zbuffer",
+    "n_azimuth": 8,
+    "elevations_deg": [
+      -30,
+      0,
+      30
+    ],
+    "img_size": 448,
+    "splat": 3,
+    "colormap": "PiYG",
+    "depth_tol": 0.02,
+    "smooth_k": 8,
+    "batch_views": 4
+  },
+  "orientation_model": {
+    "sampling_method": "random",
+    "sample_fraction": 0.7,
+    "sample_min_points": 1024,
+    "sampling_seed": 2026,
+    "angle_overlap": 1.5
+  },
+  "training": {
+    "epochs": 70,
+    "pairs_per_epoch": 552,
+    "seed": 42,
+    "validation_size": 2,
+    "validation_every": 1,
+    "orientation_warmup_epochs": 30,
+    "orientation_transition_epochs": 10,
+    "orientation_validation_base_bins": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "noise_variance": 0.0,
+    "lr": 0.00025,
+    "oem_lr_schedule": {
+      "start_epoch": 41,
+      "duration_epochs": 30,
+      "start_lr": 5e-05,
+      "min_lr": 1e-05
+    },
+    "device": "cuda",
+    "checkpoint_dir": "results/SHREC/checkpoints",
+    "checkpoint_name": "model_SHREC.pth",
+    "mask_ratio": 0.6,
+    "feature_ratio": 0.35,
+    "contrastive_margin": 0.45,
+    "contrastive_weight": 100.0,
+    "cycle_eps": 0.015,
+    "cycle_weight": 100.0,
+    "distortion_weight": 350.0,
+    "distortion_tau": 0.015,
+    "distortion_samples": 512,
+    "orientation_weight": 350.0,
+    "distortion_mode": "biharmonic",
+    "self_identity_weight": 5.0,
+    "self_identity_keep_ratio": 0.8,
+    "self_identity_max_rot_deg": 15.0,
+    "self_identity_noise_std": 0.003,
+    "self_identity_queries": 1024,
+    "self_identity_temperature": 0.07,
+    "dino_weight": 20.0,
+    "angle_weight": 250.0,
+    "angle_weight_init": 350.0,
+    "angle_warmup_epochs": 10,
+    "domain_weight": 150.0,
+    "oem_residual_weight": 1.0,
+    "oem_subset_consistency_weight": 0.1
+  },
+  "validation": {
+    "every_iters": 500,
+    "method": "heat_only",
+    "max_pairs": 6
+  },
+  "oem": {
+    "votes": 4,
+    "hypotheses": 3
+  },
+  "matching": {
+    "method": "hadm",
+    "w_encoder": 1.0,
+    "w_dino": 1.0,
+    "dino_pca_dim": 64,
+    "use_predicted_dino": true,
+    "w_heat": 1.5,
+    "heat_sigmas": [
+      0.15,
+      0.35
+    ],
+    "anchor_rounds": [
+      48,
+      96,
+      160
+    ],
+    "anchor_pool": 2000,
+    "anchor_candidates_factor": 3,
+    "consistency_sigma": 0.12,
+    "accept_threshold": 0.5,
+    "rigid_init": true,
+    "deform": {
+      "enabled": true,
+      "stages": [
+        {
+          "nodes": 64,
+          "arap": 20.0,
+          "w_pos": 2.0,
+          "iters": 120
+        },
+        {
+          "nodes": 160,
+          "arap": 5.0,
+          "w_pos": 6.0,
+          "iters": 120
+        },
+        {
+          "nodes": 320,
+          "arap": 1.5,
+          "w_pos": 15.0,
+          "iters": 120
+        }
+      ],
+      "skin_k": 4,
+      "node_neighbors": 6,
+      "lr": 0.01,
+      "reassign_every": 10,
+      "data_samples": 4000,
+      "w_anchor": 1.0,
+      "w_data": 1.0,
+      "robust_sigma": 0.08
+    },
+    "final_w_pos": null,
+    "chunk": 4096
+  },
+  "model": {
+    "embed_dim": 128,
+    "depth": 4,
+    "num_heads": 4,
+    "decoder_embed_dim": 64,
+    "decoder_depth": 2,
+    "decoder_num_heads": 4,
+    "mlk_ratio": 2.0,
+    "num_mask_queries": 5000,
+    "encoder_k": 20,
+    "aamg_k": 10,
+    "aamg_emb_dim": 64,
+    "pos_embed_dim": 64,
+    "temperature": 0.1
+  }
+}

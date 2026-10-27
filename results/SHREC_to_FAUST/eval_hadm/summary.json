@@ -1,0 +1,64 @@
+{
+  "dataset_config": "config/FAUST/corres_config.yaml",
+  "method": "hadm",
+  "p2p_dir": "results/SHREC_to_FAUST/p2p_hadm",
+  "pairs": 380,
+  "mean_geodesic_error": 0.19543714717060554,
+  "median": 0.16264761349247672,
+  "std": 0.15285628944810153,
+  "quality": "Moderate",
+  "best5": [
+    {
+      "source": "tr_reg_080",
+      "target": "tr_reg_082",
+      "error": 0.02037941578277489
+    },
+    {
+      "source": "tr_reg_082",
+      "target": "tr_reg_092",
+      "error": 0.020690768526487626
+    },
+    {
+      "source": "tr_reg_092",
+      "target": "tr_reg_082",
+      "error": 0.02101852249273772
+    },
+    {
+      "source": "tr_reg_095",
+      "target": "tr_reg_085",
+      "error": 0.021410286264809387
+    },
+    {
+      "source": "tr_reg_082",
+      "target": "tr_reg_080",
+      "error": 0.021604520681414427
+    }
+  ],
+  "worst5": [
+    {
+      "source": "tr_reg_084",
+      "target": "tr_reg_097",
+      "error": 0.6226673473225943
+    },
+    {
+      "source": "tr_reg_095",
+      "target": "tr_reg_093",
+      "error": 0.571770125865199
+    },
+    {
+      "source": "tr_reg_084",
+      "target": "tr_reg_090",
+      "error": 0.5553310700414287
+    },
+    {
+      "source": "tr_reg_089",
+      "target": "tr_reg_095",
+      "error": 0.5547628862577529
+    },
+    {
+      "source": "tr_reg_085",
+      "target": "tr_reg_093",
+      "error": 0.5461338066383811
+    }
+  ]
+}

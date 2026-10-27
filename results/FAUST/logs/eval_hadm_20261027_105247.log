@@ -1,0 +1,8 @@
+[log] geodesic_error.py --config config/FAUST/corres_config.yaml --method hadm
+[log] writing to results/FAUST/logs/eval_hadm_20261027_105247.log
+Traceback (most recent call last):
+  File "/data/home/user/Supon/lubesh_btp2/geodesic_error.py", line 137, in <module>
+    main()
+  File "/data/home/user/Supon/lubesh_btp2/geodesic_error.py", line 70, in main
+    names = sorted({os.path.splitext(f)[0] for f in os.listdir(off_dir) if f.endswith('.off')})
+FileNotFoundError: [Errno 2] No such file or directory: 'input/FAUST/off'

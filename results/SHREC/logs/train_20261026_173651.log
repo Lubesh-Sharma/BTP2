@@ -1,0 +1,568 @@
+[log] train.py --config config/SHREC/train_config.yaml --fresh
+[log] writing to results/SHREC/logs/train_20261026_173651.log
+Split: 44 train, 5 validation, 44 test
+
+============================================================
+Loading 44 train shapes from: input/SHREC/obj/k_10
+============================================================
+[1/44] 1.obj ... OK (5197 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[2/44] 10.obj ... OK (5202 vertices, 53 features, DINO 384-d, mean conf 0.67)
+[3/44] 11.obj ... OK (5201 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[4/44] 12.obj ... OK (5201 vertices, 53 features, DINO 384-d, mean conf 0.66)
+[5/44] 13.obj ... OK (5203 vertices, 53 features, DINO 384-d, mean conf 0.65)
+[6/44] 14.obj ... OK (5199 vertices, 53 features, DINO 384-d, mean conf 0.75)
+[7/44] 15.obj ... OK (5198 vertices, 53 features, DINO 384-d, mean conf 0.70)
+[8/44] 16.obj ... OK (5201 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[9/44] 17.obj ... OK (5207 vertices, 53 features, DINO 384-d, mean conf 0.69)
+[10/44] 18.obj ... OK (5207 vertices, 53 features, DINO 384-d, mean conf 0.64)
+[11/44] 19.obj ... OK (5204 vertices, 53 features, DINO 384-d, mean conf 0.68)
+[12/44] 2.obj ... OK (5200 vertices, 53 features, DINO 384-d, mean conf 0.76)
+[13/44] 20.obj ... OK (5200 vertices, 53 features, DINO 384-d, mean conf 0.69)
+[14/44] 21.obj ... OK (5199 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[15/44] 22.obj ... OK (5200 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[16/44] 23.obj ... OK (5201 vertices, 53 features, DINO 384-d, mean conf 0.75)
+[17/44] 24.obj ... OK (5200 vertices, 53 features, DINO 384-d, mean conf 0.72)
+[18/44] 25.obj ... OK (5212 vertices, 53 features, DINO 384-d, mean conf 0.65)
+[19/44] 26.obj ... OK (5200 vertices, 53 features, DINO 384-d, mean conf 0.75)
+[20/44] 27.obj ... OK (5197 vertices, 53 features, DINO 384-d, mean conf 0.68)
+[21/44] 28.obj ... OK (5210 vertices, 53 features, DINO 384-d, mean conf 0.65)
+[22/44] 29.obj ... OK (5198 vertices, 53 features, DINO 384-d, mean conf 0.74)
+[23/44] 3.obj ... OK (5199 vertices, 53 features, DINO 384-d, mean conf 0.60)
+[24/44] 30.obj ... OK (5205 vertices, 53 features, DINO 384-d, mean conf 0.68)
+[25/44] 31.obj ... OK (5201 vertices, 53 features, DINO 384-d, mean conf 0.72)
+[26/44] 32.obj ... OK (5204 vertices, 53 features, DINO 384-d, mean conf 0.73)
+[27/44] 33.obj ... OK (5199 vertices, 53 features, DINO 384-d, mean conf 0.69)
+[28/44] 34.obj ... OK (5198 vertices, 53 features, DINO 384-d, mean conf 0.73)
+[29/44] 35.obj ... OK (5198 vertices, 53 features, DINO 384-d, mean conf 0.73)
+[30/44] 36.obj ... OK (5207 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[31/44] 37.obj ... OK (5199 vertices, 53 features, DINO 384-d, mean conf 0.73)
+[32/44] 38.obj ... OK (5207 vertices, 53 features, DINO 384-d, mean conf 0.74)
+[33/44] 39.obj ... OK (5202 vertices, 53 features, DINO 384-d, mean conf 0.66)
+[34/44] 4.obj ... OK (5205 vertices, 53 features, DINO 384-d, mean conf 0.66)
+[35/44] 40.obj ... OK (5196 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[36/44] 41.obj ... OK (5200 vertices, 53 features, DINO 384-d, mean conf 0.72)
+[37/44] 42.obj ... OK (5199 vertices, 53 features, DINO 384-d, mean conf 0.70)
+[38/44] 43.obj ... OK (5206 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[39/44] 44.obj ... OK (5206 vertices, 53 features, DINO 384-d, mean conf 0.72)
+[40/44] 5.obj ... OK (5201 vertices, 53 features, DINO 384-d, mean conf 0.68)
+[41/44] 6.obj ... OK (5199 vertices, 53 features, DINO 384-d, mean conf 0.65)
+[42/44] 7.obj ... OK (5201 vertices, 53 features, DINO 384-d, mean conf 0.70)
+[43/44] 8.obj ... OK (5205 vertices, 53 features, DINO 384-d, mean conf 0.64)
+[44/44] 9.obj ... OK (5202 vertices, 53 features, DINO 384-d, mean conf 0.73)
+Loaded 44 train shapes
+
+============================================================
+Loading 5 validation shapes from: input/SHREC/obj/k_10
+============================================================
+[1/5] 1.obj ... OK (5197 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[2/5] 11.obj ... OK (5201 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[3/5] 24.obj ... OK (5200 vertices, 53 features, DINO 384-d, mean conf 0.72)
+[4/5] 6.obj ... OK (5199 vertices, 53 features, DINO 384-d, mean conf 0.65)
+[5/5] 7.obj ... OK (5201 vertices, 53 features, DINO 384-d, mean conf 0.70)
+Loaded 5 validation shapes
+  Feature dim 53 | DINO dim 384 | encoder params 1,123,797 | OEM params 959,634
+
+============================================================
+SINGLE-ENCODER TRAINING (OEM-first schedule)
+  Train shapes: 44 | Validation: 5 | Device: cuda
+  OEM-only epochs 1-30; encoder ramp over 10 epochs; total 70
+  Mask ratio (nodes/feats): 0.6 / 0.35
+  Weights: contra=100.0 cycle=100.0 dist[biharmonic]=350.0 orient=350.0 self=5.0 dino=20.0
+============================================================
+  Validation metric: geodesic | method=heat_only | 6 cases | DINO=True
+Epoch 1: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 776.8217 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 2.1450 | domain: 0.1739
+  OEM train_sample: acc=14.8% | angle err=92.81 deg | within 15 deg=12.5% | >90 deg=48.4%
+  OEM validation: acc=17.2% | angle err=91.29 deg | within 15 deg=12.2% | >90 deg=49.7%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 2: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 716.0399 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.9895 | domain: 0.1651
+  OEM train_sample: acc=27.3% | angle err=80.39 deg | within 15 deg=21.1% | >90 deg=44.5%
+  OEM validation: acc=25.9% | angle err=84.28 deg | within 15 deg=18.4% | >90 deg=45.3%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 3: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 608.1481 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.7169 | domain: 0.1618
+  OEM train_sample: acc=28.1% | angle err=84.19 deg | within 15 deg=25.0% | >90 deg=48.4%
+  OEM validation: acc=30.3% | angle err=85.33 deg | within 15 deg=28.1% | >90 deg=49.4%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 4: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 562.8898 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.6414 | domain: 0.1574
+  OEM train_sample: acc=43.0% | angle err=73.84 deg | within 15 deg=38.3% | >90 deg=39.1%
+  OEM validation: acc=44.4% | angle err=81.53 deg | within 15 deg=40.9% | >90 deg=45.9%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 5: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 526.7274 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.6025 | domain: 0.1571
+  OEM train_sample: acc=43.0% | angle err=67.63 deg | within 15 deg=40.6% | >90 deg=37.5%
+  OEM validation: acc=44.4% | angle err=76.20 deg | within 15 deg=44.7% | >90 deg=40.6%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 6: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 491.3274 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.5702 | domain: 0.1576
+  OEM train_sample: acc=39.1% | angle err=69.71 deg | within 15 deg=38.3% | >90 deg=34.4%
+  OEM validation: acc=43.1% | angle err=73.39 deg | within 15 deg=39.4% | >90 deg=40.0%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 7: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 465.4104 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.5690 | domain: 0.1554
+  OEM train_sample: acc=46.9% | angle err=62.75 deg | within 15 deg=43.8% | >90 deg=31.2%
+  OEM validation: acc=45.0% | angle err=76.01 deg | within 15 deg=42.8% | >90 deg=41.9%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 8: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 427.0687 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.5143 | domain: 0.1489
+  OEM train_sample: acc=47.7% | angle err=62.56 deg | within 15 deg=41.4% | >90 deg=31.2%
+  OEM validation: acc=47.8% | angle err=71.84 deg | within 15 deg=48.1% | >90 deg=39.7%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 9: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 397.3889 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.4670 | domain: 0.1495
+  OEM train_sample: acc=47.7% | angle err=61.97 deg | within 15 deg=47.7% | >90 deg=32.0%
+  OEM validation: acc=52.2% | angle err=63.93 deg | within 15 deg=55.0% | >90 deg=34.1%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 10: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 382.7170 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.4518 | domain: 0.1498
+  OEM train_sample: acc=48.4% | angle err=69.36 deg | within 15 deg=45.3% | >90 deg=36.7%
+  OEM validation: acc=48.4% | angle err=75.62 deg | within 15 deg=50.6% | >90 deg=42.2%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 11: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 373.6705 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.4321 | domain: 0.1459
+  OEM train_sample: acc=31.2% | angle err=79.08 deg | within 15 deg=28.9% | >90 deg=43.8%
+  OEM validation: acc=33.1% | angle err=87.43 deg | within 15 deg=28.4% | >90 deg=49.1%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 12: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 381.1993 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.4619 | domain: 0.1468
+  OEM train_sample: acc=36.7% | angle err=63.35 deg | within 15 deg=37.5% | >90 deg=32.0%
+  OEM validation: acc=45.6% | angle err=57.72 deg | within 15 deg=47.2% | >90 deg=30.6%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 13: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 349.2972 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.3359 | domain: 0.1429
+  OEM train_sample: acc=50.8% | angle err=63.42 deg | within 15 deg=45.3% | >90 deg=32.8%
+  OEM validation: acc=49.1% | angle err=73.74 deg | within 15 deg=49.7% | >90 deg=39.7%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 14: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 355.5917 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.3616 | domain: 0.1418
+  OEM train_sample: acc=46.9% | angle err=61.58 deg | within 15 deg=48.4% | >90 deg=28.9%
+  OEM validation: acc=49.7% | angle err=69.47 deg | within 15 deg=53.1% | >90 deg=37.5%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 15: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 343.9955 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.3163 | domain: 0.1392
+  OEM train_sample: acc=50.8% | angle err=55.65 deg | within 15 deg=52.3% | >90 deg=28.1%
+  OEM validation: acc=60.3% | angle err=49.67 deg | within 15 deg=60.9% | >90 deg=26.2%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 16: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 351.6752 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.3450 | domain: 0.1441
+  OEM train_sample: acc=39.8% | angle err=75.03 deg | within 15 deg=41.4% | >90 deg=40.6%
+  OEM validation: acc=55.6% | angle err=61.67 deg | within 15 deg=56.9% | >90 deg=33.8%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 17: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 316.9993 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.2069 | domain: 0.1427
+  OEM train_sample: acc=41.4% | angle err=57.36 deg | within 15 deg=38.3% | >90 deg=25.0%
+  OEM validation: acc=42.5% | angle err=58.89 deg | within 15 deg=39.7% | >90 deg=29.7%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 18: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 340.0451 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.3016 | domain: 0.1368
+  OEM train_sample: acc=50.0% | angle err=60.24 deg | within 15 deg=47.7% | >90 deg=31.2%
+  OEM validation: acc=52.5% | angle err=66.30 deg | within 15 deg=56.6% | >90 deg=35.9%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 19: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 321.4343 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.2278 | domain: 0.1351
+  OEM train_sample: acc=44.5% | angle err=71.61 deg | within 15 deg=47.7% | >90 deg=39.1%
+  OEM validation: acc=56.6% | angle err=60.41 deg | within 15 deg=60.3% | >90 deg=32.5%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 20: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 320.1288 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.2199 | domain: 0.1415
+  OEM train_sample: acc=50.8% | angle err=57.55 deg | within 15 deg=50.8% | >90 deg=28.9%
+  OEM validation: acc=57.8% | angle err=59.94 deg | within 15 deg=57.8% | >90 deg=31.6%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 21: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 330.8698 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.2657 | domain: 0.1347
+  OEM train_sample: acc=48.4% | angle err=56.36 deg | within 15 deg=50.0% | >90 deg=29.7%
+  OEM validation: acc=52.8% | angle err=67.16 deg | within 15 deg=56.2% | >90 deg=36.2%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 22: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 322.8352 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.2336 | domain: 0.1346
+  OEM train_sample: acc=46.9% | angle err=61.49 deg | within 15 deg=51.6% | >90 deg=34.4%
+  OEM validation: acc=60.6% | angle err=50.80 deg | within 15 deg=64.7% | >90 deg=26.2%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 23: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 301.7301 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.1512 | domain: 0.1301
+  OEM train_sample: acc=50.8% | angle err=53.43 deg | within 15 deg=51.6% | >90 deg=28.1%
+  OEM validation: acc=53.8% | angle err=61.82 deg | within 15 deg=60.3% | >90 deg=34.1%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 24: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 306.3038 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.1716 | domain: 0.1251
+  OEM train_sample: acc=53.9% | angle err=48.62 deg | within 15 deg=57.8% | >90 deg=26.6%
+  OEM validation: acc=63.4% | angle err=47.35 deg | within 15 deg=66.6% | >90 deg=23.1%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 25: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 291.1168 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.1112 | domain: 0.1244
+  OEM train_sample: acc=54.7% | angle err=45.86 deg | within 15 deg=57.8% | >90 deg=19.5%
+  OEM validation: acc=63.4% | angle err=45.43 deg | within 15 deg=66.9% | >90 deg=24.1%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 26: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 291.0622 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.1124 | domain: 0.1210
+  OEM train_sample: acc=52.3% | angle err=49.96 deg | within 15 deg=57.0% | >90 deg=26.6%
+  OEM validation: acc=60.9% | angle err=51.89 deg | within 15 deg=66.2% | >90 deg=26.9%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 27: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 289.3533 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.1043 | domain: 0.1238
+  OEM train_sample: acc=58.6% | angle err=44.15 deg | within 15 deg=54.7% | >90 deg=21.9%
+  OEM validation: acc=71.2% | angle err=38.62 deg | within 15 deg=75.9% | >90 deg=19.7%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 28: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 271.5162 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.0350 | domain: 0.1192
+  OEM train_sample: acc=52.3% | angle err=44.48 deg | within 15 deg=41.4% | >90 deg=18.8%
+  OEM validation: acc=59.1% | angle err=43.73 deg | within 15 deg=59.4% | >90 deg=20.6%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 29: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 279.5113 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.0645 | domain: 0.1249
+  OEM train_sample: acc=57.0% | angle err=45.91 deg | within 15 deg=52.3% | >90 deg=23.4%
+  OEM validation: acc=61.6% | angle err=39.24 deg | within 15 deg=61.6% | >90 deg=19.1%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 30: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 285.7437 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.0948 | domain: 0.1124
+  OEM train_sample: acc=60.9% | angle err=33.72 deg | within 15 deg=60.9% | >90 deg=10.2%
+  OEM validation: acc=65.0% | angle err=42.10 deg | within 15 deg=67.8% | >90 deg=20.9%
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 31: OEM + encoder | encoder scale=0.10 | enc lr=2.50e-05 | OEM lr=2.50e-04
+  VALIDATION (every 500 iters, epoch 31, step 500): geodesic error = 0.07749 | best = 0.07749  * new best
+  [best] checkpoint -> results/SHREC/checkpoints/model_SHREC_best.pth
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 339.0110 | rec: 9.0266 | contra: 0.9735 | cycle: 0.1003 | dist: 0.8563 | orient: 0.9879 | self: 7.6866 | dino: 0.4481 | angle: 0.9866 | domain: 0.1068
+  OEM train_sample: acc=58.6% | angle err=47.31 deg | within 15 deg=60.2% | >90 deg=25.8%
+  OEM validation: acc=71.2% | angle err=36.53 deg | within 15 deg=75.9% | >90 deg=18.1%
+  VALIDATION (end of epoch, epoch 31, step 552): geodesic error = 0.08019 | best = 0.07749
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 32: OEM + encoder | encoder scale=0.20 | enc lr=5.00e-05 | OEM lr=2.50e-04
+  VALIDATION (every 500 iters, epoch 32, step 1000): geodesic error = 0.07544 | best = 0.07544  * new best
+  [best] checkpoint -> results/SHREC/checkpoints/model_SHREC_best.pth
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 615.9703 | rec: 5.9896 | contra: 0.7681 | cycle: 0.0835 | dist: 3.5919 | orient: 0.9758 | self: 7.0473 | dino: 0.2411 | angle: 1.0341 | domain: 0.1071
+  OEM train_sample: acc=66.4% | angle err=29.32 deg | within 15 deg=67.2% | >90 deg=13.3%
+  OEM validation: acc=73.1% | angle err=31.72 deg | within 15 deg=80.3% | >90 deg=15.3%
+  VALIDATION (end of epoch, epoch 32, step 1104): geodesic error = 0.07540 | best = 0.07540  * new best
+  [best] checkpoint -> results/SHREC/checkpoints/model_SHREC_best.pth
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 33: OEM + encoder | encoder scale=0.30 | enc lr=7.50e-05 | OEM lr=2.50e-04
+  VALIDATION (every 500 iters, epoch 33, step 1500): geodesic error = 0.11394 | best = 0.07540
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 465.6399 | rec: 3.0692 | contra: 0.7131 | cycle: 0.0797 | dist: 0.6292 | orient: 0.9824 | self: 6.9344 | dino: 0.1893 | angle: 0.9970 | domain: 0.1020
+  OEM train_sample: acc=72.7% | angle err=23.88 deg | within 15 deg=72.7% | >90 deg=10.9%
+  OEM validation: acc=72.5% | angle err=32.84 deg | within 15 deg=79.1% | >90 deg=16.2%
+  VALIDATION (end of epoch, epoch 33, step 1656): geodesic error = 0.11350 | best = 0.07540
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 34: OEM + encoder | encoder scale=0.40 | enc lr=1.00e-04 | OEM lr=2.50e-04
+  VALIDATION (every 500 iters, epoch 34, step 2000): geodesic error = 0.14325 | best = 0.07540
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 516.6842 | rec: 2.5977 | contra: 0.5581 | cycle: 0.0781 | dist: 0.6385 | orient: 0.9792 | self: 6.6555 | dino: 0.1572 | angle: 0.9506 | domain: 0.1072
+  OEM train_sample: acc=68.0% | angle err=31.23 deg | within 15 deg=66.4% | >90 deg=14.1%
+  OEM validation: acc=70.9% | angle err=37.50 deg | within 15 deg=76.6% | >90 deg=18.4%
+  VALIDATION (end of epoch, epoch 34, step 2208): geodesic error = 0.14602 | best = 0.07540
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 35: OEM + encoder | encoder scale=0.50 | enc lr=1.25e-04 | OEM lr=2.50e-04
+  VALIDATION (every 500 iters, epoch 35, step 2500): geodesic error = 0.11770 | best = 0.07540
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 589.2434 | rec: 2.4325 | contra: 0.4513 | cycle: 0.0760 | dist: 0.6957 | orient: 0.9777 | self: 6.4597 | dino: 0.1322 | angle: 0.9631 | domain: 0.0987
+  OEM train_sample: acc=60.9% | angle err=33.72 deg | within 15 deg=61.7% | >90 deg=13.3%
+  OEM validation: acc=69.1% | angle err=29.58 deg | within 15 deg=76.2% | >90 deg=13.4%
+  VALIDATION (end of epoch, epoch 35, step 2760): geodesic error = 0.14943 | best = 0.07540
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 36: OEM + encoder | encoder scale=0.60 | enc lr=1.50e-04 | OEM lr=2.50e-04
+  VALIDATION (every 500 iters, epoch 36, step 3000): geodesic error = 0.11763 | best = 0.07540
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 604.5960 | rec: 2.2864 | contra: 0.3836 | cycle: 0.0745 | dist: 0.4977 | orient: 0.9456 | self: 6.3109 | dino: 0.1078 | angle: 0.9650 | domain: 0.1042
+  OEM train_sample: acc=68.0% | angle err=27.96 deg | within 15 deg=69.5% | >90 deg=10.2%
+  OEM validation: acc=78.1% | angle err=27.02 deg | within 15 deg=83.4% | >90 deg=13.4%
+  VALIDATION (end of epoch, epoch 36, step 3312): geodesic error = 0.14577 | best = 0.07540
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 37: OEM + encoder | encoder scale=0.70 | enc lr=1.75e-04 | OEM lr=2.50e-04
+  VALIDATION (every 500 iters, epoch 37, step 3500): geodesic error = 0.13438 | best = 0.07540
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 814.2826 | rec: 2.3074 | contra: 0.8074 | cycle: 0.0934 | dist: 1.0473 | orient: 0.9234 | self: 7.3952 | dino: 0.1422 | angle: 0.9131 | domain: 0.0994
+  OEM train_sample: acc=68.0% | angle err=28.27 deg | within 15 deg=64.1% | >90 deg=10.2%
+  OEM validation: acc=73.4% | angle err=24.88 deg | within 15 deg=80.9% | >90 deg=11.2%
+  VALIDATION (end of epoch, epoch 37, step 3864): geodesic error = 0.08643 | best = 0.07540
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 38: OEM + encoder | encoder scale=0.80 | enc lr=2.00e-04 | OEM lr=2.50e-04
+  VALIDATION (every 500 iters, epoch 38, step 4000): geodesic error = 0.07136 | best = 0.07136  * new best
+  [best] checkpoint -> results/SHREC/checkpoints/model_SHREC_best.pth
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 748.7506 | rec: 2.1998 | contra: 0.6949 | cycle: 0.0726 | dist: 0.6619 | orient: 0.8167 | self: 7.0151 | dino: 0.1072 | angle: 0.9271 | domain: 0.0939
+  OEM train_sample: acc=70.3% | angle err=25.45 deg | within 15 deg=67.2% | >90 deg=7.8%
+  OEM validation: acc=75.9% | angle err=24.03 deg | within 15 deg=80.6% | >90 deg=10.0%
+  VALIDATION (end of epoch, epoch 38, step 4416): geodesic error = 0.05051 | best = 0.05051  * new best
+  [best] checkpoint -> results/SHREC/checkpoints/model_SHREC_best.pth
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 39: OEM + encoder | encoder scale=0.90 | enc lr=2.25e-04 | OEM lr=2.50e-04
+  VALIDATION (every 500 iters, epoch 39, step 4500): geodesic error = 0.12215 | best = 0.05051
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 599.6375 | rec: 2.1447 | contra: 0.3199 | cycle: 0.0416 | dist: 0.4579 | orient: 0.4898 | self: 6.1007 | dino: 0.0913 | angle: 0.9061 | domain: 0.1031
+  OEM train_sample: acc=68.0% | angle err=25.22 deg | within 15 deg=68.8% | >90 deg=10.2%
+  OEM validation: acc=72.8% | angle err=32.63 deg | within 15 deg=78.4% | >90 deg=15.9%
+  VALIDATION (end of epoch, epoch 39, step 4968): geodesic error = 0.12682 | best = 0.05051
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 40: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=2.50e-04
+  VALIDATION (every 500 iters, epoch 40, step 5000): geodesic error = 0.10660 | best = 0.05051
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  VALIDATION (every 500 iters, epoch 40, step 5500): geodesic error = 0.04813 | best = 0.04813  * new best
+  [best] checkpoint -> results/SHREC/checkpoints/model_SHREC_best.pth
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 567.8258 | rec: 2.0543 | contra: 0.2964 | cycle: 0.0257 | dist: 0.4277 | orient: 0.3432 | self: 5.9849 | dino: 0.0760 | angle: 0.8874 | domain: 0.0976
+  OEM train_sample: acc=76.6% | angle err=15.93 deg | within 15 deg=74.2% | >90 deg=3.9%
+  OEM validation: acc=82.2% | angle err=18.55 deg | within 15 deg=86.2% | >90 deg=8.1%
+  VALIDATION (end of epoch, epoch 40, step 5520): geodesic error = 0.09595 | best = 0.04813
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 41: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=5.00e-05
+  VALIDATION (every 500 iters, epoch 41, step 6000): geodesic error = 0.04798 | best = 0.04798  * new best
+  [best] checkpoint -> results/SHREC/checkpoints/model_SHREC_best.pth
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 468.9427 | rec: 1.9736 | contra: 0.2881 | cycle: 0.0161 | dist: 0.3312 | orient: 0.2713 | self: 5.9667 | dino: 0.0699 | angle: 0.7380 | domain: 0.0929
+  OEM train_sample: acc=75.0% | angle err=21.45 deg | within 15 deg=72.7% | >90 deg=10.2%
+  OEM validation: acc=85.9% | angle err=14.25 deg | within 15 deg=90.0% | >90 deg=5.9%
+  VALIDATION (end of epoch, epoch 41, step 6072): geodesic error = 0.08660 | best = 0.04798
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 42: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=4.99e-05
+  VALIDATION (every 500 iters, epoch 42, step 6500): geodesic error = 0.04992 | best = 0.04798
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 499.7820 | rec: 1.8329 | contra: 0.2725 | cycle: 0.0126 | dist: 0.4791 | orient: 0.2420 | self: 5.9342 | dino: 0.0627 | angle: 0.7061 | domain: 0.0897
+  OEM train_sample: acc=79.7% | angle err=16.81 deg | within 15 deg=78.1% | >90 deg=4.7%
+  OEM validation: acc=90.0% | angle err=10.95 deg | within 15 deg=92.5% | >90 deg=4.1%
+  VALIDATION (end of epoch, epoch 42, step 6624): geodesic error = 0.07903 | best = 0.04798
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 43: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=4.95e-05
+  VALIDATION (every 500 iters, epoch 43, step 7000): geodesic error = 0.08474 | best = 0.04798
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 459.3452 | rec: 1.7679 | contra: 0.2596 | cycle: 0.0110 | dist: 0.3895 | orient: 0.2151 | self: 5.8909 | dino: 0.0595 | angle: 0.7160 | domain: 0.0865
+  OEM train_sample: acc=78.1% | angle err=15.64 deg | within 15 deg=81.2% | >90 deg=3.9%
+  OEM validation: acc=85.3% | angle err=13.19 deg | within 15 deg=90.9% | >90 deg=5.3%
+  VALIDATION (end of epoch, epoch 43, step 7176): geodesic error = 0.05617 | best = 0.04798
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 44: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=4.90e-05
+  VALIDATION (every 500 iters, epoch 44, step 7500): geodesic error = 0.07152 | best = 0.04798
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 415.8176 | rec: 1.6950 | contra: 0.2510 | cycle: 0.0102 | dist: 0.2995 | orient: 0.1994 | self: 5.8812 | dino: 0.0575 | angle: 0.6921 | domain: 0.0916
+  OEM train_sample: acc=80.5% | angle err=14.28 deg | within 15 deg=79.7% | >90 deg=2.3%
+  OEM validation: acc=87.5% | angle err=12.37 deg | within 15 deg=90.9% | >90 deg=5.0%
+  VALIDATION (end of epoch, epoch 44, step 7728): geodesic error = 0.07512 | best = 0.04798
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 45: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=4.82e-05
+  VALIDATION (every 500 iters, epoch 45, step 8000): geodesic error = 0.03962 | best = 0.03962  * new best
+  [best] checkpoint -> results/SHREC/checkpoints/model_SHREC_best.pth
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 458.2402 | rec: 1.6240 | contra: 0.2398 | cycle: 0.0099 | dist: 0.4535 | orient: 0.1903 | self: 5.8352 | dino: 0.0555 | angle: 0.6650 | domain: 0.0915
+  OEM train_sample: acc=78.1% | angle err=13.27 deg | within 15 deg=79.7% | >90 deg=1.6%
+  OEM validation: acc=85.6% | angle err=11.21 deg | within 15 deg=91.6% | >90 deg=3.8%
+  VALIDATION (end of epoch, epoch 45, step 8280): geodesic error = 0.03600 | best = 0.03600  * new best
+  [best] checkpoint -> results/SHREC/checkpoints/model_SHREC_best.pth
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 46: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=4.71e-05
+  VALIDATION (every 500 iters, epoch 46, step 8500): geodesic error = 0.03744 | best = 0.03600
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 479.0484 | rec: 1.5686 | contra: 0.2314 | cycle: 0.0091 | dist: 0.5263 | orient: 0.1777 | self: 5.7896 | dino: 0.0536 | angle: 0.6676 | domain: 0.0943
+  OEM train_sample: acc=79.7% | angle err=13.09 deg | within 15 deg=78.1% | >90 deg=3.1%
+  OEM validation: acc=89.1% | angle err=9.50 deg | within 15 deg=91.6% | >90 deg=3.4%
+  VALIDATION (end of epoch, epoch 46, step 8832): geodesic error = 0.05769 | best = 0.03600
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 47: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=4.59e-05
+  VALIDATION (every 500 iters, epoch 47, step 9000): geodesic error = 0.03829 | best = 0.03600
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 419.4297 | rec: 1.5227 | contra: 0.2249 | cycle: 0.0093 | dist: 0.3586 | orient: 0.1772 | self: 5.7612 | dino: 0.0541 | angle: 0.6677 | domain: 0.0946
+  OEM train_sample: acc=80.5% | angle err=12.08 deg | within 15 deg=78.9% | >90 deg=2.3%
+  OEM validation: acc=85.9% | angle err=12.24 deg | within 15 deg=91.2% | >90 deg=5.0%
+  VALIDATION (end of epoch, epoch 47, step 9384): geodesic error = 0.04661 | best = 0.03600
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 48: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=4.45e-05
+  VALIDATION (every 500 iters, epoch 48, step 9500): geodesic error = 0.03838 | best = 0.03600
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 416.8315 | rec: 1.5068 | contra: 0.2196 | cycle: 0.0092 | dist: 0.3546 | orient: 0.1801 | self: 5.7411 | dino: 0.0546 | angle: 0.6610 | domain: 0.0957
+  OEM train_sample: acc=82.0% | angle err=10.54 deg | within 15 deg=78.9% | >90 deg=0.0%
+  OEM validation: acc=89.1% | angle err=10.77 deg | within 15 deg=93.1% | >90 deg=4.1%
+  VALIDATION (end of epoch, epoch 48, step 9936): geodesic error = 0.07826 | best = 0.03600
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 49: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=4.29e-05
+  VALIDATION (every 500 iters, epoch 49, step 10000): geodesic error = 0.07979 | best = 0.03600
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 406.4271 | rec: 1.4535 | contra: 0.2127 | cycle: 0.0093 | dist: 0.3507 | orient: 0.1740 | self: 5.6979 | dino: 0.0547 | angle: 0.6365 | domain: 0.0974
+  OEM train_sample: acc=78.1% | angle err=11.02 deg | within 15 deg=80.5% | >90 deg=0.8%
+  OEM validation: acc=89.1% | angle err=11.22 deg | within 15 deg=92.5% | >90 deg=4.1%
+  VALIDATION (end of epoch, epoch 49, step 10488): geodesic error = 0.05650 | best = 0.03600
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 50: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=4.12e-05
+  VALIDATION (every 500 iters, epoch 50, step 10500): geodesic error = 0.04123 | best = 0.03600
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  VALIDATION (every 500 iters, epoch 50, step 11000): geodesic error = 0.03503 | best = 0.03503  * new best
+  [best] checkpoint -> results/SHREC/checkpoints/model_SHREC_best.pth
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 414.7637 | rec: 1.4741 | contra: 0.2148 | cycle: 0.0090 | dist: 0.3533 | orient: 0.1735 | self: 5.6927 | dino: 0.0601 | angle: 0.6657 | domain: 0.0973
+  OEM train_sample: acc=85.9% | angle err=8.18 deg | within 15 deg=86.7% | >90 deg=0.0%
+  OEM validation: acc=90.3% | angle err=7.33 deg | within 15 deg=95.3% | >90 deg=2.2%
+  VALIDATION (end of epoch, epoch 50, step 11040): geodesic error = 0.06973 | best = 0.03503
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 51: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=3.94e-05
+  VALIDATION (every 500 iters, epoch 51, step 11500): geodesic error = 0.07670 | best = 0.03503
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 393.7550 | rec: 1.4344 | contra: 0.2053 | cycle: 0.0100 | dist: 0.3447 | orient: 0.1734 | self: 5.6575 | dino: 0.0549 | angle: 0.6021 | domain: 0.0894
+  OEM train_sample: acc=85.2% | angle err=9.26 deg | within 15 deg=83.6% | >90 deg=0.8%
+  OEM validation: acc=90.0% | angle err=7.61 deg | within 15 deg=95.0% | >90 deg=2.5%
+  VALIDATION (end of epoch, epoch 51, step 11592): geodesic error = 0.05443 | best = 0.03503
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 52: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=3.74e-05
+  VALIDATION (every 500 iters, epoch 52, step 12000): geodesic error = 0.04128 | best = 0.03503
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 422.7588 | rec: 1.4336 | contra: 0.2038 | cycle: 0.0092 | dist: 0.4274 | orient: 0.1769 | self: 5.6453 | dino: 0.0593 | angle: 0.5963 | domain: 0.0937
+  OEM train_sample: acc=85.9% | angle err=8.18 deg | within 15 deg=82.8% | >90 deg=0.0%
+  OEM validation: acc=90.6% | angle err=6.20 deg | within 15 deg=95.6% | >90 deg=1.6%
+  VALIDATION (end of epoch, epoch 52, step 12144): geodesic error = 0.07838 | best = 0.03503
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 53: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=3.54e-05
+  VALIDATION (every 500 iters, epoch 53, step 12500): geodesic error = 0.04725 | best = 0.03503
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 360.6742 | rec: 1.3950 | contra: 0.1911 | cycle: 0.0093 | dist: 0.2521 | orient: 0.1725 | self: 5.5840 | dino: 0.0562 | angle: 0.6080 | domain: 0.0894
+  OEM train_sample: acc=85.9% | angle err=9.58 deg | within 15 deg=80.5% | >90 deg=0.8%
+  OEM validation: acc=90.9% | angle err=7.85 deg | within 15 deg=95.0% | >90 deg=2.5%
+  VALIDATION (end of epoch, epoch 53, step 12696): geodesic error = 0.03618 | best = 0.03503
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 54: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=3.32e-05
+  VALIDATION (every 500 iters, epoch 54, step 13000): geodesic error = 0.06270 | best = 0.03503
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 418.9203 | rec: 1.3530 | contra: 0.1860 | cycle: 0.0085 | dist: 0.4122 | orient: 0.1703 | self: 5.5498 | dino: 0.0538 | angle: 0.6226 | domain: 0.0911
+  OEM train_sample: acc=86.7% | angle err=7.95 deg | within 15 deg=83.6% | >90 deg=0.0%
+  OEM validation: acc=94.1% | angle err=7.22 deg | within 15 deg=95.9% | >90 deg=2.2%
+  VALIDATION (end of epoch, epoch 54, step 13248): geodesic error = 0.03531 | best = 0.03503
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 55: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=3.11e-05
+  VALIDATION (every 500 iters, epoch 55, step 13500): geodesic error = 0.07730 | best = 0.03503
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 497.0643 | rec: 1.3852 | contra: 0.1885 | cycle: 0.0087 | dist: 0.6660 | orient: 0.1690 | self: 5.5505 | dino: 0.0587 | angle: 0.5775 | domain: 0.0973
+  OEM train_sample: acc=84.4% | angle err=7.96 deg | within 15 deg=83.6% | >90 deg=0.0%
+  OEM validation: acc=91.2% | angle err=4.84 deg | within 15 deg=96.6% | >90 deg=0.9%
+  VALIDATION (end of epoch, epoch 55, step 13800): geodesic error = 0.03623 | best = 0.03503
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 56: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=2.89e-05
+  VALIDATION (every 500 iters, epoch 56, step 14000): geodesic error = 0.05821 | best = 0.03503
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 378.0724 | rec: 1.3272 | contra: 0.1827 | cycle: 0.0080 | dist: 0.3283 | orient: 0.1643 | self: 5.5289 | dino: 0.0535 | angle: 0.5868 | domain: 0.0918
+  OEM train_sample: acc=83.6% | angle err=9.50 deg | within 15 deg=82.0% | >90 deg=0.8%
+  OEM validation: acc=90.6% | angle err=7.58 deg | within 15 deg=95.6% | >90 deg=2.5%
+  VALIDATION (end of epoch, epoch 56, step 14352): geodesic error = 0.04153 | best = 0.03503
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 57: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=2.68e-05
+  VALIDATION (every 500 iters, epoch 57, step 14500): geodesic error = 0.04096 | best = 0.03503
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 403.2652 | rec: 1.3335 | contra: 0.1800 | cycle: 0.0079 | dist: 0.4025 | orient: 0.1629 | self: 5.5068 | dino: 0.0542 | angle: 0.5885 | domain: 0.0888
+  OEM train_sample: acc=85.2% | angle err=8.64 deg | within 15 deg=83.6% | >90 deg=0.0%
+  OEM validation: acc=91.6% | angle err=4.49 deg | within 15 deg=97.2% | >90 deg=0.6%
+  VALIDATION (end of epoch, epoch 57, step 14904): geodesic error = 0.03453 | best = 0.03453  * new best
+  [best] checkpoint -> results/SHREC/checkpoints/model_SHREC_best.pth
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 58: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=2.46e-05
+  VALIDATION (every 500 iters, epoch 58, step 15000): geodesic error = 0.07686 | best = 0.03453
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 371.6338 | rec: 1.2737 | contra: 0.1749 | cycle: 0.0083 | dist: 0.3223 | orient: 0.1617 | self: 5.4766 | dino: 0.0500 | angle: 0.5801 | domain: 0.0859
+  OEM train_sample: acc=86.7% | angle err=7.23 deg | within 15 deg=85.2% | >90 deg=0.0%
+  OEM validation: acc=92.8% | angle err=4.44 deg | within 15 deg=96.9% | >90 deg=0.6%
+  VALIDATION (end of epoch, epoch 58, step 15456): geodesic error = 0.06117 | best = 0.03453
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 59: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=2.26e-05
+  VALIDATION (every 500 iters, epoch 59, step 15500): geodesic error = 0.03623 | best = 0.03453
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  VALIDATION (every 500 iters, epoch 59, step 16000): geodesic error = 0.04385 | best = 0.03453
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 488.7414 | rec: 1.2574 | contra: 0.1770 | cycle: 0.0078 | dist: 0.6477 | orient: 0.1561 | self: 5.4836 | dino: 0.0492 | angle: 0.5988 | domain: 0.0894
+  OEM train_sample: acc=87.5% | angle err=7.65 deg | within 15 deg=85.9% | >90 deg=0.0%
+  OEM validation: acc=93.1% | angle err=4.85 deg | within 15 deg=97.2% | >90 deg=0.9%
+  VALIDATION (end of epoch, epoch 59, step 16008): geodesic error = 0.03448 | best = 0.03448  * new best
+  [best] checkpoint -> results/SHREC/checkpoints/model_SHREC_best.pth
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 60: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=2.06e-05
+  VALIDATION (every 500 iters, epoch 60, step 16500): geodesic error = 0.04031 | best = 0.03448
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 401.5595 | rec: 1.3542 | contra: 0.1951 | cycle: 0.0076 | dist: 0.4159 | orient: 0.1623 | self: 5.5617 | dino: 0.0627 | angle: 0.5550 | domain: 0.0912
+  OEM train_sample: acc=86.7% | angle err=7.86 deg | within 15 deg=84.4% | >90 deg=0.0%
+  OEM validation: acc=94.7% | angle err=3.89 deg | within 15 deg=97.5% | >90 deg=0.3%
+  VALIDATION (end of epoch, epoch 60, step 16560): geodesic error = 0.03765 | best = 0.03448
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 61: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=1.88e-05
+  VALIDATION (every 500 iters, epoch 61, step 17000): geodesic error = 0.03702 | best = 0.03448
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 420.5195 | rec: 1.2572 | contra: 0.1736 | cycle: 0.0073 | dist: 0.4824 | orient: 0.1610 | self: 5.4674 | dino: 0.0510 | angle: 0.5536 | domain: 0.0858
+  OEM train_sample: acc=87.5% | angle err=7.72 deg | within 15 deg=83.6% | >90 deg=0.0%
+  OEM validation: acc=93.1% | angle err=4.46 deg | within 15 deg=97.8% | >90 deg=0.6%
+  VALIDATION (end of epoch, epoch 61, step 17112): geodesic error = 0.03516 | best = 0.03448
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 62: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=1.71e-05
+  VALIDATION (every 500 iters, epoch 62, step 17500): geodesic error = 0.05075 | best = 0.03448
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 422.4477 | rec: 1.2229 | contra: 0.1705 | cycle: 0.0075 | dist: 0.4803 | orient: 0.1563 | self: 5.4511 | dino: 0.0487 | angle: 0.5734 | domain: 0.0842
+  OEM train_sample: acc=85.2% | angle err=7.55 deg | within 15 deg=85.9% | >90 deg=0.0%
+  OEM validation: acc=94.4% | angle err=4.12 deg | within 15 deg=97.8% | >90 deg=0.6%
+  VALIDATION (end of epoch, epoch 62, step 17664): geodesic error = 0.03759 | best = 0.03448
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 63: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=1.55e-05
+  VALIDATION (every 500 iters, epoch 63, step 18000): geodesic error = 0.03886 | best = 0.03448
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 334.2024 | rec: 1.2298 | contra: 0.1727 | cycle: 0.0074 | dist: 0.2355 | orient: 0.1580 | self: 5.4462 | dino: 0.0508 | angle: 0.5576 | domain: 0.0897
+  OEM train_sample: acc=88.3% | angle err=6.69 deg | within 15 deg=88.3% | >90 deg=0.0%
+  OEM validation: acc=94.7% | angle err=3.07 deg | within 15 deg=98.1% | >90 deg=0.0%
+  VALIDATION (end of epoch, epoch 63, step 18216): geodesic error = 0.03966 | best = 0.03448
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 64: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=1.41e-05
+  VALIDATION (every 500 iters, epoch 64, step 18500): geodesic error = 0.05943 | best = 0.03448
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 332.7471 | rec: 1.2081 | contra: 0.1689 | cycle: 0.0079 | dist: 0.2305 | orient: 0.1560 | self: 5.4417 | dino: 0.0475 | angle: 0.5668 | domain: 0.0812
+  OEM train_sample: acc=86.7% | angle err=7.51 deg | within 15 deg=85.9% | >90 deg=0.0%
+  OEM validation: acc=92.8% | angle err=4.45 deg | within 15 deg=97.5% | >90 deg=0.6%
+  VALIDATION (end of epoch, epoch 64, step 18768): geodesic error = 0.04185 | best = 0.03448
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 65: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=1.29e-05
+  VALIDATION (every 500 iters, epoch 65, step 19000): geodesic error = 0.04421 | best = 0.03448
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 392.2344 | rec: 1.1863 | contra: 0.1705 | cycle: 0.0081 | dist: 0.4033 | orient: 0.1536 | self: 5.4339 | dino: 0.0488 | angle: 0.5635 | domain: 0.0862
+  OEM train_sample: acc=85.9% | angle err=7.73 deg | within 15 deg=85.2% | >90 deg=0.0%
+  OEM validation: acc=93.1% | angle err=3.72 deg | within 15 deg=97.8% | >90 deg=0.3%
+  VALIDATION (end of epoch, epoch 65, step 19320): geodesic error = 0.03290 | best = 0.03290  * new best
+  [best] checkpoint -> results/SHREC/checkpoints/model_SHREC_best.pth
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 66: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=1.18e-05
+  VALIDATION (every 500 iters, epoch 66, step 19500): geodesic error = 0.06303 | best = 0.03290
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 471.4071 | rec: 1.1586 | contra: 0.1645 | cycle: 0.0077 | dist: 0.6433 | orient: 0.1513 | self: 5.4135 | dino: 0.0457 | angle: 0.5508 | domain: 0.0863
+  OEM train_sample: acc=84.4% | angle err=7.26 deg | within 15 deg=85.2% | >90 deg=0.0%
+  OEM validation: acc=91.6% | angle err=3.82 deg | within 15 deg=97.5% | >90 deg=0.3%
+  VALIDATION (end of epoch, epoch 66, step 19872): geodesic error = 0.03302 | best = 0.03290
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 67: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=1.10e-05
+  VALIDATION (every 500 iters, epoch 67, step 20000): geodesic error = 0.03341 | best = 0.03290
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 360.6957 | rec: 1.1463 | contra: 0.1667 | cycle: 0.0087 | dist: 0.3167 | orient: 0.1536 | self: 5.4249 | dino: 0.0455 | angle: 0.5621 | domain: 0.0823
+  OEM train_sample: acc=85.9% | angle err=7.40 deg | within 15 deg=85.9% | >90 deg=0.0%
+  OEM validation: acc=92.2% | angle err=3.90 deg | within 15 deg=97.5% | >90 deg=0.3%
+  VALIDATION (end of epoch, epoch 67, step 20424): geodesic error = 0.03365 | best = 0.03290
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 68: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=1.05e-05
+  VALIDATION (every 500 iters, epoch 68, step 20500): geodesic error = 0.03364 | best = 0.03290
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 323.9509 | rec: 1.1476 | contra: 0.1635 | cycle: 0.0080 | dist: 0.2276 | orient: 0.1504 | self: 5.4040 | dino: 0.0462 | angle: 0.5469 | domain: 0.0810
+  OEM train_sample: acc=87.5% | angle err=7.56 deg | within 15 deg=83.6% | >90 deg=0.0%
+  OEM validation: acc=92.2% | angle err=3.91 deg | within 15 deg=97.2% | >90 deg=0.3%
+  VALIDATION (end of epoch, epoch 68, step 20976): geodesic error = 0.03454 | best = 0.03290
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 69: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=1.01e-05
+  VALIDATION (every 500 iters, epoch 69, step 21000): geodesic error = 0.03537 | best = 0.03290
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  VALIDATION (every 500 iters, epoch 69, step 21500): geodesic error = 0.03432 | best = 0.03290
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 358.0254 | rec: 1.1210 | contra: 0.1584 | cycle: 0.0079 | dist: 0.3064 | orient: 0.1469 | self: 5.3799 | dino: 0.0443 | angle: 0.5770 | domain: 0.0895
+  OEM train_sample: acc=87.5% | angle err=7.54 deg | within 15 deg=85.2% | >90 deg=0.0%
+  OEM validation: acc=93.4% | angle err=4.74 deg | within 15 deg=97.5% | >90 deg=0.9%
+  VALIDATION (end of epoch, epoch 69, step 21528): geodesic error = 0.03499 | best = 0.03290
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+Epoch 70: OEM + encoder | encoder scale=1.00 | enc lr=2.50e-04 | OEM lr=1.00e-05
+  VALIDATION (every 500 iters, epoch 70, step 22000): geodesic error = 0.03419 | best = 0.03290
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+  tot: 319.9941 | rec: 1.1083 | contra: 0.1580 | cycle: 0.0072 | dist: 0.2250 | orient: 0.1442 | self: 5.3713 | dino: 0.0450 | angle: 0.5479 | domain: 0.0784
+  OEM train_sample: acc=89.8% | angle err=6.92 deg | within 15 deg=85.9% | >90 deg=0.0%
+  OEM validation: acc=94.1% | angle err=3.85 deg | within 15 deg=97.2% | >90 deg=0.3%
+  VALIDATION (end of epoch, epoch 70, step 22080): geodesic error = 0.03202 | best = 0.03202  * new best
+  [best] checkpoint -> results/SHREC/checkpoints/model_SHREC_best.pth
+  [final] checkpoint -> results/SHREC/checkpoints/model_SHREC_final.pth
+
+Done. Best geodesic error 0.03202 at step 22080
+  best : results/SHREC/checkpoints/model_SHREC_best.pth
+  final: results/SHREC/checkpoints/model_SHREC_final.pth

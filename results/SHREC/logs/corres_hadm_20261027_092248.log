@@ -1,0 +1,109 @@
+[log] corres.py --config config/SHREC/corres_config.yaml
+[log] writing to results/SHREC/logs/corres_hadm_20261027_092248.log
+
+============================================================
+Loading 44 test shapes from: input/SHREC/obj/k_10
+============================================================
+[1/44] 1.obj ... OK (5197 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[2/44] 10.obj ... OK (5202 vertices, 53 features, DINO 384-d, mean conf 0.67)
+[3/44] 11.obj ... OK (5201 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[4/44] 12.obj ... OK (5201 vertices, 53 features, DINO 384-d, mean conf 0.66)
+[5/44] 13.obj ... OK (5203 vertices, 53 features, DINO 384-d, mean conf 0.65)
+[6/44] 14.obj ... OK (5199 vertices, 53 features, DINO 384-d, mean conf 0.75)
+[7/44] 15.obj ... OK (5198 vertices, 53 features, DINO 384-d, mean conf 0.70)
+[8/44] 16.obj ... OK (5201 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[9/44] 17.obj ... OK (5207 vertices, 53 features, DINO 384-d, mean conf 0.69)
+[10/44] 18.obj ... OK (5207 vertices, 53 features, DINO 384-d, mean conf 0.64)
+[11/44] 19.obj ... OK (5204 vertices, 53 features, DINO 384-d, mean conf 0.68)
+[12/44] 2.obj ... OK (5200 vertices, 53 features, DINO 384-d, mean conf 0.76)
+[13/44] 20.obj ... OK (5200 vertices, 53 features, DINO 384-d, mean conf 0.69)
+[14/44] 21.obj ... OK (5199 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[15/44] 22.obj ... OK (5200 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[16/44] 23.obj ... OK (5201 vertices, 53 features, DINO 384-d, mean conf 0.75)
+[17/44] 24.obj ... OK (5200 vertices, 53 features, DINO 384-d, mean conf 0.72)
+[18/44] 25.obj ... OK (5212 vertices, 53 features, DINO 384-d, mean conf 0.65)
+[19/44] 26.obj ... OK (5200 vertices, 53 features, DINO 384-d, mean conf 0.75)
+[20/44] 27.obj ... OK (5197 vertices, 53 features, DINO 384-d, mean conf 0.68)
+[21/44] 28.obj ... OK (5210 vertices, 53 features, DINO 384-d, mean conf 0.65)
+[22/44] 29.obj ... OK (5198 vertices, 53 features, DINO 384-d, mean conf 0.74)
+[23/44] 3.obj ... OK (5199 vertices, 53 features, DINO 384-d, mean conf 0.60)
+[24/44] 30.obj ... OK (5205 vertices, 53 features, DINO 384-d, mean conf 0.68)
+[25/44] 31.obj ... OK (5201 vertices, 53 features, DINO 384-d, mean conf 0.72)
+[26/44] 32.obj ... OK (5204 vertices, 53 features, DINO 384-d, mean conf 0.73)
+[27/44] 33.obj ... OK (5199 vertices, 53 features, DINO 384-d, mean conf 0.69)
+[28/44] 34.obj ... OK (5198 vertices, 53 features, DINO 384-d, mean conf 0.73)
+[29/44] 35.obj ... OK (5198 vertices, 53 features, DINO 384-d, mean conf 0.73)
+[30/44] 36.obj ... OK (5207 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[31/44] 37.obj ... OK (5199 vertices, 53 features, DINO 384-d, mean conf 0.73)
+[32/44] 38.obj ... OK (5207 vertices, 53 features, DINO 384-d, mean conf 0.74)
+[33/44] 39.obj ... OK (5202 vertices, 53 features, DINO 384-d, mean conf 0.66)
+[34/44] 4.obj ... OK (5205 vertices, 53 features, DINO 384-d, mean conf 0.66)
+[35/44] 40.obj ... OK (5196 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[36/44] 41.obj ... OK (5200 vertices, 53 features, DINO 384-d, mean conf 0.72)
+[37/44] 42.obj ... OK (5199 vertices, 53 features, DINO 384-d, mean conf 0.70)
+[38/44] 43.obj ... OK (5206 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[39/44] 44.obj ... OK (5206 vertices, 53 features, DINO 384-d, mean conf 0.72)
+[40/44] 5.obj ... OK (5201 vertices, 53 features, DINO 384-d, mean conf 0.68)
+[41/44] 6.obj ... OK (5199 vertices, 53 features, DINO 384-d, mean conf 0.65)
+[42/44] 7.obj ... OK (5201 vertices, 53 features, DINO 384-d, mean conf 0.70)
+[43/44] 8.obj ... OK (5205 vertices, 53 features, DINO 384-d, mean conf 0.64)
+[44/44] 9.obj ... OK (5202 vertices, 53 features, DINO 384-d, mean conf 0.73)
+Loaded 44 test shapes
+
+Matching 407 pairs | method=hadm | DINO=on | device=cuda
+[1/407] 1 -> 6 | yaw -4.0 deg | anchors 160 | 7.2s
+[2/407] 1 -> 7 | yaw 135.2 deg | anchors 160 | 6.0s
+[3/407] 1 -> 11 | yaw 3.1 deg | anchors 160 | 6.0s
+[4/407] 1 -> 24 | yaw 58.7 deg | anchors 160 | 6.1s
+[5/407] 1 -> 29 | yaw 57.7 deg | anchors 160 | 6.0s
+[6/407] 1 -> 34 | yaw 1.3 deg | anchors 160 | 6.0s
+[7/407] 1 -> 41 | yaw -102.7 deg | anchors 160 | 6.0s
+[8/407] 1 -> 44 | yaw -11.4 deg | anchors 160 | 6.1s
+[9/407] 2 -> 11 | yaw 173.5 deg | anchors 160 | 6.0s
+[10/407] 2 -> 18 | yaw 171.0 deg | anchors 160 | 5.9s
+[11/407] 2 -> 20 | yaw -179.1 deg | anchors 160 | 6.0s
+[12/407] 2 -> 23 | yaw -113.7 deg | anchors 160 | 6.0s
+[13/407] 2 -> 26 | yaw -88.3 deg | anchors 160 | 6.0s
+[14/407] 2 -> 34 | yaw 175.2 deg | anchors 160 | 6.0s
+[15/407] 2 -> 36 | yaw -145.9 deg | anchors 160 | 6.1s
+[16/407] 2 -> 39 | yaw -2.9 deg | anchors 160 | 6.1s
+[17/407] 2 -> 44 | yaw 2.4 deg | anchors 160 | 6.0s
+[18/407] 3 -> 6 | yaw 79.4 deg | anchors 160 | 6.0s
+[19/407] 3 -> 7 | yaw 130.6 deg | anchors 160 | 6.0s
+[20/407] 3 -> 8 | yaw -99.2 deg | anchors 160 | 6.0s
+[21/407] 3 -> 14 | yaw -122.7 deg | anchors 160 | 6.0s
+[22/407] 3 -> 20 | yaw 47.3 deg | anchors 160 | 6.0s
+[23/407] 3 -> 21 | yaw 42.3 deg | anchors 160 | 6.0s
+[24/407] 3 -> 30 | yaw 126.5 deg | anchors 160 | 6.0s
+[25/407] 3 -> 33 | yaw 59.7 deg | anchors 160 | 6.0s
+[26/407] 3 -> 44 | yaw -105.3 deg | anchors 160 | 6.0s
+[27/407] 4 -> 6 | yaw 3.9 deg | anchors 160 | 6.0s
+[28/407] 4 -> 14 | yaw 179.4 deg | anchors 160 | 6.0s
+[29/407] 4 -> 21 | yaw 168.3 deg | anchors 160 | 5.9s
+[30/407] 4 -> 22 | yaw -3.1 deg | anchors 160 | 6.0s
+[31/407] 4 -> 24 | yaw 30.5 deg | anchors 160 | 5.9s
+[32/407] 4 -> 31 | yaw 169.5 deg | anchors 160 | 6.0s
+[33/407] 4 -> 34 | yaw -40.4 deg | anchors 160 | 6.0s
+[34/407] 4 -> 38 | yaw 8.7 deg | anchors 160 | 6.0s
+[35/407] 4 -> 44 | yaw -153.8 deg | anchors 160 | 6.0s
+[36/407] 5 -> 10 | yaw -46.8 deg | anchors 160 | 6.0s
+[37/407] 5 -> 15 | yaw 1.8 deg | anchors 160 | 6.0s
+[38/407] 5 -> 17 | yaw 47.9 deg | anchors 160 | 6.0s
+[39/407] 5 -> 18 | yaw 6.7 deg | anchors 160 | 6.0s
+[40/407] 5 -> 19 | yaw -30.4 deg | anchors 160 | 6.0s
+Traceback (most recent call last):
+  File "/data/home/user/Supon/lubesh_btp2/corres.py", line 123, in <module>
+    main()
+  File "/data/home/user/Supon/lubesh_btp2/corres.py", line 108, in main
+    p2p, info = align_and_match(model, orient_net, matcher, S, T, device, use_dino,
+  File "/data/home/user/Supon/lubesh_btp2/core/pipeline.py", line 105, in align_and_match
+    p2p, info = matcher.match(src, tgt)
+  File "/data/home/user/Supon/lubesh_btp2/core/matching.py", line 385, in match
+    p1, w_pos = self.deform(p1, p2, G1, G2, a, b, graph)
+  File "/data/home/user/Supon/lubesh_btp2/core/matching.py", line 335, in deform
+    v, R = apply()
+  File "/data/home/user/Supon/lubesh_btp2/core/matching.py", line 322, in apply
+    R = rodrigues(rvec)
+  File "/data/home/user/Supon/lubesh_btp2/core/matching.py", line 120, in rodrigues
+    s, c = theta.sin().unsqueeze(-1), theta.cos().unsqueeze(-1)
+KeyboardInterrupt
