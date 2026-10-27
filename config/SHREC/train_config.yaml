@@ -48,8 +48,8 @@ orientation_model:
   angle_overlap: 1.5
 
 training:
-  epochs: 70
-  pairs_per_epoch: 552   # random ordered pairs per epoch (= 24x23, keeps the tuned 70-epoch schedule)
+  epochs: 110
+  pairs_per_epoch: 552   # random ordered pairs per epoch; same update budget per epoch
   seed: 42
   validation_size: 2
   validation_every: 1
@@ -58,6 +58,11 @@ training:
   orientation_validation_base_bins: [0, 1, 2, 3, 4, 5, 6, 7]
   noise_variance: 0.0
   lr: 0.00025
+  encoder_lr_schedule:
+    start_epoch: 41      # after 30 OEM-only epochs and the 10-epoch encoder ramp
+    duration_epochs: 70  # cosine decay through epoch 110
+    start_lr: 0.00025
+    min_lr: 0.00001
   oem_lr_schedule:
     start_epoch: 41
     duration_epochs: 30

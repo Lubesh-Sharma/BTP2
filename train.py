@@ -169,7 +169,8 @@ def train_model(model, orient_net, train_shapes, validation_shapes, config, resu
             scale = correspondence_loss_scale(epoch, oem_warmup, oem_transition)
             model.requires_grad_(scale > 0)
             model.train(scale > 0)
-            optimizer.param_groups[0]['lr'] = lr * scale
+            # The existing absolute-epoch cosine helper also schedules the encoder.
+            optimizer.param_groups[0]['lr'] = oem_learning_rate(epoch, lr, tc.get('encoder_lr_schedule')) * scale
             optimizer.param_groups[1]['lr'] = oem_learning_rate(epoch, lr, oem_lr_schedule)
             w_angle, w_domain = orientation_loss_weights(epoch, angle_weight_init, angle_weight_target,
                                                          angle_warmup_epochs, domain_weight)
