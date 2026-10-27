@@ -1,0 +1,95 @@
+data_dir: "input/SURREAL/obj/k_10"
+output_dir: "results/SURREAL/preprocess"   # FPS .pp debug files
+result_dir: "results/SURREAL"            # logs, checkpoints, p2p maps, evaluation
+cache_dir: "cache/SURREAL"
+train_size: 60
+test_size: 40
+
+# Ground truth (validation + evaluation only; never used for training)
+gt:
+  format: "vts"
+  corres_dir: "input/SURREAL/corres"
+  mat_dir: "input/SURREAL/mat"      # geodesic matrices, key 'dist' (computed from the mesh if missing)
+  off_dir: "input/SURREAL/off"      # meshes: only geodesic_error.py (area normalisation)
+  exclude: []
+
+geometry:
+  k: 50
+  t: 100
+  neigvecs: 300
+  n_biharmonic: 100     # eigenpairs used for the biharmonic (intrinsic) embedding
+
+# 2D (DINOv2) features computed directly from the point cloud - no mesh (DV-Matcher-style projection)
+dino:
+  enabled: true
+  cache_dir: "cache/SURREAL/dino"
+  upsampler: "bilinear"    # "bilinear" (DINOv2, no install) | "featup" (DV-Matcher; needs pip install of FeatUp)
+  variant: "dinov2_vits14" # bilinear backbone (FeatUp uses its own ViT-S/14)
+  views: "orbit"           # "orbit" (yaw-robust, averaged) | "dvmatcher" (3 axis views, concatenated)
+  projection: "zbuffer"    # "zbuffer" (visibility + confidence) | "xray" (DV-Matcher, summed depth)
+  n_azimuth: 8             # orbit: views per elevation ring
+  elevations_deg: [-30, 0, 30]
+  img_size: 448            # 448 -> 32x32 DINOv2 patches (224 for featup)
+  splat: 3                 # each point covers (2*splat+1)^2 pixels (DV-Matcher: 2 -> 5x5 at 224 px)
+  colormap: "PiYG"         # depth-map colouring (DV-Matcher)
+  depth_tol: 0.02          # zbuffer visibility tolerance (fraction of shape diameter)
+  smooth_k: 8              # kNN feature smoothing (0 = off)
+  batch_views: 4
+
+correspondence:
+  device: "cuda"
+  checkpoint_path: "results/SURREAL/checkpoints/model_SURREAL_best.pth"  # or _final.pth
+  pairs: "all"          # "all" ordered test pairs | "gt" (pairs with ground truth) | "consecutive"
+  max_test_shapes: null # e.g. 20 for a quick run
+  seed: 0
+  verbose: false
+
+oem:
+  votes: 4              # OEM test-time voting over different point subsets
+  hypotheses: 3         # best bin, best+180, second bin; verified by anchor consistency (1 = plain OEM)
+
+matching:
+  method: "hadm"        # "hadm" (full) | "heat_only" (no deformation) | "greedy" (old argmax baseline)
+  w_encoder: 1.0
+  w_dino: 1.0           # 0 = encoder features only
+  dino_pca_dim: 64
+  use_predicted_dino: true
+  w_heat: 1.5
+  heat_sigmas: [0.15, 0.35]
+  anchor_rounds: [48, 96, 160]
+  anchor_pool: 2000
+  anchor_candidates_factor: 3
+  consistency_sigma: 0.12
+  accept_threshold: 0.5
+  rigid_init: true
+  deform:
+    enabled: true
+    stages:
+      - {nodes: 64,  arap: 20.0, w_pos: 2.0,  iters: 120}
+      - {nodes: 160, arap: 5.0,  w_pos: 6.0,  iters: 120}
+      - {nodes: 320, arap: 1.5,  w_pos: 15.0, iters: 120}
+    skin_k: 4
+    node_neighbors: 6
+    lr: 0.01
+    reassign_every: 10
+    data_samples: 4000
+    w_anchor: 1.0
+    w_data: 1.0
+    robust_sigma: 0.08
+  final_w_pos: null
+  chunk: 4096
+
+model:
+  embed_dim: 128
+  depth: 4
+  num_heads: 4
+  decoder_embed_dim: 64
+  decoder_depth: 2
+  decoder_num_heads: 4
+  mlk_ratio: 2.0
+  num_mask_queries: 5000
+  encoder_k: 20
+  aamg_k: 10
+  aamg_emb_dim: 64
+  pos_embed_dim: 64
+  temperature: 0.1

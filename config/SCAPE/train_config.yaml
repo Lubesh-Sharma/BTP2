@@ -1,0 +1,148 @@
+data_dir: "input/SCAPE/obj/k_10"
+output_dir: "results/SCAPE/preprocess"   # FPS .pp debug files
+result_dir: "results/SCAPE"            # logs, checkpoints, p2p maps, evaluation
+cache_dir: "cache/SCAPE"
+train_size: 60
+test_size: 40
+
+# Ground truth (validation + evaluation only; never used for training)
+gt:
+  format: "vts"
+  corres_dir: "input/SCAPE/corres"
+  mat_dir: "input/SCAPE/mat"      # geodesic matrices, key 'dist' (computed from the mesh if missing)
+  off_dir: "input/SCAPE/off"      # meshes: only geodesic_error.py (area normalisation)
+  exclude: []
+
+geometry:
+  k: 50
+  t: 100
+  neigvecs: 300
+  n_biharmonic: 100     # eigenpairs used for the biharmonic (intrinsic) embedding
+
+# 2D (DINOv2) features computed directly from the point cloud - no mesh (DV-Matcher-style projection)
+dino:
+  enabled: true
+  cache_dir: "cache/SCAPE/dino"
+  upsampler: "bilinear"    # "bilinear" (DINOv2, no install) | "featup" (DV-Matcher; needs pip install of FeatUp)
+  variant: "dinov2_vits14" # bilinear backbone (FeatUp uses its own ViT-S/14)
+  views: "orbit"           # "orbit" (yaw-robust, averaged) | "dvmatcher" (3 axis views, concatenated)
+  projection: "zbuffer"    # "zbuffer" (visibility + confidence) | "xray" (DV-Matcher, summed depth)
+  n_azimuth: 8             # orbit: views per elevation ring
+  elevations_deg: [-30, 0, 30]
+  img_size: 448            # 448 -> 32x32 DINOv2 patches (224 for featup)
+  splat: 3                 # each point covers (2*splat+1)^2 pixels (DV-Matcher: 2 -> 5x5 at 224 px)
+  colormap: "PiYG"         # depth-map colouring (DV-Matcher)
+  depth_tol: 0.02          # zbuffer visibility tolerance (fraction of shape diameter)
+  smooth_k: 8              # kNN feature smoothing (0 = off)
+  batch_views: 4
+
+# OEM subsets only; aligned full shapes always pass to the encoder.
+orientation_model:
+  sampling_method: random
+  sample_fraction: 0.70
+  sample_min_points: 1024
+  sampling_seed: 2026
+  angle_overlap: 1.5
+
+training:
+  epochs: 40
+  seed: 42
+  validation_size: 2
+  validation_every: 1
+  orientation_warmup_epochs: 15   # OEM-only epochs
+  orientation_transition_epochs: 5
+  orientation_validation_base_bins: [0, 1, 2, 3, 4, 5, 6, 7]
+  noise_variance: 0.0
+  lr: 0.00025
+  oem_lr_schedule:
+    start_epoch: 21
+    duration_epochs: 20
+    start_lr: 0.00005
+    min_lr: 0.00001
+  device: "cuda"
+  checkpoint_dir: "results/SCAPE/checkpoints"
+  checkpoint_name: "model_SCAPE.pth"
+  mask_ratio: 0.7
+  feature_ratio: 0.5
+  # existing encoder losses
+  contrastive_margin: 0.2
+  contrastive_weight: 10.0
+  cycle_eps: 0.02
+  cycle_weight: 100.0
+  distortion_weight: 120.0
+  distortion_tau: 0.04
+  distortion_samples: 384
+  orientation_weight: 60.0
+  distortion_mode: "biharmonic"   # "biharmonic" (intrinsic, new) or "euclidean" (old)
+  # new losses
+  self_identity_weight: 5.0
+  self_identity_keep_ratio: 0.8
+  self_identity_max_rot_deg: 15.0
+  self_identity_noise_std: 0.003
+  self_identity_queries: 1024
+  self_identity_temperature: 0.07
+  dino_weight: 20.0               # 0 disables DINO distillation (and the DINO head)
+  # OEM losses
+  angle_weight: 250.0
+  angle_weight_init: 350.0
+  angle_warmup_epochs: 10
+  domain_weight: 150.0
+  oem_residual_weight: 1.0
+  oem_subset_consistency_weight: 0.1
+
+# Correspondence validation during training -> checkpoints/model_SCAPE_best.pth / _final.pth
+validation:
+  every_iters: 500      # validate every N encoder optimisation steps (and at every epoch end)
+  method: "heat_only"   # "heat_only" (fast) | "hadm" (full, slower) | "greedy"
+  max_pairs: 6          # ordered validation pairs evaluated
+
+# matcher + OEM settings used by validation (keep in sync with corres_config.yaml)
+oem:
+  votes: 4              # OEM test-time voting over different point subsets
+  hypotheses: 3         # best bin, best+180, second bin; verified by anchor consistency (1 = plain OEM)
+
+matching:
+  method: "hadm"        # "hadm" (full) | "heat_only" (no deformation) | "greedy" (old argmax baseline)
+  w_encoder: 1.0
+  w_dino: 1.0           # 0 = encoder features only
+  dino_pca_dim: 64
+  use_predicted_dino: true
+  w_heat: 1.5
+  heat_sigmas: [0.15, 0.35]
+  anchor_rounds: [48, 96, 160]
+  anchor_pool: 2000
+  anchor_candidates_factor: 3
+  consistency_sigma: 0.12
+  accept_threshold: 0.5
+  rigid_init: true
+  deform:
+    enabled: true
+    stages:
+      - {nodes: 64,  arap: 20.0, w_pos: 2.0,  iters: 120}
+      - {nodes: 160, arap: 5.0,  w_pos: 6.0,  iters: 120}
+      - {nodes: 320, arap: 1.5,  w_pos: 15.0, iters: 120}
+    skin_k: 4
+    node_neighbors: 6
+    lr: 0.01
+    reassign_every: 10
+    data_samples: 4000
+    w_anchor: 1.0
+    w_data: 1.0
+    robust_sigma: 0.08
+  final_w_pos: null
+  chunk: 4096
+
+model:
+  embed_dim: 128
+  depth: 4
+  num_heads: 4
+  decoder_embed_dim: 64
+  decoder_depth: 2
+  decoder_num_heads: 4
+  mlk_ratio: 2.0
+  num_mask_queries: 5000
+  encoder_k: 20
+  aamg_k: 10
+  aamg_emb_dim: 64
+  pos_embed_dim: 64
+  temperature: 0.1

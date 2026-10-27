@@ -1,121 +1,137 @@
+"""Mean geodesic error of predicted point-to-point maps (the standard benchmark metric).
+
+    python geodesic_error.py --config config/SHREC/corres_config.yaml --method hadm
+    python geodesic_error.py --dataset FAUST                 # = config/FAUST/corres_config.yaml, method hadm
+
+For every ground-truth pair (source S, target T) with a prediction
+<result_dir>/p2p_<method>/p2p_{T}_to_{S}.txt  (row i: "i j", source vertex i -> target vertex j):
+    error = mean_k  d_T( gt_T[k], pred[gt_S[k]] ) / sqrt(area(T))
+Ground truth (gt block of the config):
+    vts  - FAUST / SCAPE / SURREAL template correspondences  <corres_dir>/<name>.vts
+    map  - SHREC'19 pair maps  <map_dir>/i_j.map  (line v of shape i -> vertex of shape j)
+Geodesic distances d_T: <mat_dir>/<T>.mat ('dist') if present, otherwise computed on the
+mesh <off_dir>/<T>.off (heat method if potpourri3d is installed, else Dijkstra on mesh edges).
+The mesh is used here only - evaluation is the one step that needs it.
+
+Writes <result_dir>/eval_<method>/: pair_errors.csv, summary.json, summary.txt,
+and a log in <result_dir>/logs/.
+"""
 import os
+import csv
 import argparse
-import scipy.io as sio
+from collections import defaultdict
+
 import numpy as np
-from pyFM.mesh import TriMesh
+import yaml
 
-parser = argparse.ArgumentParser(description="Evaluate Geodesic Error on Shape Correspondences")
-parser.add_argument('--dataset', type=str, default='SCAPE', choices=['SCAPE', 'FAUST'], help='Dataset to evaluate (default: SCAPE)')
-parser.add_argument('--p2p_dir', type=str, default=None, help='Directory with predicted p2p .txt files')
-parser.add_argument('--n_test', type=int, default=20, help='Number of test shapes to evaluate (last N files, default: 20)')
-args = parser.parse_args()
+from utils.gt import gt_pairs, gt_vertex_pairs, geodesic_rows, mesh_area
+from utils.logger import start_logging, save_json
 
-dataset = args.dataset.upper()
 
-def get_quality_label(error):
-    """Standard DV-Matcher / Princeton scale for sqrt(Area) normalization."""
+def quality_label(error):
+    """Common scale for sqrt(area)-normalised geodesic error."""
     if error < 0.02: return "Excellent (SOTA)"
-    elif error < 0.05: return "Very good"
-    elif error < 0.1: return "Good"
-    elif error < 0.2: return "Moderate"
-    else: return "Poor"
+    if error < 0.05: return "Very good"
+    if error < 0.1: return "Good"
+    if error < 0.2: return "Moderate"
+    return "Poor"
 
-# ====== PATH CONFIGURATION ======
-off_dir = f'./input/{dataset}/off/'
-mat_dir = f'./input/{dataset}/mat/'
-vts_dir = f'./input/{dataset}/corres/'
 
-if args.p2p_dir:
-    p2p_dir = args.p2p_dir
-else:
-    p2p_dir = f'./p2p_results_st_te_{dataset}/'
+def count_vertices_off(path):
+    with open(path) as f:
+        first = f.readline().split()
+        header = first[1:] if len(first) > 1 else f.readline().split()
+        return int(header[0])
 
-# 1. Get the last N files for the test set
-all_off_files = sorted([f for f in os.listdir(off_dir) if f.endswith('.off')])
-test_files = all_off_files[-args.n_test:] if args.n_test > 0 else all_off_files
-mesh_names = [os.path.splitext(f)[0] for f in test_files]
 
-results_log = []
+def main():
+    parser = argparse.ArgumentParser(description="Geodesic error evaluation")
+    parser.add_argument('--config', default=None, help='dataset corres_config.yaml')
+    parser.add_argument('--dataset', default=None, help='FAUST | SCAPE | SURREAL | SHREC (uses its corres config)')
+    parser.add_argument('--method', default='hadm', help='which p2p_<method> folder to evaluate')
+    parser.add_argument('--p2p_dir', default=None, help='override the prediction folder')
+    parser.add_argument('--result_dir', default=None,
+                        help='override result_dir (same value as given to corres.py)')
+    args = parser.parse_args()
+    config_path = args.config or f"config/{(args.dataset or 'FAUST').upper()}/corres_config.yaml"
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+    result_dir = args.result_dir or config.get('result_dir', 'results')
+    start_logging(result_dir, f'eval_{args.method}')
 
-print(f"{'Source':<12} | {'Target':<12} | {'Geo Error':<10}")
-print("-" * 45)
+    gt_cfg = config['gt']
+    off_dir = gt_cfg.get('off_dir', os.path.join(os.path.dirname(os.path.dirname(
+        os.path.normpath(config['data_dir']))), 'off'))
+    p2p_dir = args.p2p_dir or os.path.join(result_dir, f'p2p_{args.method}')
+    out_dir = os.path.join(result_dir, f'eval_{args.method}')
+    os.makedirs(out_dir, exist_ok=True)
 
-# ====== NESTED LOOP FOR PAIRWISE EVALUATION (400 possible pairs) ======
-for src_name in mesh_names:
-    for tgt_name in mesh_names:
-        
-        # Skip self-matching (e.g., 085 to 085) as it's not a valid test of deformation
-        if src_name == tgt_name:
-            continue
-            
-        # Naming convention: p2p_{TARGET}_to_{SOURCE}.txt
-        p2p_filename = f"p2p_{tgt_name}_to_{src_name}.txt"
-        p2p_path = os.path.join(p2p_dir, p2p_filename)
-        
-        # Only process if the prediction file exists
-        if not os.path.exists(p2p_path):
-            continue
-            
-        try:
-            # 1. Load Target Mesh Area (for DV-Matcher sqrt(Area) norm)
-            mesh_target = TriMesh(f"{off_dir}{tgt_name}.off", area_normalize=False)
-            norm_factor = np.sqrt(mesh_target.area)
+    predicted = []
+    names = sorted({os.path.splitext(f)[0] for f in os.listdir(off_dir) if f.endswith('.off')})
+    for s, t in gt_pairs(gt_cfg, names):
+        path = os.path.join(p2p_dir, f"p2p_{t}_to_{s}.txt")
+        if os.path.exists(path):
+            predicted.append((s, t, path))
+    if not predicted:
+        print(f"[!] No predictions found in {p2p_dir} for the ground-truth pairs "
+              f"(expected names p2p_{{target}}_to_{{source}}.txt)")
+        return
+    print(f"Evaluating {len(predicted)} pairs from {p2p_dir} | ground truth: {gt_cfg.get('format', 'vts')}")
 
-            # 2. Load Distance Matrix of the TARGET
-            dist_matrix = sio.loadmat(f"{mat_dir}{tgt_name}.mat")['dist']
+    by_target = defaultdict(list)
+    for s, t, path in predicted:
+        by_target[t].append((s, path))
 
-            # 3. Load Ground Truth Correspondences
-            # .vts files map vertices to a common template; subtracting 1 for 0-based
-            corr_target = np.loadtxt(f"{vts_dir}{tgt_name}.vts", dtype=np.int32) - 1
-            corr_source = np.loadtxt(f"{vts_dir}{src_name}.vts", dtype=np.int32) - 1
+    results = []
+    print(f"{'Source':<14} | {'Target':<14} | {'Geo error':<10}")
+    print('-' * 46)
+    for t, items in by_target.items():
+        n_t = count_vertices_off(os.path.join(off_dir, t + '.off'))
+        gts = {}
+        for s, path in items:
+            n_s = count_vertices_off(os.path.join(off_dir, s + '.off'))
+            gts[s] = gt_vertex_pairs(gt_cfg, s, t, n_s, n_t)
+        rows = np.unique(np.concatenate([g[1] for g in gts.values()]))
+        D = geodesic_rows(t, gt_cfg, rows, off_path=os.path.join(off_dir, t + '.off'))
+        row_of = np.full(n_t, -1, dtype=np.int64)
+        row_of[rows] = np.arange(len(rows))
+        norm = np.sqrt(mesh_area(os.path.join(off_dir, t + '.off')))
+        for s, path in items:
+            data = np.loadtxt(path, dtype=np.int64, ndmin=2)
+            pred = np.empty(len(data), dtype=np.int64)
+            pred[data[:, 0]] = data[:, 1]
+            i_s, i_t = gts[s]
+            if pred.max() >= n_t or len(pred) <= i_s.max():
+                print(f"[!] {os.path.basename(path)}: indices do not fit the meshes "
+                      f"(rows {len(pred)}, max target {pred.max()}, target has {n_t} vertices) - skipped")
+                continue
+            err = D[row_of[i_t], pred[i_s]].mean() / norm
+            results.append({'source': s, 'target': t, 'error': float(err)})
+            print(f"{s:<14} | {t:<14} | {err:.6f}")
 
-            # 4. Load Predicted P2P Map
-            txt_data = np.genfromtxt(p2p_path, dtype=int)
-            p2p_preds = txt_data[:, 1] # Extract target predictions column
-            
-            if p2p_preds.min() == 1: p2p_preds -= 1
+    errors = np.array([r['error'] for r in results])
+    summary = {'dataset_config': config_path, 'method': args.method, 'p2p_dir': p2p_dir,
+               'pairs': len(results), 'mean_geodesic_error': float(errors.mean()),
+               'median': float(np.median(errors)), 'std': float(errors.std()),
+               'quality': quality_label(errors.mean()),
+               'best5': sorted(results, key=lambda r: r['error'])[:5],
+               'worst5': sorted(results, key=lambda r: -r['error'])[:5]}
+    with open(os.path.join(out_dir, 'pair_errors.csv'), 'w', newline='') as f:
+        w = csv.DictWriter(f, fieldnames=['source', 'target', 'error'])
+        w.writeheader()
+        w.writerows(results)
+    save_json(summary, os.path.join(out_dir, 'summary.json'))
+    lines = ['=' * 55,
+             f"MEAN GEODESIC ERROR ({args.method}, {len(results)} pairs): {summary['mean_geodesic_error']:.6f}",
+             f"median {summary['median']:.6f} | std {summary['std']:.6f} | {summary['quality']}",
+             '=' * 55, 'Best 5:'] + \
+            [f"  {r['source']} -> {r['target']}: {r['error']:.6f}" for r in summary['best5']] + \
+            ['Worst 5:'] + [f"  {r['source']} -> {r['target']}: {r['error']:.6f}" for r in summary['worst5']]
+    with open(os.path.join(out_dir, 'summary.txt'), 'w') as f:
+        f.write('\n'.join(lines) + '\n')
+    print('\n' + '\n'.join(lines))
+    print(f"\nSaved: {out_dir}/pair_errors.csv, summary.json, summary.txt")
 
-            # 5. Geodesic Error Calculation
-            # predictions: what the model says target vertex is for each source GT point
-            predictions = p2p_preds[corr_source]
-            
-            # raw_errors: distance on target mesh between GT target and Prediction
-            raw_errors = dist_matrix[corr_target, predictions]
-            mean_geo_error = raw_errors.mean() / norm_factor
-            
-            results_log.append({
-                'source': src_name,
-                'target': tgt_name,
-                'error': mean_geo_error,
-                'mat_file': f"{tgt_name}.mat"
-            })
-            
-            print(f"{src_name:<12} | {tgt_name:<12} | {mean_geo_error:.6f}")
 
-        except Exception as e:
-            # print(f"Error on {src_name}->{tgt_name}: {e}")
-            pass
-
-# ====== FINAL ANALYSIS ======
-if results_log:
-    all_errors = [r['error'] for r in results_log]
-    total_avg = np.mean(all_errors)
-    
-    # Sort by error (Ascending)
-    sorted_results = sorted(results_log, key=lambda x: x['error'])
-    
-    print("\n" + "="*55)
-    print(f"{dataset} MEAN GEODESIC ERROR (Over {len(results_log)} pairs)")
-    print(f"OVERALL AVERAGE: {total_avg:.6f}")
-    print(f"Overall Quality: {get_quality_label(total_avg)}")
-    print("="*55)
-    
-    print(f"\nTOP 5 BEST {dataset} MATCHES (Minimum Error):")
-    print(f"{'Rank':<5} | {'Error':<10} | {'Pair (Src -> Tgt)':<20} | {'Target .mat'}")
-    print("-" * 65)
-    for idx, res in enumerate(sorted_results[:5]):
-        pair_str = f"{res['source']} -> {res['target']}"
-        print(f"#{idx+1:<4} | {res['error']:.6f} | {pair_str:<20} | {res['mat_file']}")
-    print("-" * 65)
-else:
-    print("\n[!] No valid p2p files found. Ensure naming is: p2p_{target}_to_{source}.txt")
+if __name__ == '__main__':
+    main()

@@ -13,8 +13,9 @@ class ASMAE(nn.Module):
     def __init__(self, feature_dim=32, embed_dim=128, depth=4, num_heads=4,
                  decoder_embed_dim=128, decoder_depth=2, decoder_num_heads=4,
                  mlk_ratio=4., num_mask_queries=5000, encoder_k=20, aamg_k=10,
-                 aamg_emb_dim=64, pos_embed_dim=64, temperature=1.0):
+                 aamg_emb_dim=64, pos_embed_dim=64, temperature=1.0, dino_dim=0):
         super().__init__()
+        self.dino_dim = dino_dim
         
         self.num_mask_queries = num_mask_queries 
         self.mask_generator = AAMG_Query(feature_dim, num_queries=self.num_mask_queries, embed_dim=aamg_emb_dim, k=aamg_k, temperature=temperature)
@@ -66,6 +67,13 @@ class ASMAE(nn.Module):
         self.decoder_norm = nn.LayerNorm(decoder_embed_dim)
         
         self.pred_head = nn.Linear(decoder_embed_dim, feature_dim)
+
+        # Optional DINO distillation head: geometry-only encoder -> DINOv2 space.
+        # Lets the encoder predict semantic features for vertices that no camera saw.
+        self.dino_head = None
+        if dino_dim > 0:
+            self.dino_head = nn.Sequential(
+                nn.Linear(embed_dim, embed_dim * 2), nn.GELU(), nn.Linear(embed_dim * 2, dino_dim))
         self.initialize_weights()
 
     def initialize_weights(self):
@@ -152,3 +160,30 @@ class ASMAE(nn.Module):
 
     def extract_features(self, x, pos):
         return self.forward_encoder(x, pos, mask_binary=None)
+
+    def predict_dino(self, z):
+        """Encoder embedding [B, N, embed] -> unit-norm predicted DINO feature."""
+        if self.dino_head is None:
+            return None
+        return F.normalize(self.dino_head(z), dim=-1)
+
+
+def build_asmae(model_cfg, feature_dim, dino_dim=0):
+    """Construct ASMAE from a YAML model block (shared by train / test / corres)."""
+    return ASMAE(
+        feature_dim=feature_dim,
+        embed_dim=model_cfg['embed_dim'],
+        depth=model_cfg['depth'],
+        num_heads=model_cfg['num_heads'],
+        decoder_embed_dim=model_cfg['decoder_embed_dim'],
+        decoder_depth=model_cfg['decoder_depth'],
+        decoder_num_heads=model_cfg['decoder_num_heads'],
+        mlk_ratio=model_cfg['mlk_ratio'],
+        num_mask_queries=model_cfg.get('num_mask_queries', 5000),
+        encoder_k=model_cfg.get('encoder_k', 20),
+        aamg_k=model_cfg.get('aamg_k', 10),
+        aamg_emb_dim=model_cfg.get('aamg_emb_dim', 64),
+        pos_embed_dim=model_cfg.get('pos_embed_dim', 64),
+        temperature=model_cfg.get('temperature', 1.0),
+        dino_dim=dino_dim,
+    )
