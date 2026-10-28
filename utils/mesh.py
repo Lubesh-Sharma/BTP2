@@ -382,22 +382,23 @@ def get_edges(VPos, ITris):
     L = sparse.coo_matrix((V, (I, J)), shape=(N, N)).tocsr()
     return L.nonzero()
 
-from sklearn.neighbors import NearestNeighbors
 def build_knn_edges(VPos, k=5):
-    """
-    Builds a k-nearest neighbor graph based on vertices.
-    Algorithm matches coe_old_embedding/export_embedding_mesh.py logic.
-    """
+    """Undirected union of kNN selections, preserving every vertex and its index."""
     from sklearn.neighbors import NearestNeighbors
-    # Find k+1 neighbors (including self)
-    nbrs = NearestNeighbors(n_neighbors=k+1, algorithm='ball_tree').fit(VPos)
-    distances, indices = nbrs.kneighbors(VPos)
-    
-    edges = []
-    for i in range(len(VPos)):
-        neighbors = indices[i, 1:]  # Skip self
+    if isinstance(k, bool) or not isinstance(k, (int, np.integer)) or k < 1:
+        raise ValueError('kNN neighbor count must be a positive integer')
+    if len(VPos) < 2:
+        raise ValueError('A kNN graph needs at least two vertices')
+    count = min(k, len(VPos) - 1)
+    nbrs = NearestNeighbors(n_neighbors=count + 1, algorithm='ball_tree').fit(VPos)
+    _, indices = nbrs.kneighbors(VPos)
+
+    edges = set()
+    for i, candidates in enumerate(indices):
+        # With duplicate coordinates, self need not be the first returned index.
+        neighbors = candidates[candidates != i][:count]
         for neighbor_idx in neighbors:
-            if i < neighbor_idx:  # Avoid duplicate edges [i, j] and [j, i]
-                edges.append([i, neighbor_idx])
-    
-    return VPos, np.array(edges)
+            # kNN is asymmetric: keep one-way selections as undirected edges too.
+            edges.add((min(i, int(neighbor_idx)), max(i, int(neighbor_idx))))
+
+    return VPos, np.asarray(sorted(edges), dtype=np.int32).reshape(-1, 2)

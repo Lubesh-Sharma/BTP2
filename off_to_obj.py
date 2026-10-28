@@ -6,6 +6,31 @@ import numpy as np
 from utils.training_utils import set_seed
 from utils.mesh import load_off, save_obj, build_knn_edges
 
+
+def convert_off_file(input_path, output_path, k):
+    """Replace one OBJ graph while retaining original vertex coordinates/order."""
+    from scipy.sparse import coo_matrix
+    from scipy.sparse.csgraph import connected_components
+
+    vertices, _, _ = load_off(input_path)
+    vertices, edges = build_knn_edges(vertices, k=k)
+    graph = coo_matrix((np.ones(len(edges)), (edges[:, 0], edges[:, 1])),
+                       shape=(len(vertices), len(vertices)))
+    components = connected_components(graph, directed=False, return_labels=False)
+    if components != 1:
+        raise ValueError(f'{input_path}: k={k} gives {components} disconnected components; '
+                         'check the points or increase the graph neighbor count before training.')
+    os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
+    temporary = str(output_path) + '.tmp'
+    try:
+        save_obj(temporary, vertices, np.array([]), edges)
+        os.replace(temporary, output_path)
+    finally:
+        if os.path.exists(temporary):
+            os.remove(temporary)
+    return output_path
+
+
 def main():
     parser = argparse.ArgumentParser(description="OFF to OBJ Conversion")
     parser.add_argument('--config', type=str, default='config/off_to_obj.yaml', help='Path to config file')
@@ -48,22 +73,10 @@ def main():
     
     for off_file in off_files:
         in_path = os.path.join(input_folder, off_file)
-        try:
-            # Use utility functions from utils.mesh
-            VPos, VColors, ITris = load_off(in_path)
-            
-            # Build kNN edge-based connectivity graph (Algorithm from coe_old_embedding/export_embedding_mesh.py)
-            V, Edges = build_knn_edges(VPos, k=k)
-            
-            out_name = os.path.splitext(off_file)[0] + ".obj"
-            out_path = os.path.join(output_folder, out_name)
-            
-            # Save as OBJ with lines (l)
-            save_obj(out_path, V, np.array([]), Edges)
-            print(f"  ✓ {off_file} processed")
-            
-        except Exception as e:
-            print(f"  ✗ Error processing {off_file}: {e}")
+        out_name = os.path.splitext(off_file)[0] + ".obj"
+        out_path = os.path.join(output_folder, out_name)
+        convert_off_file(in_path, out_path, k)
+        print(f"  ✓ {off_file} processed")
 
 if __name__ == '__main__':
     main()

@@ -9,6 +9,47 @@ import numpy as np
 from core.preprocessing import process_geometry
 
 
+def rebuild_training_data(config):
+    """Rebuild OFF -> OBJ graphs and geometry caches, including test shapes.
+
+    Locations come from the training YAML: preprocessing.off_dir, data_dir,
+    output_dir and cache_dir. DINO caches are independent of graph connectivity.
+    """
+    from pathlib import Path
+    from off_to_obj import convert_off_file
+
+    settings = config.get('preprocessing', {})
+    source = settings.get('off_dir', config.get('gt', {}).get('off_dir'))
+    if not source or not os.path.isdir(source):
+        raise ValueError('--rebuild-data needs an existing preprocessing.off_dir in the training YAML')
+    sources = sorted(Path(source).glob('*.off'))
+    if config.get('split', {}).get('mode', 'sequential') != 'all':
+        sources = sources[:config.get('train_size', 60) + config.get('test_size', 40)]
+    if not sources:
+        raise ValueError(f'No OFF files to rebuild in {source}')
+    data_dir = Path(config['data_dir'])
+    expected = {p.stem for p in sources}
+    extras = sorted(p.name for p in data_dir.glob('*.obj') if p.stem not in expected)
+    if extras:
+        raise ValueError(f'{data_dir} contains OBJ files outside the selected OFF inputs: {extras}')
+    cache_dir = Path(config.get('cache_dir', os.path.join(config['output_dir'], 'cache')))
+    k = settings.get('knn_k', 10)
+    geo = config['geometry']
+    print(f'Rebuilding {len(sources)} OBJ graphs: {source} -> {data_dir} (kNN k={k})')
+    # Complete conversion/invalidation before computing expensive spectral caches.
+    for source_path in sources:
+        # Invalidate all geometry variants for this shape; graph k is not in cache names.
+        for cached in cache_dir.glob(f'{source_path.stem}_geo_*.npz'):
+            cached.unlink()
+        convert_off_file(str(source_path), str(data_dir / (source_path.stem + '.obj')), k)
+    for source_path in sources:
+        process_geometry(str(data_dir / (source_path.stem + '.obj')),
+                         geo['k'], geo['t'], geo.get('neigvecs', 300),
+                         output_dir=config['output_dir'],
+                         n_biharmonic=geo.get('n_biharmonic', 100), cache_dir=str(cache_dir))
+    print(f'Rebuild complete: geometry caches in {cache_dir}; FPS files in {config["output_dir"]}')
+
+
 def dataset_split(config):
     """Sorted .obj files -> (train_files, validation_files, test_files).
 

@@ -3,6 +3,12 @@ output_dir: "results/SHREC/preprocess"   # FPS .pp debug files
 result_dir: "results/SHREC"            # logs, checkpoints, p2p maps, evaluation
 cache_dir: "cache/SHREC"
 
+# Used by train.py --rebuild-data. OBJ graphs overwrite data_dir above;
+# rebuilt geometry caches/FPS files use cache_dir/output_dir above.
+preprocessing:
+  off_dir: "input/SHREC/off"
+  knn_k: 20             # graph neighbors; geometry.k below is the FPS landmark count
+
 # Ground truth (validation + evaluation only; never used for training)
 gt:
   format: "map"                  # SHREC'19: i_j.map, line v of shape i -> vertex of shape j (1-based)
