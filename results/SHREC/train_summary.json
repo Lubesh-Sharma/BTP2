@@ -1,6 +1,6 @@
 {
-  "best_metric": 0.03210674598813057,
-  "best_step": 32500,
+  "best_metric": 0.03393590822815895,
+  "best_step": 35000,
   "metric": "geodesic",
   "best_checkpoint": "results/SHREC/checkpoints/model_SHREC_best.pth",
   "final_checkpoint": "results/SHREC/checkpoints/model_SHREC_final.pth",
@@ -8,1009 +8,1009 @@
     {
       "epoch": 31,
       "step": 500,
-      "metric": 0.08141018450260162,
+      "metric": 0.11701089143753052,
       "mode": "geodesic"
     },
     {
       "epoch": 31,
       "step": 552,
-      "metric": 0.14322547614574432,
+      "metric": 0.15297581255435944,
       "mode": "geodesic"
     },
     {
       "epoch": 32,
       "step": 1000,
-      "metric": 0.0860125720500946,
+      "metric": 0.06890607625246048,
       "mode": "geodesic"
     },
     {
       "epoch": 32,
       "step": 1104,
-      "metric": 0.1046825647354126,
+      "metric": 0.0783093050122261,
       "mode": "geodesic"
     },
     {
       "epoch": 33,
       "step": 1500,
-      "metric": 0.11606606096029282,
+      "metric": 0.12311416864395142,
       "mode": "geodesic"
     },
     {
       "epoch": 33,
       "step": 1656,
-      "metric": 0.14298883080482483,
+      "metric": 0.04919271171092987,
       "mode": "geodesic"
     },
     {
       "epoch": 34,
       "step": 2000,
-      "metric": 0.14432118833065033,
+      "metric": 0.10725147277116776,
       "mode": "geodesic"
     },
     {
       "epoch": 34,
       "step": 2208,
-      "metric": 0.14741121232509613,
+      "metric": 0.07234115898609161,
       "mode": "geodesic"
     },
     {
       "epoch": 35,
       "step": 2500,
-      "metric": 0.10084974765777588,
+      "metric": 0.07892131060361862,
       "mode": "geodesic"
     },
     {
       "epoch": 35,
       "step": 2760,
-      "metric": 0.16887255012989044,
+      "metric": 0.13281850516796112,
       "mode": "geodesic"
     },
     {
       "epoch": 36,
       "step": 3000,
-      "metric": 0.05671060457825661,
+      "metric": 0.08037951588630676,
       "mode": "geodesic"
     },
     {
       "epoch": 36,
       "step": 3312,
-      "metric": 0.09062298387289047,
+      "metric": 0.07817722111940384,
       "mode": "geodesic"
     },
     {
       "epoch": 37,
       "step": 3500,
-      "metric": 0.07166894525289536,
+      "metric": 0.046882644295692444,
       "mode": "geodesic"
     },
     {
       "epoch": 37,
       "step": 3864,
-      "metric": 0.07227244973182678,
+      "metric": 0.05099987983703613,
       "mode": "geodesic"
     },
     {
       "epoch": 38,
       "step": 4000,
-      "metric": 0.17218565940856934,
+      "metric": 0.05737503990530968,
       "mode": "geodesic"
     },
     {
       "epoch": 38,
       "step": 4416,
-      "metric": 0.14788374304771423,
+      "metric": 0.0593925416469574,
       "mode": "geodesic"
     },
     {
       "epoch": 39,
       "step": 4500,
-      "metric": 0.15010322630405426,
+      "metric": 0.08139555901288986,
       "mode": "geodesic"
     },
     {
       "epoch": 39,
       "step": 4968,
-      "metric": 0.14577297866344452,
+      "metric": 0.07880830019712448,
       "mode": "geodesic"
     },
     {
       "epoch": 40,
       "step": 5000,
-      "metric": 0.10422578454017639,
+      "metric": 0.07109848409891129,
       "mode": "geodesic"
     },
     {
       "epoch": 40,
       "step": 5500,
-      "metric": 0.15364450216293335,
+      "metric": 0.133734792470932,
       "mode": "geodesic"
     },
     {
       "epoch": 40,
       "step": 5520,
-      "metric": 0.0873262882232666,
+      "metric": 0.06798981875181198,
       "mode": "geodesic"
     },
     {
       "epoch": 41,
       "step": 6000,
-      "metric": 0.06948099285364151,
+      "metric": 0.09371865540742874,
       "mode": "geodesic"
     },
     {
       "epoch": 41,
       "step": 6072,
-      "metric": 0.1415780633687973,
+      "metric": 0.0772206038236618,
       "mode": "geodesic"
     },
     {
       "epoch": 42,
       "step": 6500,
-      "metric": 0.08898937702178955,
+      "metric": 0.058182258158922195,
       "mode": "geodesic"
     },
     {
       "epoch": 42,
       "step": 6624,
-      "metric": 0.07948356866836548,
+      "metric": 0.042311009019613266,
       "mode": "geodesic"
     },
     {
       "epoch": 43,
       "step": 7000,
-      "metric": 0.0935000404715538,
+      "metric": 0.06725393235683441,
       "mode": "geodesic"
     },
     {
       "epoch": 43,
       "step": 7176,
-      "metric": 0.08626872301101685,
+      "metric": 0.07997835427522659,
       "mode": "geodesic"
     },
     {
       "epoch": 44,
       "step": 7500,
-      "metric": 0.08836030215024948,
+      "metric": 0.06898423284292221,
       "mode": "geodesic"
     },
     {
       "epoch": 44,
       "step": 7728,
-      "metric": 0.0835716649889946,
+      "metric": 0.06301667541265488,
       "mode": "geodesic"
     },
     {
       "epoch": 45,
       "step": 8000,
-      "metric": 0.08694150298833847,
+      "metric": 0.059151604771614075,
       "mode": "geodesic"
     },
     {
       "epoch": 45,
       "step": 8280,
-      "metric": 0.08645159006118774,
+      "metric": 0.041302334517240524,
       "mode": "geodesic"
     },
     {
       "epoch": 46,
       "step": 8500,
-      "metric": 0.038878683000802994,
+      "metric": 0.07551596313714981,
       "mode": "geodesic"
     },
     {
       "epoch": 46,
       "step": 8832,
-      "metric": 0.04068706929683685,
+      "metric": 0.06662468612194061,
       "mode": "geodesic"
     },
     {
       "epoch": 47,
       "step": 9000,
-      "metric": 0.07082077860832214,
+      "metric": 0.04434587433934212,
       "mode": "geodesic"
     },
     {
       "epoch": 47,
       "step": 9384,
-      "metric": 0.08872663974761963,
+      "metric": 0.076594777405262,
       "mode": "geodesic"
     },
     {
       "epoch": 48,
       "step": 9500,
-      "metric": 0.05686675012111664,
+      "metric": 0.07702793926000595,
       "mode": "geodesic"
     },
     {
       "epoch": 48,
       "step": 9936,
-      "metric": 0.05774843692779541,
+      "metric": 0.04218684136867523,
       "mode": "geodesic"
     },
     {
       "epoch": 49,
       "step": 10000,
-      "metric": 0.044114504009485245,
+      "metric": 0.07671309262514114,
       "mode": "geodesic"
     },
     {
       "epoch": 49,
       "step": 10488,
-      "metric": 0.06636982411146164,
+      "metric": 0.0418827198445797,
       "mode": "geodesic"
     },
     {
       "epoch": 50,
       "step": 10500,
-      "metric": 0.07832100242376328,
+      "metric": 0.05040417239069939,
       "mode": "geodesic"
     },
     {
       "epoch": 50,
       "step": 11000,
-      "metric": 0.03630822151899338,
+      "metric": 0.057375580072402954,
       "mode": "geodesic"
     },
     {
       "epoch": 50,
       "step": 11040,
-      "metric": 0.07485147565603256,
+      "metric": 0.042568404227495193,
       "mode": "geodesic"
     },
     {
       "epoch": 51,
       "step": 11500,
-      "metric": 0.03813396394252777,
+      "metric": 0.039341434836387634,
       "mode": "geodesic"
     },
     {
       "epoch": 51,
       "step": 11592,
-      "metric": 0.04234636202454567,
+      "metric": 0.09926670789718628,
       "mode": "geodesic"
     },
     {
       "epoch": 52,
       "step": 12000,
-      "metric": 0.07930605113506317,
+      "metric": 0.07072490453720093,
       "mode": "geodesic"
     },
     {
       "epoch": 52,
       "step": 12144,
-      "metric": 0.03588714078068733,
+      "metric": 0.08122521638870239,
       "mode": "geodesic"
     },
     {
       "epoch": 53,
       "step": 12500,
-      "metric": 0.06600943952798843,
+      "metric": 0.03959544748067856,
       "mode": "geodesic"
     },
     {
       "epoch": 53,
       "step": 12696,
-      "metric": 0.036869823932647705,
+      "metric": 0.041955504566431046,
       "mode": "geodesic"
     },
     {
       "epoch": 54,
       "step": 13000,
-      "metric": 0.06406290084123611,
+      "metric": 0.040017444640398026,
       "mode": "geodesic"
     },
     {
       "epoch": 54,
       "step": 13248,
-      "metric": 0.07793843746185303,
+      "metric": 0.07154200226068497,
       "mode": "geodesic"
     },
     {
       "epoch": 55,
       "step": 13500,
-      "metric": 0.0627518743276596,
+      "metric": 0.08013437688350677,
       "mode": "geodesic"
     },
     {
       "epoch": 55,
       "step": 13800,
-      "metric": 0.06268668919801712,
+      "metric": 0.043213844299316406,
       "mode": "geodesic"
     },
     {
       "epoch": 56,
       "step": 14000,
-      "metric": 0.03727250546216965,
+      "metric": 0.04612265154719353,
       "mode": "geodesic"
     },
     {
       "epoch": 56,
       "step": 14352,
-      "metric": 0.05004628002643585,
+      "metric": 0.043603669852018356,
       "mode": "geodesic"
     },
     {
       "epoch": 57,
       "step": 14500,
-      "metric": 0.03524915501475334,
+      "metric": 0.07886660844087601,
       "mode": "geodesic"
     },
     {
       "epoch": 57,
       "step": 14904,
-      "metric": 0.06308902055025101,
+      "metric": 0.042309317737817764,
       "mode": "geodesic"
     },
     {
       "epoch": 58,
       "step": 15000,
-      "metric": 0.06032772362232208,
+      "metric": 0.08094843477010727,
       "mode": "geodesic"
     },
     {
       "epoch": 58,
       "step": 15456,
-      "metric": 0.07962363213300705,
+      "metric": 0.041159387677907944,
       "mode": "geodesic"
     },
     {
       "epoch": 59,
       "step": 15500,
-      "metric": 0.0615946389734745,
+      "metric": 0.040494371205568314,
       "mode": "geodesic"
     },
     {
       "epoch": 59,
       "step": 16000,
-      "metric": 0.03634549677371979,
+      "metric": 0.041266024112701416,
       "mode": "geodesic"
     },
     {
       "epoch": 59,
       "step": 16008,
-      "metric": 0.0641108825802803,
+      "metric": 0.03961716592311859,
       "mode": "geodesic"
     },
     {
       "epoch": 60,
       "step": 16500,
-      "metric": 0.05981074273586273,
+      "metric": 0.07895740866661072,
       "mode": "geodesic"
     },
     {
       "epoch": 60,
       "step": 16560,
-      "metric": 0.059716422110795975,
+      "metric": 0.04031302407383919,
       "mode": "geodesic"
     },
     {
       "epoch": 61,
       "step": 17000,
-      "metric": 0.07892142981290817,
+      "metric": 0.03945265710353851,
       "mode": "geodesic"
     },
     {
       "epoch": 61,
       "step": 17112,
-      "metric": 0.034608397632837296,
+      "metric": 0.03900560364127159,
       "mode": "geodesic"
     },
     {
       "epoch": 62,
       "step": 17500,
-      "metric": 0.07292842864990234,
+      "metric": 0.07839346677064896,
       "mode": "geodesic"
     },
     {
       "epoch": 62,
       "step": 17664,
-      "metric": 0.03767475485801697,
+      "metric": 0.03727196529507637,
       "mode": "geodesic"
     },
     {
       "epoch": 63,
       "step": 18000,
-      "metric": 0.033907823264598846,
+      "metric": 0.06506144255399704,
       "mode": "geodesic"
     },
     {
       "epoch": 63,
       "step": 18216,
-      "metric": 0.03593963757157326,
+      "metric": 0.08105349540710449,
       "mode": "geodesic"
     },
     {
       "epoch": 64,
       "step": 18500,
-      "metric": 0.04778145253658295,
+      "metric": 0.040259893983602524,
       "mode": "geodesic"
     },
     {
       "epoch": 64,
       "step": 18768,
-      "metric": 0.05648377537727356,
+      "metric": 0.040141813457012177,
       "mode": "geodesic"
     },
     {
       "epoch": 65,
       "step": 19000,
-      "metric": 0.050351765006780624,
+      "metric": 0.03950126841664314,
       "mode": "geodesic"
     },
     {
       "epoch": 65,
       "step": 19320,
-      "metric": 0.03640890493988991,
+      "metric": 0.07746782153844833,
       "mode": "geodesic"
     },
     {
       "epoch": 66,
       "step": 19500,
-      "metric": 0.07951440662145615,
+      "metric": 0.03914790600538254,
       "mode": "geodesic"
     },
     {
       "epoch": 66,
       "step": 19872,
-      "metric": 0.041649412363767624,
+      "metric": 0.09421930462121964,
       "mode": "geodesic"
     },
     {
       "epoch": 67,
       "step": 20000,
-      "metric": 0.06036302074790001,
+      "metric": 0.040100451558828354,
       "mode": "geodesic"
     },
     {
       "epoch": 67,
       "step": 20424,
-      "metric": 0.05487917363643646,
+      "metric": 0.08037208765745163,
       "mode": "geodesic"
     },
     {
       "epoch": 68,
       "step": 20500,
-      "metric": 0.07972424477338791,
+      "metric": 0.03817048296332359,
       "mode": "geodesic"
     },
     {
       "epoch": 68,
       "step": 20976,
-      "metric": 0.07929757237434387,
+      "metric": 0.07508919388055801,
       "mode": "geodesic"
     },
     {
       "epoch": 69,
       "step": 21000,
-      "metric": 0.036053624004125595,
+      "metric": 0.08038867264986038,
       "mode": "geodesic"
     },
     {
       "epoch": 69,
       "step": 21500,
-      "metric": 0.07918050140142441,
+      "metric": 0.04431265965104103,
       "mode": "geodesic"
     },
     {
       "epoch": 69,
       "step": 21528,
-      "metric": 0.04208708927035332,
+      "metric": 0.038140710443258286,
       "mode": "geodesic"
     },
     {
       "epoch": 70,
       "step": 22000,
-      "metric": 0.03675909712910652,
+      "metric": 0.07773954421281815,
       "mode": "geodesic"
     },
     {
       "epoch": 70,
       "step": 22080,
-      "metric": 0.04632812738418579,
+      "metric": 0.08178850263357162,
       "mode": "geodesic"
     },
     {
       "epoch": 71,
       "step": 22500,
-      "metric": 0.05734391510486603,
+      "metric": 0.038919348269701004,
       "mode": "geodesic"
     },
     {
       "epoch": 71,
       "step": 22632,
-      "metric": 0.03667054325342178,
+      "metric": 0.05260986089706421,
       "mode": "geodesic"
     },
     {
       "epoch": 72,
       "step": 23000,
-      "metric": 0.046873897314071655,
+      "metric": 0.039414744824171066,
       "mode": "geodesic"
     },
     {
       "epoch": 72,
       "step": 23184,
-      "metric": 0.0440659262239933,
+      "metric": 0.041027918457984924,
       "mode": "geodesic"
     },
     {
       "epoch": 73,
       "step": 23500,
-      "metric": 0.058800455182790756,
+      "metric": 0.03745514154434204,
       "mode": "geodesic"
     },
     {
       "epoch": 73,
       "step": 23736,
-      "metric": 0.06019701063632965,
+      "metric": 0.03815549612045288,
       "mode": "geodesic"
     },
     {
       "epoch": 74,
       "step": 24000,
-      "metric": 0.04934139922261238,
+      "metric": 0.039456624537706375,
       "mode": "geodesic"
     },
     {
       "epoch": 74,
       "step": 24288,
-      "metric": 0.042849719524383545,
+      "metric": 0.039588384330272675,
       "mode": "geodesic"
     },
     {
       "epoch": 75,
       "step": 24500,
-      "metric": 0.04776060953736305,
+      "metric": 0.0390990786254406,
       "mode": "geodesic"
     },
     {
       "epoch": 75,
       "step": 24840,
-      "metric": 0.032811760902404785,
+      "metric": 0.038723498582839966,
       "mode": "geodesic"
     },
     {
       "epoch": 76,
       "step": 25000,
-      "metric": 0.046927932649850845,
+      "metric": 0.04611983522772789,
       "mode": "geodesic"
     },
     {
       "epoch": 76,
       "step": 25392,
-      "metric": 0.03468167781829834,
+      "metric": 0.03954160585999489,
       "mode": "geodesic"
     },
     {
       "epoch": 77,
       "step": 25500,
-      "metric": 0.03449026122689247,
+      "metric": 0.04315030947327614,
       "mode": "geodesic"
     },
     {
       "epoch": 77,
       "step": 25944,
-      "metric": 0.04496319964528084,
+      "metric": 0.0378006212413311,
       "mode": "geodesic"
     },
     {
       "epoch": 78,
       "step": 26000,
-      "metric": 0.044788483530282974,
+      "metric": 0.03772670403122902,
       "mode": "geodesic"
     },
     {
       "epoch": 78,
       "step": 26496,
-      "metric": 0.03981883078813553,
+      "metric": 0.037558410316705704,
       "mode": "geodesic"
     },
     {
       "epoch": 79,
       "step": 26500,
-      "metric": 0.04079614207148552,
+      "metric": 0.037758905440568924,
       "mode": "geodesic"
     },
     {
       "epoch": 79,
       "step": 27000,
-      "metric": 0.04597122594714165,
+      "metric": 0.05997949838638306,
       "mode": "geodesic"
     },
     {
       "epoch": 79,
       "step": 27048,
-      "metric": 0.03642754256725311,
+      "metric": 0.03673006221652031,
       "mode": "geodesic"
     },
     {
       "epoch": 80,
       "step": 27500,
-      "metric": 0.03629569709300995,
+      "metric": 0.061163682490587234,
       "mode": "geodesic"
     },
     {
       "epoch": 80,
       "step": 27600,
-      "metric": 0.03481222689151764,
+      "metric": 0.03742166981101036,
       "mode": "geodesic"
     },
     {
       "epoch": 81,
       "step": 28000,
-      "metric": 0.03418547287583351,
+      "metric": 0.03747843578457832,
       "mode": "geodesic"
     },
     {
       "epoch": 81,
       "step": 28152,
-      "metric": 0.045606669038534164,
+      "metric": 0.038630250841379166,
       "mode": "geodesic"
     },
     {
       "epoch": 82,
       "step": 28500,
-      "metric": 0.0465657114982605,
+      "metric": 0.0629069060087204,
       "mode": "geodesic"
     },
     {
       "epoch": 82,
       "step": 28704,
-      "metric": 0.042766496539115906,
+      "metric": 0.03705742955207825,
       "mode": "geodesic"
     },
     {
       "epoch": 83,
       "step": 29000,
-      "metric": 0.03320961818099022,
+      "metric": 0.04167788103222847,
       "mode": "geodesic"
     },
     {
       "epoch": 83,
       "step": 29256,
-      "metric": 0.032593172043561935,
+      "metric": 0.03741820901632309,
       "mode": "geodesic"
     },
     {
       "epoch": 84,
       "step": 29500,
-      "metric": 0.033332306891679764,
+      "metric": 0.03852156177163124,
       "mode": "geodesic"
     },
     {
       "epoch": 84,
       "step": 29808,
-      "metric": 0.03436242416501045,
+      "metric": 0.06370416283607483,
       "mode": "geodesic"
     },
     {
       "epoch": 85,
       "step": 30000,
-      "metric": 0.0337836854159832,
+      "metric": 0.07807443290948868,
       "mode": "geodesic"
     },
     {
       "epoch": 85,
       "step": 30360,
-      "metric": 0.03281212970614433,
+      "metric": 0.03844204545021057,
       "mode": "geodesic"
     },
     {
       "epoch": 86,
       "step": 30500,
-      "metric": 0.03372138738632202,
+      "metric": 0.06351824849843979,
       "mode": "geodesic"
     },
     {
       "epoch": 86,
       "step": 30912,
-      "metric": 0.04533286765217781,
+      "metric": 0.03621285781264305,
       "mode": "geodesic"
     },
     {
       "epoch": 87,
       "step": 31000,
-      "metric": 0.03430410847067833,
+      "metric": 0.035468798130750656,
       "mode": "geodesic"
     },
     {
       "epoch": 87,
       "step": 31464,
-      "metric": 0.032755497843027115,
+      "metric": 0.0810748040676117,
       "mode": "geodesic"
     },
     {
       "epoch": 88,
       "step": 31500,
-      "metric": 0.04354606941342354,
+      "metric": 0.035606350749731064,
       "mode": "geodesic"
     },
     {
       "epoch": 88,
       "step": 32000,
-      "metric": 0.03306541219353676,
+      "metric": 0.04889867082238197,
       "mode": "geodesic"
     },
     {
       "epoch": 88,
       "step": 32016,
-      "metric": 0.03849044814705849,
+      "metric": 0.040576547384262085,
       "mode": "geodesic"
     },
     {
       "epoch": 89,
       "step": 32500,
-      "metric": 0.03210674598813057,
+      "metric": 0.03677929565310478,
       "mode": "geodesic"
     },
     {
       "epoch": 89,
       "step": 32568,
-      "metric": 0.04183569550514221,
+      "metric": 0.03630217909812927,
       "mode": "geodesic"
     },
     {
       "epoch": 90,
       "step": 33000,
-      "metric": 0.04192531108856201,
+      "metric": 0.03484630584716797,
       "mode": "geodesic"
     },
     {
       "epoch": 90,
       "step": 33120,
-      "metric": 0.032385025173425674,
+      "metric": 0.03780398145318031,
       "mode": "geodesic"
     },
     {
       "epoch": 91,
       "step": 33500,
-      "metric": 0.03450664505362511,
+      "metric": 0.038787439465522766,
       "mode": "geodesic"
     },
     {
       "epoch": 91,
       "step": 33672,
-      "metric": 0.03452056273818016,
+      "metric": 0.035008326172828674,
       "mode": "geodesic"
     },
     {
       "epoch": 92,
       "step": 34000,
-      "metric": 0.04628302529454231,
+      "metric": 0.03775783255696297,
       "mode": "geodesic"
     },
     {
       "epoch": 92,
       "step": 34224,
-      "metric": 0.03495865687727928,
+      "metric": 0.03550085052847862,
       "mode": "geodesic"
     },
     {
       "epoch": 93,
       "step": 34500,
-      "metric": 0.04516321048140526,
+      "metric": 0.0358845517039299,
       "mode": "geodesic"
     },
     {
       "epoch": 93,
       "step": 34776,
-      "metric": 0.04556591436266899,
+      "metric": 0.03608499839901924,
       "mode": "geodesic"
     },
     {
       "epoch": 94,
       "step": 35000,
-      "metric": 0.046046528965234756,
+      "metric": 0.03393590822815895,
       "mode": "geodesic"
     },
     {
       "epoch": 94,
       "step": 35328,
-      "metric": 0.033741019666194916,
+      "metric": 0.05817244574427605,
       "mode": "geodesic"
     },
     {
       "epoch": 95,
       "step": 35500,
-      "metric": 0.04548512026667595,
+      "metric": 0.034545838832855225,
       "mode": "geodesic"
     },
     {
       "epoch": 95,
       "step": 35880,
-      "metric": 0.0357326976954937,
+      "metric": 0.07064825296401978,
       "mode": "geodesic"
     },
     {
       "epoch": 96,
       "step": 36000,
-      "metric": 0.045482244342565536,
+      "metric": 0.03592218458652496,
       "mode": "geodesic"
     },
     {
       "epoch": 96,
       "step": 36432,
-      "metric": 0.043160658329725266,
+      "metric": 0.037175409495830536,
       "mode": "geodesic"
     },
     {
       "epoch": 97,
       "step": 36500,
-      "metric": 0.03312580659985542,
+      "metric": 0.035209257155656815,
       "mode": "geodesic"
     },
     {
       "epoch": 97,
       "step": 36984,
-      "metric": 0.03320731222629547,
+      "metric": 0.03491627797484398,
       "mode": "geodesic"
     },
     {
       "epoch": 98,
       "step": 37000,
-      "metric": 0.03494219854474068,
+      "metric": 0.042079340666532516,
       "mode": "geodesic"
     },
     {
       "epoch": 98,
       "step": 37500,
-      "metric": 0.03261403739452362,
+      "metric": 0.035003963857889175,
       "mode": "geodesic"
     },
     {
       "epoch": 98,
       "step": 37536,
-      "metric": 0.034442730247974396,
+      "metric": 0.035051826387643814,
       "mode": "geodesic"
     },
     {
       "epoch": 99,
       "step": 38000,
-      "metric": 0.04040460288524628,
+      "metric": 0.03790499269962311,
       "mode": "geodesic"
     },
     {
       "epoch": 99,
       "step": 38088,
-      "metric": 0.03342597931623459,
+      "metric": 0.03492779657244682,
       "mode": "geodesic"
     },
     {
       "epoch": 100,
       "step": 38500,
-      "metric": 0.033541563898324966,
+      "metric": 0.03635808080434799,
       "mode": "geodesic"
     },
     {
       "epoch": 100,
       "step": 38640,
-      "metric": 0.03397615626454353,
+      "metric": 0.03558021038770676,
       "mode": "geodesic"
     },
     {
       "epoch": 101,
       "step": 39000,
-      "metric": 0.03663279488682747,
+      "metric": 0.058572158217430115,
       "mode": "geodesic"
     },
     {
       "epoch": 101,
       "step": 39192,
-      "metric": 0.03260260075330734,
+      "metric": 0.03550402447581291,
       "mode": "geodesic"
     },
     {
       "epoch": 102,
       "step": 39500,
-      "metric": 0.03326587751507759,
+      "metric": 0.03510677069425583,
       "mode": "geodesic"
     },
     {
       "epoch": 102,
       "step": 39744,
-      "metric": 0.04285155236721039,
+      "metric": 0.05939890816807747,
       "mode": "geodesic"
     },
     {
       "epoch": 103,
       "step": 40000,
-      "metric": 0.03304168954491615,
+      "metric": 0.034482598304748535,
       "mode": "geodesic"
     },
     {
       "epoch": 103,
       "step": 40296,
-      "metric": 0.04077678173780441,
+      "metric": 0.05346629023551941,
       "mode": "geodesic"
     },
     {
       "epoch": 104,
       "step": 40500,
-      "metric": 0.033344022929668427,
+      "metric": 0.034642450511455536,
       "mode": "geodesic"
     },
     {
       "epoch": 104,
       "step": 40848,
-      "metric": 0.04352014884352684,
+      "metric": 0.03534352406859398,
       "mode": "geodesic"
     },
     {
       "epoch": 105,
       "step": 41000,
-      "metric": 0.033194880932569504,
+      "metric": 0.036372337490320206,
       "mode": "geodesic"
     },
     {
       "epoch": 105,
       "step": 41400,
-      "metric": 0.044446203857660294,
+      "metric": 0.03517397120594978,
       "mode": "geodesic"
     },
     {
       "epoch": 106,
       "step": 41500,
-      "metric": 0.04414185509085655,
+      "metric": 0.035345252603292465,
       "mode": "geodesic"
     },
     {
       "epoch": 106,
       "step": 41952,
-      "metric": 0.04395848885178566,
+      "metric": 0.03480640426278114,
       "mode": "geodesic"
     },
     {
       "epoch": 107,
       "step": 42000,
-      "metric": 0.04352187737822533,
+      "metric": 0.03422458842396736,
       "mode": "geodesic"
     },
     {
       "epoch": 107,
       "step": 42500,
-      "metric": 0.044757574796676636,
+      "metric": 0.035246752202510834,
       "mode": "geodesic"
     },
     {
       "epoch": 107,
       "step": 42504,
-      "metric": 0.04468033090233803,
+      "metric": 0.03870300576090813,
       "mode": "geodesic"
     },
     {
       "epoch": 108,
       "step": 43000,
-      "metric": 0.03409356623888016,
+      "metric": 0.06009767949581146,
       "mode": "geodesic"
     },
     {
       "epoch": 108,
       "step": 43056,
-      "metric": 0.04382901266217232,
+      "metric": 0.035194236785173416,
       "mode": "geodesic"
     },
     {
       "epoch": 109,
       "step": 43500,
-      "metric": 0.032593775540590286,
+      "metric": 0.03538350388407707,
       "mode": "geodesic"
     },
     {
       "epoch": 109,
       "step": 43608,
-      "metric": 0.039885204285383224,
+      "metric": 0.03628942742943764,
       "mode": "geodesic"
     },
     {
       "epoch": 110,
       "step": 44000,
-      "metric": 0.04367876052856445,
+      "metric": 0.03508893772959709,
       "mode": "geodesic"
     },
     {
       "epoch": 110,
       "step": 44160,
-      "metric": 0.04455120489001274,
+      "metric": 0.0345255471765995,
       "mode": "geodesic"
     }
   ]

@@ -3,6 +3,10 @@
   "output_dir": "results/SHREC/preprocess",
   "result_dir": "results/SHREC",
   "cache_dir": "cache/SHREC",
+  "preprocessing": {
+    "off_dir": "input/SHREC/off",
+    "knn_k": 20
+  },
   "gt": {
     "format": "map",
     "map_dir": "input/SHREC/map",
