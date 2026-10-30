@@ -5,7 +5,7 @@
   "cache_dir": "cache/SHREC",
   "preprocessing": {
     "off_dir": "input/SHREC/off",
-    "knn_k": 20
+    "knn_k": 10
   },
   "gt": {
     "format": "map",

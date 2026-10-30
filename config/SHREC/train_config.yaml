@@ -7,7 +7,7 @@ cache_dir: "cache/SHREC"
 # rebuilt geometry caches/FPS files use cache_dir/output_dir above.
 preprocessing:
   off_dir: "input/SHREC/off"
-  knn_k: 20             # graph neighbors; geometry.k below is the FPS landmark count
+  knn_k: 10             # graph neighbors; geometry.k below is the FPS landmark count
 
 # Ground truth (validation + evaluation only; never used for training)
 gt:
