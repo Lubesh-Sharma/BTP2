@@ -3,12 +3,6 @@ output_dir: "results/SHREC/preprocess"   # FPS .pp debug files
 result_dir: "results/SHREC"            # logs, checkpoints, p2p maps, evaluation
 cache_dir: "cache/SHREC"
 
-# Used by train.py --rebuild-data. OBJ graphs overwrite data_dir above;
-# rebuilt geometry caches/FPS files use cache_dir/output_dir above.
-preprocessing:
-  off_dir: "input/SHREC/off"
-  knn_k: 10             # graph neighbors; geometry.k below is the FPS landmark count
-
 # Ground truth (validation + evaluation only; never used for training)
 gt:
   format: "map"                  # SHREC'19: i_j.map, line v of shape i -> vertex of shape j (1-based)
@@ -54,8 +48,8 @@ orientation_model:
   angle_overlap: 1.5
 
 training:
-  epochs: 110
-  pairs_per_epoch: 552   # random ordered pairs per epoch; same update budget per epoch
+  epochs: 70
+  pairs_per_epoch: 552   # random ordered pairs per epoch (= 24x23, keeps the tuned 70-epoch schedule)
   seed: 42
   validation_size: 2
   validation_every: 1
@@ -64,11 +58,6 @@ training:
   orientation_validation_base_bins: [0, 1, 2, 3, 4, 5, 6, 7]
   noise_variance: 0.0
   lr: 0.00025
-  encoder_lr_schedule:
-    start_epoch: 41      # after 30 OEM-only epochs and the 10-epoch encoder ramp
-    duration_epochs: 70  # cosine decay through epoch 110
-    start_lr: 0.00025
-    min_lr: 0.00001
   oem_lr_schedule:
     start_epoch: 41
     duration_epochs: 30

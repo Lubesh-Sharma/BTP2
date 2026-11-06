@@ -1,0 +1,978 @@
+[log] corres.py --config config/SCAPE/corres_config.yaml --checkpoint results/SCAPE/checkpoints/model_SCAPE_best.pth
+[log] writing to results/SCAPE/logs/corres_hadm_20261104_113738.log
+Checkpoint: results/SCAPE/checkpoints/model_SCAPE_best.pth (trained on input/SCAPE/obj/k_10)
+Dataset too small (71 files). Adjusted to 42 train, 29 test
+
+============================================================
+Loading 29 test shapes from: input/SCAPE/obj/k_10
+============================================================
+[1/29] mesh042.obj ... [input/SCAPE/obj/k_10/mesh042.obj] Loading...
+[input/SCAPE/obj/k_10/mesh042.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh042.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh042.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+[2D] Loading dinov2_vits14 (facebookresearch/dinov2)...
+/data/home/user/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)
+  warnings.warn("xFormers is not available (SwiGLU)")
+/data/home/user/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)
+  warnings.warn("xFormers is not available (Attention)")
+/data/home/user/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)
+  warnings.warn("xFormers is not available (Block)")
+OK (4995 vertices, 53 features, DINO 384-d, mean conf 0.70)
+[2/29] mesh043.obj ... [input/SCAPE/obj/k_10/mesh043.obj] Loading...
+[input/SCAPE/obj/k_10/mesh043.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh043.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh043.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (4998 vertices, 53 features, DINO 384-d, mean conf 0.77)
+[3/29] mesh044.obj ... [input/SCAPE/obj/k_10/mesh044.obj] Loading...
+[input/SCAPE/obj/k_10/mesh044.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh044.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh044.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.70)
+[4/29] mesh045.obj ... [input/SCAPE/obj/k_10/mesh045.obj] Loading...
+[input/SCAPE/obj/k_10/mesh045.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh045.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh045.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (4999 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[5/29] mesh046.obj ... [input/SCAPE/obj/k_10/mesh046.obj] Loading...
+[input/SCAPE/obj/k_10/mesh046.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh046.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh046.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.72)
+[6/29] mesh047.obj ... [input/SCAPE/obj/k_10/mesh047.obj] Loading...
+[input/SCAPE/obj/k_10/mesh047.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh047.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh047.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (4999 vertices, 53 features, DINO 384-d, mean conf 0.72)
+[7/29] mesh048.obj ... [input/SCAPE/obj/k_10/mesh048.obj] Loading...
+[input/SCAPE/obj/k_10/mesh048.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh048.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh048.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (4999 vertices, 53 features, DINO 384-d, mean conf 0.75)
+[8/29] mesh049.obj ... [input/SCAPE/obj/k_10/mesh049.obj] Loading...
+[input/SCAPE/obj/k_10/mesh049.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh049.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh049.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.64)
+[9/29] mesh050.obj ... [input/SCAPE/obj/k_10/mesh050.obj] Loading...
+[input/SCAPE/obj/k_10/mesh050.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh050.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh050.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5003 vertices, 53 features, DINO 384-d, mean conf 0.68)
+[10/29] mesh052.obj ... [input/SCAPE/obj/k_10/mesh052.obj] Loading...
+[input/SCAPE/obj/k_10/mesh052.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh052.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh052.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.76)
+[11/29] mesh053.obj ... [input/SCAPE/obj/k_10/mesh053.obj] Loading...
+[input/SCAPE/obj/k_10/mesh053.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh053.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh053.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5004 vertices, 53 features, DINO 384-d, mean conf 0.74)
+[12/29] mesh054.obj ... [input/SCAPE/obj/k_10/mesh054.obj] Loading...
+[input/SCAPE/obj/k_10/mesh054.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh054.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh054.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.74)
+[13/29] mesh055.obj ... [input/SCAPE/obj/k_10/mesh055.obj] Loading...
+[input/SCAPE/obj/k_10/mesh055.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh055.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh055.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5007 vertices, 53 features, DINO 384-d, mean conf 0.69)
+[14/29] mesh056.obj ... [input/SCAPE/obj/k_10/mesh056.obj] Loading...
+[input/SCAPE/obj/k_10/mesh056.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh056.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh056.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5003 vertices, 53 features, DINO 384-d, mean conf 0.76)
+[15/29] mesh057.obj ... [input/SCAPE/obj/k_10/mesh057.obj] Loading...
+[input/SCAPE/obj/k_10/mesh057.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh057.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh057.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.73)
+[16/29] mesh058.obj ... [input/SCAPE/obj/k_10/mesh058.obj] Loading...
+[input/SCAPE/obj/k_10/mesh058.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh058.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh058.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.77)
+[17/29] mesh059.obj ... [input/SCAPE/obj/k_10/mesh059.obj] Loading...
+[input/SCAPE/obj/k_10/mesh059.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh059.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh059.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.67)
+[18/29] mesh060.obj ... [input/SCAPE/obj/k_10/mesh060.obj] Loading...
+[input/SCAPE/obj/k_10/mesh060.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh060.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh060.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[19/29] mesh061.obj ... [input/SCAPE/obj/k_10/mesh061.obj] Loading...
+[input/SCAPE/obj/k_10/mesh061.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh061.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh061.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5002 vertices, 53 features, DINO 384-d, mean conf 0.70)
+[20/29] mesh062.obj ... [input/SCAPE/obj/k_10/mesh062.obj] Loading...
+[input/SCAPE/obj/k_10/mesh062.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh062.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh062.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5001 vertices, 53 features, DINO 384-d, mean conf 0.75)
+[21/29] mesh063.obj ... [input/SCAPE/obj/k_10/mesh063.obj] Loading...
+[input/SCAPE/obj/k_10/mesh063.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh063.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh063.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.76)
+[22/29] mesh064.obj ... [input/SCAPE/obj/k_10/mesh064.obj] Loading...
+[input/SCAPE/obj/k_10/mesh064.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh064.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh064.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (4999 vertices, 53 features, DINO 384-d, mean conf 0.74)
+[23/29] mesh065.obj ... [input/SCAPE/obj/k_10/mesh065.obj] Loading...
+[input/SCAPE/obj/k_10/mesh065.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh065.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh065.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (4999 vertices, 53 features, DINO 384-d, mean conf 0.76)
+[24/29] mesh066.obj ... [input/SCAPE/obj/k_10/mesh066.obj] Loading...
+[input/SCAPE/obj/k_10/mesh066.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh066.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh066.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (4999 vertices, 53 features, DINO 384-d, mean conf 0.70)
+[25/29] mesh067.obj ... [input/SCAPE/obj/k_10/mesh067.obj] Loading...
+[input/SCAPE/obj/k_10/mesh067.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh067.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh067.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5001 vertices, 53 features, DINO 384-d, mean conf 0.73)
+[26/29] mesh068.obj ... [input/SCAPE/obj/k_10/mesh068.obj] Loading...
+[input/SCAPE/obj/k_10/mesh068.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh068.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh068.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (4998 vertices, 53 features, DINO 384-d, mean conf 0.74)
+[27/29] mesh069.obj ... [input/SCAPE/obj/k_10/mesh069.obj] Loading...
+[input/SCAPE/obj/k_10/mesh069.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh069.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh069.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.74)
+[28/29] mesh070.obj ... [input/SCAPE/obj/k_10/mesh070.obj] Loading...
+[input/SCAPE/obj/k_10/mesh070.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh070.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh070.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5005 vertices, 53 features, DINO 384-d, mean conf 0.72)
+[29/29] mesh071.obj ... [input/SCAPE/obj/k_10/mesh071.obj] Loading...
+[input/SCAPE/obj/k_10/mesh071.obj] Running FPS (k=50)...
+[input/SCAPE/obj/k_10/mesh071.obj] Laplacian spectrum (300 eigenpairs) + HKS (t=100)...
+[input/SCAPE/obj/k_10/mesh071.obj] Feature dim: 53 (50 HKS + 3 XYZ)
+OK (5005 vertices, 53 features, DINO 384-d, mean conf 0.66)
+Loaded 29 test shapes
+
+Matching 812 pairs | method=hadm | DINO=on | device=cuda
+[1/812] mesh042 -> mesh043 | yaw 54.0 deg | anchors 160 | 6.7s
+[2/812] mesh042 -> mesh044 | yaw 71.0 deg | anchors 160 | 5.9s
+[3/812] mesh042 -> mesh045 | yaw 57.2 deg | anchors 160 | 5.9s
+[4/812] mesh042 -> mesh046 | yaw -106.4 deg | anchors 160 | 5.9s
+[5/812] mesh042 -> mesh047 | yaw 76.0 deg | anchors 160 | 5.9s
+[6/812] mesh042 -> mesh048 | yaw 33.1 deg | anchors 160 | 5.9s
+[7/812] mesh042 -> mesh049 | yaw -74.5 deg | anchors 160 | 5.9s
+[8/812] mesh042 -> mesh050 | yaw 78.8 deg | anchors 160 | 5.9s
+[9/812] mesh042 -> mesh052 | yaw 39.2 deg | anchors 160 | 6.0s
+[10/812] mesh042 -> mesh053 | yaw 42.7 deg | anchors 160 | 5.9s
+[11/812] mesh042 -> mesh054 | yaw 56.5 deg | anchors 160 | 6.0s
+[12/812] mesh042 -> mesh055 | yaw 86.3 deg | anchors 160 | 6.0s
+[13/812] mesh042 -> mesh056 | yaw 30.0 deg | anchors 160 | 6.0s
+[14/812] mesh042 -> mesh057 | yaw 125.9 deg | anchors 160 | 5.9s
+[15/812] mesh042 -> mesh058 | yaw 45.3 deg | anchors 160 | 6.0s
+[16/812] mesh042 -> mesh059 | yaw 125.3 deg | anchors 160 | 6.0s
+[17/812] mesh042 -> mesh060 | yaw 102.4 deg | anchors 160 | 5.9s
+[18/812] mesh042 -> mesh061 | yaw -136.9 deg | anchors 160 | 5.9s
+[19/812] mesh042 -> mesh062 | yaw 40.2 deg | anchors 160 | 6.0s
+[20/812] mesh042 -> mesh063 | yaw 55.3 deg | anchors 160 | 6.0s
+[21/812] mesh042 -> mesh064 | yaw -134.0 deg | anchors 160 | 6.0s
+[22/812] mesh042 -> mesh065 | yaw 116.8 deg | anchors 160 | 5.9s
+[23/812] mesh042 -> mesh066 | yaw 43.8 deg | anchors 160 | 6.0s
+[24/812] mesh042 -> mesh067 | yaw 45.3 deg | anchors 160 | 6.0s
+[25/812] mesh042 -> mesh068 | yaw -163.6 deg | anchors 160 | 6.0s
+[26/812] mesh042 -> mesh069 | yaw 78.6 deg | anchors 160 | 6.0s
+[27/812] mesh042 -> mesh070 | yaw -48.9 deg | anchors 160 | 6.0s
+[28/812] mesh042 -> mesh071 | yaw 80.5 deg | anchors 160 | 6.0s
+[29/812] mesh043 -> mesh042 | yaw -79.6 deg | anchors 160 | 6.0s
+[30/812] mesh043 -> mesh044 | yaw -16.3 deg | anchors 160 | 6.0s
+[31/812] mesh043 -> mesh045 | yaw -3.1 deg | anchors 160 | 6.0s
+[32/812] mesh043 -> mesh046 | yaw 6.8 deg | anchors 160 | 5.9s
+[33/812] mesh043 -> mesh047 | yaw -4.8 deg | anchors 160 | 6.0s
+[34/812] mesh043 -> mesh048 | yaw -176.1 deg | anchors 160 | 6.0s
+[35/812] mesh043 -> mesh049 | yaw 13.9 deg | anchors 160 | 6.0s
+[36/812] mesh043 -> mesh050 | yaw 15.3 deg | anchors 160 | 6.0s
+[37/812] mesh043 -> mesh052 | yaw 173.6 deg | anchors 160 | 6.0s
+[38/812] mesh043 -> mesh053 | yaw 2.1 deg | anchors 160 | 5.9s
+[39/812] mesh043 -> mesh054 | yaw 9.2 deg | anchors 160 | 6.0s
+[40/812] mesh043 -> mesh055 | yaw 3.1 deg | anchors 160 | 5.9s
+[41/812] mesh043 -> mesh056 | yaw -16.5 deg | anchors 160 | 6.0s
+[42/812] mesh043 -> mesh057 | yaw 64.6 deg | anchors 160 | 6.0s
+[43/812] mesh043 -> mesh058 | yaw 6.2 deg | anchors 160 | 6.0s
+[44/812] mesh043 -> mesh059 | yaw -102.9 deg | anchors 160 | 6.0s
+[45/812] mesh043 -> mesh060 | yaw -108.0 deg | anchors 160 | 6.0s
+[46/812] mesh043 -> mesh061 | yaw 138.8 deg | anchors 160 | 6.0s
+[47/812] mesh043 -> mesh062 | yaw -173.1 deg | anchors 160 | 6.0s
+[48/812] mesh043 -> mesh063 | yaw -0.1 deg | anchors 160 | 6.0s
+[49/812] mesh043 -> mesh064 | yaw -11.5 deg | anchors 160 | 6.0s
+[50/812] mesh043 -> mesh065 | yaw 91.4 deg | anchors 160 | 6.0s
+[51/812] mesh043 -> mesh066 | yaw 4.5 deg | anchors 160 | 6.0s
+[52/812] mesh043 -> mesh067 | yaw 14.6 deg | anchors 160 | 6.0s
+[53/812] mesh043 -> mesh068 | yaw 141.0 deg | anchors 160 | 6.0s
+[54/812] mesh043 -> mesh069 | yaw -155.1 deg | anchors 160 | 6.0s
+[55/812] mesh043 -> mesh070 | yaw -36.1 deg | anchors 160 | 6.0s
+[56/812] mesh043 -> mesh071 | yaw -79.2 deg | anchors 160 | 6.0s
+[57/812] mesh044 -> mesh042 | yaw 90.6 deg | anchors 160 | 6.0s
+[58/812] mesh044 -> mesh043 | yaw -167.3 deg | anchors 160 | 6.0s
+[59/812] mesh044 -> mesh045 | yaw 17.7 deg | anchors 160 | 5.9s
+[60/812] mesh044 -> mesh046 | yaw -159.4 deg | anchors 160 | 6.0s
+[61/812] mesh044 -> mesh047 | yaw 12.3 deg | anchors 160 | 6.0s
+[62/812] mesh044 -> mesh048 | yaw -173.0 deg | anchors 160 | 6.0s
+[63/812] mesh044 -> mesh049 | yaw 21.7 deg | anchors 160 | 6.0s
+[64/812] mesh044 -> mesh050 | yaw 26.9 deg | anchors 160 | 6.0s
+[65/812] mesh044 -> mesh052 | yaw -169.7 deg | anchors 160 | 6.0s
+[66/812] mesh044 -> mesh053 | yaw -163.8 deg | anchors 160 | 5.9s
+[67/812] mesh044 -> mesh054 | yaw -154.1 deg | anchors 160 | 6.0s
+[68/812] mesh044 -> mesh055 | yaw -3.0 deg | anchors 160 | 6.0s
+[69/812] mesh044 -> mesh056 | yaw 8.9 deg | anchors 160 | 5.9s
+[70/812] mesh044 -> mesh057 | yaw 84.0 deg | anchors 160 | 6.0s
+[71/812] mesh044 -> mesh058 | yaw -167.6 deg | anchors 160 | 6.0s
+[72/812] mesh044 -> mesh059 | yaw -113.4 deg | anchors 160 | 5.9s
+[73/812] mesh044 -> mesh060 | yaw -116.2 deg | anchors 160 | 6.0s
+[74/812] mesh044 -> mesh061 | yaw -155.1 deg | anchors 160 | 6.0s
+[75/812] mesh044 -> mesh062 | yaw -163.5 deg | anchors 160 | 6.0s
+[76/812] mesh044 -> mesh063 | yaw 16.0 deg | anchors 160 | 5.9s
+[77/812] mesh044 -> mesh064 | yaw 10.4 deg | anchors 160 | 6.0s
+[78/812] mesh044 -> mesh065 | yaw -66.2 deg | anchors 160 | 6.0s
+[79/812] mesh044 -> mesh066 | yaw 16.3 deg | anchors 160 | 6.0s
+[80/812] mesh044 -> mesh067 | yaw -160.9 deg | anchors 160 | 6.0s
+[81/812] mesh044 -> mesh068 | yaw 168.8 deg | anchors 160 | 6.0s
+[82/812] mesh044 -> mesh069 | yaw -150.0 deg | anchors 160 | 6.0s
+[83/812] mesh044 -> mesh070 | yaw 164.8 deg | anchors 160 | 5.9s
+[84/812] mesh044 -> mesh071 | yaw -147.5 deg | anchors 160 | 5.9s
+[85/812] mesh045 -> mesh042 | yaw -70.7 deg | anchors 160 | 5.9s
+[86/812] mesh045 -> mesh043 | yaw 7.4 deg | anchors 160 | 5.9s
+[87/812] mesh045 -> mesh044 | yaw -15.4 deg | anchors 160 | 6.0s
+[88/812] mesh045 -> mesh046 | yaw -171.1 deg | anchors 160 | 6.0s
+[89/812] mesh045 -> mesh047 | yaw 1.7 deg | anchors 160 | 6.0s
+[90/812] mesh045 -> mesh048 | yaw -175.0 deg | anchors 160 | 6.0s
+[91/812] mesh045 -> mesh049 | yaw 11.3 deg | anchors 160 | 6.0s
+[92/812] mesh045 -> mesh050 | yaw 17.0 deg | anchors 160 | 5.9s
+[93/812] mesh045 -> mesh052 | yaw 179.9 deg | anchors 160 | 6.0s
+[94/812] mesh045 -> mesh053 | yaw 5.2 deg | anchors 160 | 5.9s
+[95/812] mesh045 -> mesh054 | yaw -168.2 deg | anchors 160 | 5.9s
+[96/812] mesh045 -> mesh055 | yaw -13.1 deg | anchors 160 | 5.9s
+[97/812] mesh045 -> mesh056 | yaw -12.1 deg | anchors 160 | 6.0s
+[98/812] mesh045 -> mesh057 | yaw 74.4 deg | anchors 160 | 6.0s
+[99/812] mesh045 -> mesh058 | yaw -173.6 deg | anchors 160 | 6.0s
+[100/812] mesh045 -> mesh059 | yaw -107.2 deg | anchors 160 | 5.9s
+[101/812] mesh045 -> mesh060 | yaw -115.8 deg | anchors 160 | 5.9s
+[102/812] mesh045 -> mesh061 | yaw 163.6 deg | anchors 160 | 5.9s
+[103/812] mesh045 -> mesh062 | yaw -177.0 deg | anchors 160 | 6.0s
+[104/812] mesh045 -> mesh063 | yaw 4.6 deg | anchors 160 | 6.0s
+[105/812] mesh045 -> mesh064 | yaw -7.1 deg | anchors 160 | 6.0s
+[106/812] mesh045 -> mesh065 | yaw -79.0 deg | anchors 160 | 6.0s
+[107/812] mesh045 -> mesh066 | yaw 3.3 deg | anchors 160 | 6.0s
+[108/812] mesh045 -> mesh067 | yaw -166.6 deg | anchors 160 | 6.0s
+[109/812] mesh045 -> mesh068 | yaw 141.2 deg | anchors 160 | 6.0s
+[110/812] mesh045 -> mesh069 | yaw -153.7 deg | anchors 160 | 6.0s
+[111/812] mesh045 -> mesh070 | yaw 135.3 deg | anchors 160 | 6.0s
+[112/812] mesh045 -> mesh071 | yaw -140.9 deg | anchors 160 | 5.9s
+[113/812] mesh046 -> mesh042 | yaw -59.5 deg | anchors 160 | 5.9s
+[114/812] mesh046 -> mesh043 | yaw -9.5 deg | anchors 160 | 5.9s
+[115/812] mesh046 -> mesh044 | yaw 165.4 deg | anchors 160 | 5.9s
+[116/812] mesh046 -> mesh045 | yaw 178.2 deg | anchors 160 | 5.9s
+[117/812] mesh046 -> mesh047 | yaw 178.7 deg | anchors 160 | 6.0s
+[118/812] mesh046 -> mesh048 | yaw -8.8 deg | anchors 160 | 5.9s
+[119/812] mesh046 -> mesh049 | yaw -178.3 deg | anchors 160 | 6.0s
+[120/812] mesh046 -> mesh050 | yaw -174.6 deg | anchors 160 | 6.0s
+[121/812] mesh046 -> mesh052 | yaw -13.2 deg | anchors 160 | 6.0s
+[122/812] mesh046 -> mesh053 | yaw 174.8 deg | anchors 160 | 6.0s
+[123/812] mesh046 -> mesh054 | yaw -11.2 deg | anchors 160 | 6.0s
+[124/812] mesh046 -> mesh055 | yaw -178.1 deg | anchors 160 | 5.9s
+[125/812] mesh046 -> mesh056 | yaw 161.7 deg | anchors 160 | 6.0s
+[126/812] mesh046 -> mesh057 | yaw -134.9 deg | anchors 160 | 6.0s
+[127/812] mesh046 -> mesh058 | yaw 176.8 deg | anchors 160 | 6.0s
+[128/812] mesh046 -> mesh059 | yaw -115.7 deg | anchors 160 | 5.9s
+[129/812] mesh046 -> mesh060 | yaw 79.2 deg | anchors 160 | 6.0s
+[130/812] mesh046 -> mesh061 | yaw -45.7 deg | anchors 160 | 6.0s
+[131/812] mesh046 -> mesh062 | yaw 179.0 deg | anchors 160 | 6.0s
+[132/812] mesh046 -> mesh063 | yaw -177.8 deg | anchors 160 | 6.0s
+[133/812] mesh046 -> mesh064 | yaw 171.2 deg | anchors 160 | 5.9s
+[134/812] mesh046 -> mesh065 | yaw -91.2 deg | anchors 160 | 6.0s
+[135/812] mesh046 -> mesh066 | yaw 176.7 deg | anchors 160 | 6.0s
+[136/812] mesh046 -> mesh067 | yaw -174.9 deg | anchors 160 | 6.0s
+[137/812] mesh046 -> mesh068 | yaw -31.8 deg | anchors 160 | 6.0s
+[138/812] mesh046 -> mesh069 | yaw 16.2 deg | anchors 160 | 6.0s
+[139/812] mesh046 -> mesh070 | yaw -35.7 deg | anchors 160 | 5.8s
+[140/812] mesh046 -> mesh071 | yaw 167.8 deg | anchors 160 | 5.9s
+[141/812] mesh047 -> mesh042 | yaw -89.2 deg | anchors 160 | 6.1s
+[142/812] mesh047 -> mesh043 | yaw 2.9 deg | anchors 160 | 5.9s
+[143/812] mesh047 -> mesh044 | yaw -25.3 deg | anchors 160 | 5.9s
+[144/812] mesh047 -> mesh045 | yaw 1.3 deg | anchors 160 | 6.0s
+[145/812] mesh047 -> mesh046 | yaw -175.2 deg | anchors 160 | 6.0s
+[146/812] mesh047 -> mesh048 | yaw -173.2 deg | anchors 160 | 6.0s
+[147/812] mesh047 -> mesh049 | yaw 13.7 deg | anchors 160 | 6.0s
+[148/812] mesh047 -> mesh050 | yaw 17.3 deg | anchors 160 | 6.0s
+[149/812] mesh047 -> mesh052 | yaw -179.8 deg | anchors 160 | 6.0s
+[150/812] mesh047 -> mesh053 | yaw 7.6 deg | anchors 160 | 6.0s
+[151/812] mesh047 -> mesh054 | yaw -162.4 deg | anchors 160 | 6.0s
+[152/812] mesh047 -> mesh055 | yaw -0.4 deg | anchors 160 | 6.0s
+[153/812] mesh047 -> mesh056 | yaw -14.2 deg | anchors 160 | 6.0s
+[154/812] mesh047 -> mesh057 | yaw 78.2 deg | anchors 160 | 6.0s
+[155/812] mesh047 -> mesh058 | yaw -171.6 deg | anchors 160 | 6.0s
+[156/812] mesh047 -> mesh059 | yaw -117.6 deg | anchors 160 | 6.0s
+[157/812] mesh047 -> mesh060 | yaw -115.0 deg | anchors 160 | 6.0s
+[158/812] mesh047 -> mesh061 | yaw 162.5 deg | anchors 160 | 6.0s
+[159/812] mesh047 -> mesh062 | yaw 8.1 deg | anchors 160 | 6.0s
+[160/812] mesh047 -> mesh063 | yaw 5.8 deg | anchors 160 | 6.0s
+[161/812] mesh047 -> mesh064 | yaw -3.3 deg | anchors 160 | 6.0s
+[162/812] mesh047 -> mesh065 | yaw -86.1 deg | anchors 160 | 5.9s
+[163/812] mesh047 -> mesh066 | yaw -0.3 deg | anchors 160 | 6.0s
+[164/812] mesh047 -> mesh067 | yaw 12.1 deg | anchors 160 | 5.9s
+[165/812] mesh047 -> mesh068 | yaw 137.6 deg | anchors 160 | 6.0s
+[166/812] mesh047 -> mesh069 | yaw -152.9 deg | anchors 160 | 6.0s
+[167/812] mesh047 -> mesh070 | yaw 145.9 deg | anchors 160 | 6.0s
+[168/812] mesh047 -> mesh071 | yaw 106.3 deg | anchors 160 | 6.0s
+[169/812] mesh048 -> mesh042 | yaw 132.6 deg | anchors 160 | 6.0s
+[170/812] mesh048 -> mesh043 | yaw 177.7 deg | anchors 160 | 6.0s
+[171/812] mesh048 -> mesh044 | yaw 153.2 deg | anchors 160 | 5.8s
+[172/812] mesh048 -> mesh045 | yaw 179.2 deg | anchors 160 | 5.9s
+[173/812] mesh048 -> mesh046 | yaw 7.4 deg | anchors 160 | 5.9s
+[174/812] mesh048 -> mesh047 | yaw 179.8 deg | anchors 160 | 6.0s
+[175/812] mesh048 -> mesh049 | yaw -168.4 deg | anchors 160 | 6.0s
+[176/812] mesh048 -> mesh050 | yaw -161.2 deg | anchors 160 | 6.0s
+[177/812] mesh048 -> mesh052 | yaw 3.0 deg | anchors 160 | 6.0s
+[178/812] mesh048 -> mesh053 | yaw -174.6 deg | anchors 160 | 5.9s
+[179/812] mesh048 -> mesh054 | yaw 13.9 deg | anchors 160 | 6.0s
+[180/812] mesh048 -> mesh055 | yaw 171.8 deg | anchors 160 | 6.0s
+[181/812] mesh048 -> mesh056 | yaw 169.4 deg | anchors 160 | 5.9s
+[182/812] mesh048 -> mesh057 | yaw -137.5 deg | anchors 160 | 6.0s
+[183/812] mesh048 -> mesh058 | yaw 6.9 deg | anchors 160 | 6.0s
+[184/812] mesh048 -> mesh059 | yaw 64.5 deg | anchors 160 | 6.0s
+[185/812] mesh048 -> mesh060 | yaw 49.3 deg | anchors 160 | 6.0s
+[186/812] mesh048 -> mesh061 | yaw -35.8 deg | anchors 160 | 6.0s
+[187/812] mesh048 -> mesh062 | yaw 9.2 deg | anchors 160 | 5.9s
+[188/812] mesh048 -> mesh063 | yaw -173.9 deg | anchors 160 | 6.0s
+[189/812] mesh048 -> mesh064 | yaw 170.2 deg | anchors 160 | 6.0s
+[190/812] mesh048 -> mesh065 | yaw 77.8 deg | anchors 160 | 6.0s
+[191/812] mesh048 -> mesh066 | yaw 179.7 deg | anchors 160 | 6.0s
+[192/812] mesh048 -> mesh067 | yaw -164.1 deg | anchors 160 | 6.0s
+[193/812] mesh048 -> mesh068 | yaw -39.2 deg | anchors 160 | 6.0s
+[194/812] mesh048 -> mesh069 | yaw 25.7 deg | anchors 160 | 6.0s
+[195/812] mesh048 -> mesh070 | yaw 145.5 deg | anchors 160 | 6.0s
+[196/812] mesh048 -> mesh071 | yaw 128.9 deg | anchors 160 | 6.0s
+[197/812] mesh049 -> mesh042 | yaw -74.6 deg | anchors 160 | 6.0s
+[198/812] mesh049 -> mesh043 | yaw -14.1 deg | anchors 160 | 5.9s
+[199/812] mesh049 -> mesh044 | yaw -37.3 deg | anchors 160 | 6.0s
+[200/812] mesh049 -> mesh045 | yaw -20.4 deg | anchors 160 | 6.0s
+[201/812] mesh049 -> mesh046 | yaw 165.5 deg | anchors 160 | 5.8s
+[202/812] mesh049 -> mesh047 | yaw -16.0 deg | anchors 160 | 5.9s
+[203/812] mesh049 -> mesh048 | yaw 170.3 deg | anchors 160 | 5.9s
+[204/812] mesh049 -> mesh050 | yaw -1.0 deg | anchors 160 | 5.8s
+[205/812] mesh049 -> mesh052 | yaw 163.9 deg | anchors 160 | 5.8s
+[206/812] mesh049 -> mesh053 | yaw -11.6 deg | anchors 160 | 5.9s
+[207/812] mesh049 -> mesh054 | yaw 9.5 deg | anchors 160 | 5.9s
+[208/812] mesh049 -> mesh055 | yaw 142.0 deg | anchors 160 | 6.0s
+[209/812] mesh049 -> mesh056 | yaw -36.0 deg | anchors 160 | 6.0s
+[210/812] mesh049 -> mesh057 | yaw 80.4 deg | anchors 160 | 6.0s
+[211/812] mesh049 -> mesh058 | yaw -10.7 deg | anchors 160 | 6.0s
+[212/812] mesh049 -> mesh059 | yaw -119.4 deg | anchors 160 | 6.0s
+[213/812] mesh049 -> mesh060 | yaw -115.4 deg | anchors 160 | 6.0s
+[214/812] mesh049 -> mesh061 | yaw -26.7 deg | anchors 160 | 5.9s
+[215/812] mesh049 -> mesh062 | yaw -8.5 deg | anchors 160 | 6.0s
+[216/812] mesh049 -> mesh063 | yaw -12.7 deg | anchors 160 | 6.0s
+[217/812] mesh049 -> mesh064 | yaw -26.9 deg | anchors 160 | 5.9s
+[218/812] mesh049 -> mesh065 | yaw 85.9 deg | anchors 160 | 6.0s
+[219/812] mesh049 -> mesh066 | yaw -11.0 deg | anchors 160 | 5.8s
+[220/812] mesh049 -> mesh067 | yaw -0.1 deg | anchors 160 | 5.9s
+[221/812] mesh049 -> mesh068 | yaw 133.3 deg | anchors 160 | 6.0s
+[222/812] mesh049 -> mesh069 | yaw -163.4 deg | anchors 160 | 6.0s
+[223/812] mesh049 -> mesh070 | yaw 140.4 deg | anchors 160 | 6.0s
+[224/812] mesh049 -> mesh071 | yaw 118.9 deg | anchors 160 | 5.9s
+[225/812] mesh050 -> mesh042 | yaw -72.4 deg | anchors 160 | 6.0s
+[226/812] mesh050 -> mesh043 | yaw -10.4 deg | anchors 160 | 6.0s
+[227/812] mesh050 -> mesh044 | yaw -26.6 deg | anchors 160 | 6.0s
+[228/812] mesh050 -> mesh045 | yaw -14.2 deg | anchors 160 | 6.0s
+[229/812] mesh050 -> mesh046 | yaw 168.4 deg | anchors 160 | 6.0s
+[230/812] mesh050 -> mesh047 | yaw -9.9 deg | anchors 160 | 5.9s
+[231/812] mesh050 -> mesh048 | yaw 171.1 deg | anchors 160 | 5.9s
+[232/812] mesh050 -> mesh049 | yaw -4.3 deg | anchors 160 | 5.9s
+[233/812] mesh050 -> mesh052 | yaw 165.4 deg | anchors 160 | 5.9s
+[234/812] mesh050 -> mesh053 | yaw -12.1 deg | anchors 160 | 6.0s
+[235/812] mesh050 -> mesh054 | yaw 179.3 deg | anchors 160 | 6.0s
+[236/812] mesh050 -> mesh055 | yaw -29.0 deg | anchors 160 | 6.0s
+[237/812] mesh050 -> mesh056 | yaw -32.6 deg | anchors 160 | 6.0s
+[238/812] mesh050 -> mesh057 | yaw 81.1 deg | anchors 160 | 5.9s
+[239/812] mesh050 -> mesh058 | yaw 174.0 deg | anchors 160 | 5.9s
+[240/812] mesh050 -> mesh059 | yaw -120.9 deg | anchors 160 | 5.9s
+[241/812] mesh050 -> mesh060 | yaw -117.2 deg | anchors 160 | 5.9s
+[242/812] mesh050 -> mesh061 | yaw 143.2 deg | anchors 160 | 5.9s
+[243/812] mesh050 -> mesh062 | yaw -5.3 deg | anchors 160 | 6.0s
+[244/812] mesh050 -> mesh063 | yaw -6.3 deg | anchors 160 | 5.9s
+[245/812] mesh050 -> mesh064 | yaw -18.7 deg | anchors 160 | 5.9s
+[246/812] mesh050 -> mesh065 | yaw -88.5 deg | anchors 160 | 6.0s
+[247/812] mesh050 -> mesh066 | yaw -11.6 deg | anchors 160 | 6.0s
+[248/812] mesh050 -> mesh067 | yaw -2.0 deg | anchors 160 | 5.9s
+[249/812] mesh050 -> mesh068 | yaw 138.8 deg | anchors 160 | 5.8s
+[250/812] mesh050 -> mesh069 | yaw -168.5 deg | anchors 160 | 5.9s
+[251/812] mesh050 -> mesh070 | yaw -74.5 deg | anchors 160 | 5.9s
+[252/812] mesh050 -> mesh071 | yaw 137.1 deg | anchors 160 | 6.0s
+[253/812] mesh052 -> mesh042 | yaw 130.4 deg | anchors 160 | 6.0s
+[254/812] mesh052 -> mesh043 | yaw 178.8 deg | anchors 160 | 6.0s
+[255/812] mesh052 -> mesh044 | yaw 161.1 deg | anchors 160 | 6.0s
+[256/812] mesh052 -> mesh045 | yaw 178.0 deg | anchors 160 | 6.0s
+[257/812] mesh052 -> mesh046 | yaw 2.4 deg | anchors 160 | 6.0s
+[258/812] mesh052 -> mesh047 | yaw 178.3 deg | anchors 160 | 5.9s
+[259/812] mesh052 -> mesh048 | yaw 0.2 deg | anchors 160 | 5.9s
+[260/812] mesh052 -> mesh049 | yaw -171.8 deg | anchors 160 | 5.9s
+[261/812] mesh052 -> mesh050 | yaw -164.5 deg | anchors 160 | 6.0s
+[262/812] mesh052 -> mesh053 | yaw -176.8 deg | anchors 160 | 6.0s
+[263/812] mesh052 -> mesh054 | yaw 12.5 deg | anchors 160 | 6.0s
+[264/812] mesh052 -> mesh055 | yaw 170.2 deg | anchors 160 | 6.0s
+[265/812] mesh052 -> mesh056 | yaw 171.7 deg | anchors 160 | 5.9s
+[266/812] mesh052 -> mesh057 | yaw -142.9 deg | anchors 160 | 6.0s
+[267/812] mesh052 -> mesh058 | yaw -175.7 deg | anchors 160 | 6.0s
+[268/812] mesh052 -> mesh059 | yaw 63.3 deg | anchors 160 | 6.0s
+[269/812] mesh052 -> mesh060 | yaw 52.5 deg | anchors 160 | 6.0s
+[270/812] mesh052 -> mesh061 | yaw -12.7 deg | anchors 160 | 5.9s
+[271/812] mesh052 -> mesh062 | yaw -176.7 deg | anchors 160 | 6.0s
+[272/812] mesh052 -> mesh063 | yaw -173.3 deg | anchors 160 | 6.0s
+[273/812] mesh052 -> mesh064 | yaw 171.7 deg | anchors 160 | 6.0s
+[274/812] mesh052 -> mesh065 | yaw 81.1 deg | anchors 160 | 6.0s
+[275/812] mesh052 -> mesh066 | yaw -179.9 deg | anchors 160 | 6.0s
+[276/812] mesh052 -> mesh067 | yaw -168.9 deg | anchors 160 | 5.9s
+[277/812] mesh052 -> mesh068 | yaw -41.6 deg | anchors 160 | 5.9s
+[278/812] mesh052 -> mesh069 | yaw 20.6 deg | anchors 160 | 5.9s
+[279/812] mesh052 -> mesh070 | yaw 153.5 deg | anchors 160 | 5.9s
+[280/812] mesh052 -> mesh071 | yaw 138.0 deg | anchors 160 | 6.0s
+[281/812] mesh053 -> mesh042 | yaw -71.8 deg | anchors 160 | 6.0s
+[282/812] mesh053 -> mesh043 | yaw -4.4 deg | anchors 160 | 6.1s
+[283/812] mesh053 -> mesh044 | yaw 160.4 deg | anchors 160 | 6.0s
+[284/812] mesh053 -> mesh045 | yaw -4.5 deg | anchors 160 | 5.9s
+[285/812] mesh053 -> mesh046 | yaw 177.6 deg | anchors 160 | 6.0s
+[286/812] mesh053 -> mesh047 | yaw -4.1 deg | anchors 160 | 6.0s
+[287/812] mesh053 -> mesh048 | yaw -176.8 deg | anchors 160 | 6.0s
+[288/812] mesh053 -> mesh049 | yaw 11.0 deg | anchors 160 | 6.0s
+[289/812] mesh053 -> mesh050 | yaw 10.9 deg | anchors 160 | 6.0s
+[290/812] mesh053 -> mesh052 | yaw -179.2 deg | anchors 160 | 6.0s
+[291/812] mesh053 -> mesh054 | yaw -171.5 deg | anchors 160 | 5.8s
+[292/812] mesh053 -> mesh055 | yaw 163.5 deg | anchors 160 | 6.0s
+[293/812] mesh053 -> mesh056 | yaw -14.0 deg | anchors 160 | 6.0s
+[294/812] mesh053 -> mesh057 | yaw 80.2 deg | anchors 160 | 5.9s
+[295/812] mesh053 -> mesh058 | yaw 0.9 deg | anchors 160 | 6.0s
+[296/812] mesh053 -> mesh059 | yaw 56.3 deg | anchors 160 | 6.0s
+[297/812] mesh053 -> mesh060 | yaw -106.6 deg | anchors 160 | 6.0s
+[298/812] mesh053 -> mesh061 | yaw 163.8 deg | anchors 160 | 6.0s
+[299/812] mesh053 -> mesh062 | yaw 3.0 deg | anchors 160 | 6.0s
+[300/812] mesh053 -> mesh063 | yaw 0.7 deg | anchors 160 | 6.0s
+[301/812] mesh053 -> mesh064 | yaw -9.7 deg | anchors 160 | 6.0s
+[302/812] mesh053 -> mesh065 | yaw 99.5 deg | anchors 160 | 6.0s
+[303/812] mesh053 -> mesh066 | yaw -2.0 deg | anchors 160 | 6.0s
+[304/812] mesh053 -> mesh067 | yaw 6.3 deg | anchors 160 | 6.0s
+[305/812] mesh053 -> mesh068 | yaw 142.6 deg | anchors 160 | 5.9s
+[306/812] mesh053 -> mesh069 | yaw -160.3 deg | anchors 160 | 6.0s
+[307/812] mesh053 -> mesh070 | yaw -47.2 deg | anchors 160 | 5.9s
+[308/812] mesh053 -> mesh071 | yaw 141.3 deg | anchors 160 | 6.0s
+[309/812] mesh054 -> mesh042 | yaw 101.1 deg | anchors 160 | 6.0s
+[310/812] mesh054 -> mesh043 | yaw 167.1 deg | anchors 160 | 6.0s
+[311/812] mesh054 -> mesh044 | yaw 136.7 deg | anchors 160 | 6.0s
+[312/812] mesh054 -> mesh045 | yaw 162.4 deg | anchors 160 | 5.9s
+[313/812] mesh054 -> mesh046 | yaw -15.5 deg | anchors 160 | 5.9s
+[314/812] mesh054 -> mesh047 | yaw 163.0 deg | anchors 160 | 5.9s
+[315/812] mesh054 -> mesh048 | yaw 2.6 deg | anchors 160 | 5.9s
+[316/812] mesh054 -> mesh049 | yaw 162.9 deg | anchors 160 | 5.9s
+[317/812] mesh054 -> mesh050 | yaw 176.1 deg | anchors 160 | 5.9s
+[318/812] mesh054 -> mesh052 | yaw -8.3 deg | anchors 160 | 5.9s
+[319/812] mesh054 -> mesh053 | yaw 170.2 deg | anchors 160 | 5.9s
+[320/812] mesh054 -> mesh055 | yaw 138.2 deg | anchors 160 | 5.9s
+[321/812] mesh054 -> mesh056 | yaw 153.8 deg | anchors 160 | 5.9s
+[322/812] mesh054 -> mesh057 | yaw 127.9 deg | anchors 160 | 6.0s
+[323/812] mesh054 -> mesh058 | yaw 178.5 deg | anchors 160 | 5.9s
+[324/812] mesh054 -> mesh059 | yaw -123.4 deg | anchors 160 | 5.9s
+[325/812] mesh054 -> mesh060 | yaw 77.9 deg | anchors 160 | 5.9s
+[326/812] mesh054 -> mesh061 | yaw -47.0 deg | anchors 160 | 5.9s
+[327/812] mesh054 -> mesh062 | yaw 169.2 deg | anchors 160 | 5.9s
+[328/812] mesh054 -> mesh063 | yaw 169.9 deg | anchors 160 | 5.9s
+[329/812] mesh054 -> mesh064 | yaw 163.7 deg | anchors 160 | 5.9s
+[330/812] mesh054 -> mesh065 | yaw -92.8 deg | anchors 160 | 5.9s
+[331/812] mesh054 -> mesh066 | yaw 160.0 deg | anchors 160 | 5.9s
+[332/812] mesh054 -> mesh067 | yaw 167.6 deg | anchors 160 | 5.9s
+[333/812] mesh054 -> mesh068 | yaw 138.8 deg | anchors 160 | 5.9s
+[334/812] mesh054 -> mesh069 | yaw 14.0 deg | anchors 160 | 5.9s
+[335/812] mesh054 -> mesh070 | yaw -45.0 deg | anchors 160 | 5.9s
+[336/812] mesh054 -> mesh071 | yaw -135.0 deg | anchors 160 | 6.0s
+[337/812] mesh055 -> mesh042 | yaw -44.5 deg | anchors 160 | 6.0s
+[338/812] mesh055 -> mesh043 | yaw 7.3 deg | anchors 160 | 6.0s
+[339/812] mesh055 -> mesh044 | yaw -3.1 deg | anchors 160 | 6.0s
+[340/812] mesh055 -> mesh045 | yaw 6.7 deg | anchors 160 | 6.0s
+[341/812] mesh055 -> mesh046 | yaw -170.4 deg | anchors 160 | 6.0s
+[342/812] mesh055 -> mesh047 | yaw 8.6 deg | anchors 160 | 6.0s
+[343/812] mesh055 -> mesh048 | yaw -178.0 deg | anchors 160 | 6.0s
+[344/812] mesh055 -> mesh049 | yaw -168.4 deg | anchors 160 | 6.0s
+[345/812] mesh055 -> mesh050 | yaw 22.3 deg | anchors 160 | 6.0s
+[346/812] mesh055 -> mesh052 | yaw -173.6 deg | anchors 160 | 6.0s
+[347/812] mesh055 -> mesh053 | yaw 6.2 deg | anchors 160 | 6.0s
+[348/812] mesh055 -> mesh054 | yaw -170.9 deg | anchors 160 | 5.8s
+[349/812] mesh055 -> mesh056 | yaw 10.6 deg | anchors 160 | 6.0s
+[350/812] mesh055 -> mesh057 | yaw 90.7 deg | anchors 160 | 6.0s
+[351/812] mesh055 -> mesh058 | yaw -174.8 deg | anchors 160 | 6.0s
+[352/812] mesh055 -> mesh059 | yaw -128.2 deg | anchors 160 | 6.0s
+[353/812] mesh055 -> mesh060 | yaw -169.8 deg | anchors 160 | 6.0s
+[354/812] mesh055 -> mesh061 | yaw 179.7 deg | anchors 160 | 6.0s
+[355/812] mesh055 -> mesh062 | yaw 8.6 deg | anchors 160 | 6.0s
+[356/812] mesh055 -> mesh063 | yaw 4.4 deg | anchors 160 | 6.0s
+[357/812] mesh055 -> mesh064 | yaw 1.9 deg | anchors 160 | 6.0s
+[358/812] mesh055 -> mesh065 | yaw -101.7 deg | anchors 160 | 6.0s
+[359/812] mesh055 -> mesh066 | yaw 5.1 deg | anchors 160 | 6.0s
+[360/812] mesh055 -> mesh067 | yaw 9.2 deg | anchors 160 | 6.0s
+[361/812] mesh055 -> mesh068 | yaw 165.9 deg | anchors 160 | 6.0s
+[362/812] mesh055 -> mesh069 | yaw -161.6 deg | anchors 160 | 6.0s
+[363/812] mesh055 -> mesh070 | yaw 165.1 deg | anchors 160 | 5.9s
+[364/812] mesh055 -> mesh071 | yaw -172.2 deg | anchors 160 | 5.9s
+[365/812] mesh056 -> mesh042 | yaw -78.2 deg | anchors 160 | 6.0s
+[366/812] mesh056 -> mesh043 | yaw 0.2 deg | anchors 160 | 6.0s
+[367/812] mesh056 -> mesh044 | yaw 153.0 deg | anchors 160 | 5.9s
+[368/812] mesh056 -> mesh045 | yaw 11.1 deg | anchors 160 | 5.9s
+[369/812] mesh056 -> mesh046 | yaw -162.0 deg | anchors 160 | 6.0s
+[370/812] mesh056 -> mesh047 | yaw 8.8 deg | anchors 160 | 6.0s
+[371/812] mesh056 -> mesh048 | yaw -173.7 deg | anchors 160 | 6.0s
+[372/812] mesh056 -> mesh049 | yaw 31.4 deg | anchors 160 | 6.0s
+[373/812] mesh056 -> mesh050 | yaw 33.1 deg | anchors 160 | 6.0s
+[374/812] mesh056 -> mesh052 | yaw -169.5 deg | anchors 160 | 6.0s
+[375/812] mesh056 -> mesh053 | yaw 28.5 deg | anchors 160 | 5.9s
+[376/812] mesh056 -> mesh054 | yaw 36.0 deg | anchors 160 | 6.0s
+[377/812] mesh056 -> mesh055 | yaw 177.5 deg | anchors 160 | 6.0s
+[378/812] mesh056 -> mesh057 | yaw 65.9 deg | anchors 160 | 5.8s
+[379/812] mesh056 -> mesh058 | yaw 13.1 deg | anchors 160 | 6.0s
+[380/812] mesh056 -> mesh059 | yaw -108.8 deg | anchors 160 | 6.0s
+[381/812] mesh056 -> mesh060 | yaw -97.0 deg | anchors 160 | 6.0s
+[382/812] mesh056 -> mesh061 | yaw -173.1 deg | anchors 160 | 5.9s
+[383/812] mesh056 -> mesh062 | yaw 16.1 deg | anchors 160 | 6.0s
+[384/812] mesh056 -> mesh063 | yaw 17.6 deg | anchors 160 | 6.0s
+[385/812] mesh056 -> mesh064 | yaw -3.4 deg | anchors 160 | 6.0s
+[386/812] mesh056 -> mesh065 | yaw 87.3 deg | anchors 160 | 6.0s
+[387/812] mesh056 -> mesh066 | yaw 12.6 deg | anchors 160 | 6.0s
+[388/812] mesh056 -> mesh067 | yaw -151.8 deg | anchors 160 | 6.0s
+[389/812] mesh056 -> mesh068 | yaw 152.9 deg | anchors 160 | 6.0s
+[390/812] mesh056 -> mesh069 | yaw 47.1 deg | anchors 160 | 6.0s
+[391/812] mesh056 -> mesh070 | yaw -37.4 deg | anchors 160 | 5.9s
+[392/812] mesh056 -> mesh071 | yaw -90.2 deg | anchors 160 | 5.9s
+[393/812] mesh057 -> mesh042 | yaw 75.7 deg | anchors 160 | 5.9s
+[394/812] mesh057 -> mesh043 | yaw -75.5 deg | anchors 160 | 5.9s
+[395/812] mesh057 -> mesh044 | yaw -74.0 deg | anchors 160 | 6.0s
+[396/812] mesh057 -> mesh045 | yaw -35.6 deg | anchors 160 | 6.0s
+[397/812] mesh057 -> mesh046 | yaw 149.8 deg | anchors 160 | 6.0s
+[398/812] mesh057 -> mesh047 | yaw -80.9 deg | anchors 160 | 6.0s
+[399/812] mesh057 -> mesh048 | yaw 167.0 deg | anchors 160 | 5.9s
+[400/812] mesh057 -> mesh049 | yaw -43.6 deg | anchors 160 | 6.0s
+[401/812] mesh057 -> mesh050 | yaw -56.7 deg | anchors 160 | 5.9s
+[402/812] mesh057 -> mesh052 | yaw 147.7 deg | anchors 160 | 6.0s
+[403/812] mesh057 -> mesh053 | yaw -77.2 deg | anchors 160 | 6.0s
+[404/812] mesh057 -> mesh054 | yaw -29.9 deg | anchors 160 | 6.0s
+[405/812] mesh057 -> mesh055 | yaw -95.0 deg | anchors 160 | 6.0s
+[406/812] mesh057 -> mesh056 | yaw -62.9 deg | anchors 160 | 6.0s
+[407/812] mesh057 -> mesh058 | yaw 5.8 deg | anchors 160 | 6.0s
+[408/812] mesh057 -> mesh059 | yaw 124.4 deg | anchors 160 | 5.9s
+[409/812] mesh057 -> mesh060 | yaw -145.8 deg | anchors 160 | 6.0s
+[410/812] mesh057 -> mesh061 | yaw 161.4 deg | anchors 160 | 6.0s
+[411/812] mesh057 -> mesh062 | yaw -48.9 deg | anchors 160 | 6.0s
+[412/812] mesh057 -> mesh063 | yaw -69.1 deg | anchors 160 | 5.9s
+[413/812] mesh057 -> mesh064 | yaw -66.0 deg | anchors 160 | 6.0s
+[414/812] mesh057 -> mesh065 | yaw 55.6 deg | anchors 160 | 5.9s
+[415/812] mesh057 -> mesh066 | yaw 109.4 deg | anchors 160 | 5.9s
+[416/812] mesh057 -> mesh067 | yaw -62.2 deg | anchors 160 | 5.9s
+[417/812] mesh057 -> mesh068 | yaw 126.5 deg | anchors 160 | 6.0s
+[418/812] mesh057 -> mesh069 | yaw -9.4 deg | anchors 160 | 6.0s
+[419/812] mesh057 -> mesh070 | yaw -102.3 deg | anchors 160 | 6.0s
+[420/812] mesh057 -> mesh071 | yaw 120.4 deg | anchors 160 | 6.0s
+[421/812] mesh058 -> mesh042 | yaw -56.0 deg | anchors 160 | 6.0s
+[422/812] mesh058 -> mesh043 | yaw -2.6 deg | anchors 160 | 6.0s
+[423/812] mesh058 -> mesh044 | yaw 161.2 deg | anchors 160 | 6.0s
+[424/812] mesh058 -> mesh045 | yaw -179.9 deg | anchors 160 | 6.0s
+[425/812] mesh058 -> mesh046 | yaw 176.7 deg | anchors 160 | 6.0s
+[426/812] mesh058 -> mesh047 | yaw 179.2 deg | anchors 160 | 5.9s
+[427/812] mesh058 -> mesh048 | yaw 0.7 deg | anchors 160 | 6.0s
+[428/812] mesh058 -> mesh049 | yaw -168.4 deg | anchors 160 | 5.9s
+[429/812] mesh058 -> mesh050 | yaw -165.5 deg | anchors 160 | 6.0s
+[430/812] mesh058 -> mesh052 | yaw 3.1 deg | anchors 160 | 6.0s
+[431/812] mesh058 -> mesh053 | yaw 2.6 deg | anchors 160 | 5.9s
+[432/812] mesh058 -> mesh054 | yaw 9.1 deg | anchors 160 | 6.0s
+[433/812] mesh058 -> mesh055 | yaw 168.5 deg | anchors 160 | 6.0s
+[434/812] mesh058 -> mesh056 | yaw -10.5 deg | anchors 160 | 6.0s
+[435/812] mesh058 -> mesh057 | yaw -123.3 deg | anchors 160 | 5.9s
+[436/812] mesh058 -> mesh059 | yaw 59.9 deg | anchors 160 | 5.9s
+[437/812] mesh058 -> mesh060 | yaw -121.9 deg | anchors 160 | 6.0s
+[438/812] mesh058 -> mesh061 | yaw -35.1 deg | anchors 160 | 5.9s
+[439/812] mesh058 -> mesh062 | yaw 2.8 deg | anchors 160 | 6.0s
+[440/812] mesh058 -> mesh063 | yaw -171.9 deg | anchors 160 | 6.0s
+[441/812] mesh058 -> mesh064 | yaw 170.6 deg | anchors 160 | 6.0s
+[442/812] mesh058 -> mesh065 | yaw 84.7 deg | anchors 160 | 5.9s
+[443/812] mesh058 -> mesh066 | yaw -0.9 deg | anchors 160 | 6.0s
+[444/812] mesh058 -> mesh067 | yaw 11.6 deg | anchors 160 | 5.9s
+[445/812] mesh058 -> mesh068 | yaw 152.6 deg | anchors 160 | 6.0s
+[446/812] mesh058 -> mesh069 | yaw -159.2 deg | anchors 160 | 5.9s
+[447/812] mesh058 -> mesh070 | yaw 147.5 deg | anchors 160 | 5.9s
+[448/812] mesh058 -> mesh071 | yaw -2.5 deg | anchors 160 | 5.9s
+[449/812] mesh059 -> mesh042 | yaw 146.1 deg | anchors 160 | 6.0s
+[450/812] mesh059 -> mesh043 | yaw 105.8 deg | anchors 160 | 6.0s
+[451/812] mesh059 -> mesh044 | yaw 101.6 deg | anchors 160 | 6.0s
+[452/812] mesh059 -> mesh045 | yaw 102.6 deg | anchors 160 | 6.0s
+[453/812] mesh059 -> mesh046 | yaw 106.2 deg | anchors 160 | 6.0s
+[454/812] mesh059 -> mesh047 | yaw 107.5 deg | anchors 160 | 6.0s
+[455/812] mesh059 -> mesh048 | yaw 105.9 deg | anchors 160 | 5.9s
+[456/812] mesh059 -> mesh049 | yaw 125.0 deg | anchors 160 | 5.9s
+[457/812] mesh059 -> mesh050 | yaw 119.5 deg | anchors 160 | 5.9s
+[458/812] mesh059 -> mesh052 | yaw -74.1 deg | anchors 160 | 6.0s
+[459/812] mesh059 -> mesh053 | yaw -50.3 deg | anchors 160 | 5.9s
+[460/812] mesh059 -> mesh054 | yaw -48.7 deg | anchors 160 | 6.0s
+[461/812] mesh059 -> mesh055 | yaw 103.5 deg | anchors 160 | 6.0s
+[462/812] mesh059 -> mesh056 | yaw 127.7 deg | anchors 160 | 6.0s
+[463/812] mesh059 -> mesh057 | yaw 87.1 deg | anchors 160 | 5.9s
+[464/812] mesh059 -> mesh058 | yaw 120.6 deg | anchors 160 | 5.9s
+[465/812] mesh059 -> mesh060 | yaw -27.9 deg | anchors 160 | 6.0s
+[466/812] mesh059 -> mesh061 | yaw -79.4 deg | anchors 160 | 6.0s
+[467/812] mesh059 -> mesh062 | yaw 125.3 deg | anchors 160 | 6.0s
+[468/812] mesh059 -> mesh063 | yaw 108.2 deg | anchors 160 | 6.0s
+[469/812] mesh059 -> mesh064 | yaw 105.6 deg | anchors 160 | 5.9s
+[470/812] mesh059 -> mesh065 | yaw -162.1 deg | anchors 160 | 6.0s
+[471/812] mesh059 -> mesh066 | yaw 119.4 deg | anchors 160 | 5.9s
+[472/812] mesh059 -> mesh067 | yaw 125.7 deg | anchors 160 | 5.9s
+[473/812] mesh059 -> mesh068 | yaw -81.4 deg | anchors 160 | 5.9s
+[474/812] mesh059 -> mesh069 | yaw 134.3 deg | anchors 160 | 6.0s
+[475/812] mesh059 -> mesh070 | yaw 83.8 deg | anchors 160 | 6.0s
+[476/812] mesh059 -> mesh071 | yaw -76.2 deg | anchors 160 | 6.0s
+[477/812] mesh060 -> mesh042 | yaw -87.5 deg | anchors 160 | 6.0s
+[478/812] mesh060 -> mesh043 | yaw 129.9 deg | anchors 160 | 6.0s
+[479/812] mesh060 -> mesh044 | yaw 106.0 deg | anchors 160 | 5.9s
+[480/812] mesh060 -> mesh045 | yaw 140.1 deg | anchors 160 | 5.9s
+[481/812] mesh060 -> mesh046 | yaw -60.8 deg | anchors 160 | 5.9s
+[482/812] mesh060 -> mesh047 | yaw 133.5 deg | anchors 160 | 5.9s
+[483/812] mesh060 -> mesh048 | yaw -70.3 deg | anchors 160 | 5.9s
+[484/812] mesh060 -> mesh049 | yaw 137.5 deg | anchors 160 | 5.9s
+[485/812] mesh060 -> mesh050 | yaw 147.0 deg | anchors 160 | 6.0s
+[486/812] mesh060 -> mesh052 | yaw -76.8 deg | anchors 160 | 6.0s
+[487/812] mesh060 -> mesh053 | yaw 120.0 deg | anchors 160 | 6.0s
+[488/812] mesh060 -> mesh054 | yaw 109.9 deg | anchors 160 | 5.9s
+[489/812] mesh060 -> mesh055 | yaw 108.2 deg | anchors 160 | 6.0s
+[490/812] mesh060 -> mesh056 | yaw 109.1 deg | anchors 160 | 6.0s
+[491/812] mesh060 -> mesh057 | yaw 161.0 deg | anchors 160 | 5.9s
+[492/812] mesh060 -> mesh058 | yaw 122.3 deg | anchors 160 | 5.9s
+[493/812] mesh060 -> mesh059 | yaw 29.7 deg | anchors 160 | 6.0s
+[494/812] mesh060 -> mesh061 | yaw 83.3 deg | anchors 160 | 6.0s
+[495/812] mesh060 -> mesh062 | yaw 127.9 deg | anchors 160 | 6.0s
+[496/812] mesh060 -> mesh063 | yaw 138.0 deg | anchors 160 | 5.9s
+[497/812] mesh060 -> mesh064 | yaw 118.2 deg | anchors 160 | 6.0s
+[498/812] mesh060 -> mesh065 | yaw -76.0 deg | anchors 160 | 5.8s
+[499/812] mesh060 -> mesh066 | yaw 134.6 deg | anchors 160 | 5.9s
+[500/812] mesh060 -> mesh067 | yaw 146.4 deg | anchors 160 | 5.9s
+[501/812] mesh060 -> mesh068 | yaw -124.8 deg | anchors 160 | 5.9s
+[502/812] mesh060 -> mesh069 | yaw 123.1 deg | anchors 160 | 6.0s
+[503/812] mesh060 -> mesh070 | yaw 96.7 deg | anchors 160 | 6.0s
+[504/812] mesh060 -> mesh071 | yaw -97.4 deg | anchors 160 | 5.9s
+[505/812] mesh061 -> mesh042 | yaw 131.1 deg | anchors 160 | 5.9s
+[506/812] mesh061 -> mesh043 | yaw -175.4 deg | anchors 160 | 6.0s
+[507/812] mesh061 -> mesh044 | yaw 149.9 deg | anchors 160 | 6.0s
+[508/812] mesh061 -> mesh045 | yaw -169.3 deg | anchors 160 | 6.0s
+[509/812] mesh061 -> mesh046 | yaw 9.8 deg | anchors 160 | 6.0s
+[510/812] mesh061 -> mesh047 | yaw -170.4 deg | anchors 160 | 6.0s
+[511/812] mesh061 -> mesh048 | yaw 9.7 deg | anchors 160 | 5.9s
+[512/812] mesh061 -> mesh049 | yaw -160.9 deg | anchors 160 | 6.0s
+[513/812] mesh061 -> mesh050 | yaw -152.1 deg | anchors 160 | 6.0s
+[514/812] mesh061 -> mesh052 | yaw 11.7 deg | anchors 160 | 6.0s
+[515/812] mesh061 -> mesh053 | yaw -165.0 deg | anchors 160 | 6.0s
+[516/812] mesh061 -> mesh054 | yaw 34.6 deg | anchors 160 | 6.0s
+[517/812] mesh061 -> mesh055 | yaw -172.8 deg | anchors 160 | 5.9s
+[518/812] mesh061 -> mesh056 | yaw 174.3 deg | anchors 160 | 5.9s
+[519/812] mesh061 -> mesh057 | yaw -163.3 deg | anchors 160 | 6.0s
+[520/812] mesh061 -> mesh058 | yaw -164.9 deg | anchors 160 | 5.9s
+[521/812] mesh061 -> mesh059 | yaw 75.5 deg | anchors 160 | 5.9s
+[522/812] mesh061 -> mesh060 | yaw 100.6 deg | anchors 160 | 6.0s
+[523/812] mesh061 -> mesh062 | yaw -171.1 deg | anchors 160 | 6.0s
+[524/812] mesh061 -> mesh063 | yaw -164.9 deg | anchors 160 | 6.0s
+[525/812] mesh061 -> mesh064 | yaw -174.4 deg | anchors 160 | 6.0s
+[526/812] mesh061 -> mesh065 | yaw -81.8 deg | anchors 160 | 6.0s
+[527/812] mesh061 -> mesh066 | yaw -176.6 deg | anchors 160 | 6.0s
+[528/812] mesh061 -> mesh067 | yaw -166.5 deg | anchors 160 | 5.9s
+[529/812] mesh061 -> mesh068 | yaw -12.3 deg | anchors 160 | 5.8s
+[530/812] mesh061 -> mesh069 | yaw 39.7 deg | anchors 160 | 6.0s
+[531/812] mesh061 -> mesh070 | yaw -14.4 deg | anchors 160 | 5.9s
+[532/812] mesh061 -> mesh071 | yaw -92.9 deg | anchors 160 | 5.9s
+[533/812] mesh062 -> mesh042 | yaw -78.1 deg | anchors 160 | 6.0s
+[534/812] mesh062 -> mesh043 | yaw -4.6 deg | anchors 160 | 6.0s
+[535/812] mesh062 -> mesh044 | yaw 153.9 deg | anchors 160 | 6.0s
+[536/812] mesh062 -> mesh045 | yaw 172.7 deg | anchors 160 | 6.0s
+[537/812] mesh062 -> mesh046 | yaw -5.8 deg | anchors 160 | 5.9s
+[538/812] mesh062 -> mesh047 | yaw -5.5 deg | anchors 160 | 6.0s
+[539/812] mesh062 -> mesh048 | yaw 0.1 deg | anchors 160 | 6.0s
+[540/812] mesh062 -> mesh049 | yaw 6.8 deg | anchors 160 | 6.0s
+[541/812] mesh062 -> mesh050 | yaw -167.9 deg | anchors 160 | 6.0s
+[542/812] mesh062 -> mesh052 | yaw -0.1 deg | anchors 160 | 5.9s
+[543/812] mesh062 -> mesh053 | yaw 1.0 deg | anchors 160 | 6.0s
+[544/812] mesh062 -> mesh054 | yaw -170.9 deg | anchors 160 | 5.9s
+[545/812] mesh062 -> mesh055 | yaw 166.6 deg | anchors 160 | 5.9s
+[546/812] mesh062 -> mesh056 | yaw -15.8 deg | anchors 160 | 5.9s
+[547/812] mesh062 -> mesh057 | yaw -115.2 deg | anchors 160 | 5.9s
+[548/812] mesh062 -> mesh058 | yaw 1.1 deg | anchors 160 | 5.9s
+[549/812] mesh062 -> mesh059 | yaw -121.6 deg | anchors 160 | 5.9s
+[550/812] mesh062 -> mesh060 | yaw -108.1 deg | anchors 160 | 5.9s
+[551/812] mesh062 -> mesh061 | yaw 144.6 deg | anchors 160 | 6.0s
+[552/812] mesh062 -> mesh063 | yaw 4.2 deg | anchors 160 | 6.0s
+[553/812] mesh062 -> mesh064 | yaw -13.4 deg | anchors 160 | 6.0s
+[554/812] mesh062 -> mesh065 | yaw 81.7 deg | anchors 160 | 6.0s
+[555/812] mesh062 -> mesh066 | yaw 0.0 deg | anchors 160 | 6.0s
+[556/812] mesh062 -> mesh067 | yaw 5.8 deg | anchors 160 | 5.9s
+[557/812] mesh062 -> mesh068 | yaw 144.8 deg | anchors 160 | 5.8s
+[558/812] mesh062 -> mesh069 | yaw 19.9 deg | anchors 160 | 5.9s
+[559/812] mesh062 -> mesh070 | yaw 138.5 deg | anchors 160 | 6.0s
+[560/812] mesh062 -> mesh071 | yaw 141.6 deg | anchors 160 | 6.0s
+[561/812] mesh063 -> mesh042 | yaw -82.3 deg | anchors 160 | 6.0s
+[562/812] mesh063 -> mesh043 | yaw -2.3 deg | anchors 160 | 6.0s
+[563/812] mesh063 -> mesh044 | yaw -26.9 deg | anchors 160 | 6.0s
+[564/812] mesh063 -> mesh045 | yaw -3.1 deg | anchors 160 | 6.0s
+[565/812] mesh063 -> mesh046 | yaw -177.5 deg | anchors 160 | 6.0s
+[566/812] mesh063 -> mesh047 | yaw -3.8 deg | anchors 160 | 6.0s
+[567/812] mesh063 -> mesh048 | yaw 176.3 deg | anchors 160 | 6.0s
+[568/812] mesh063 -> mesh049 | yaw 4.5 deg | anchors 160 | 6.0s
+[569/812] mesh063 -> mesh050 | yaw 11.5 deg | anchors 160 | 6.0s
+[570/812] mesh063 -> mesh052 | yaw 170.7 deg | anchors 160 | 6.0s
+[571/812] mesh063 -> mesh053 | yaw -0.9 deg | anchors 160 | 5.3s
+[572/812] mesh063 -> mesh054 | yaw -172.7 deg | anchors 160 | 5.6s
+[573/812] mesh063 -> mesh055 | yaw -9.9 deg | anchors 160 | 6.0s
+[574/812] mesh063 -> mesh056 | yaw -15.4 deg | anchors 160 | 6.0s
+[575/812] mesh063 -> mesh057 | yaw -102.5 deg | anchors 160 | 6.2s
+[576/812] mesh063 -> mesh058 | yaw 2.4 deg | anchors 160 | 6.0s
+[577/812] mesh063 -> mesh059 | yaw -119.0 deg | anchors 160 | 5.7s
+[578/812] mesh063 -> mesh060 | yaw -115.9 deg | anchors 160 | 5.9s
+[579/812] mesh063 -> mesh061 | yaw 161.6 deg | anchors 160 | 6.2s
+[580/812] mesh063 -> mesh062 | yaw 1.0 deg | anchors 160 | 5.8s
+[581/812] mesh063 -> mesh064 | yaw -9.2 deg | anchors 160 | 5.5s
+[582/812] mesh063 -> mesh065 | yaw -89.9 deg | anchors 160 | 6.0s
+[583/812] mesh063 -> mesh066 | yaw -2.3 deg | anchors 160 | 6.1s
+[584/812] mesh063 -> mesh067 | yaw 8.3 deg | anchors 160 | 6.0s
+[585/812] mesh063 -> mesh068 | yaw 140.6 deg | anchors 160 | 6.1s
+[586/812] mesh063 -> mesh069 | yaw -159.2 deg | anchors 160 | 6.0s
+[587/812] mesh063 -> mesh070 | yaw 138.6 deg | anchors 160 | 6.5s
+[588/812] mesh063 -> mesh071 | yaw 98.6 deg | anchors 160 | 5.6s
+[589/812] mesh064 -> mesh042 | yaw -48.8 deg | anchors 160 | 6.0s
+[590/812] mesh064 -> mesh043 | yaw 10.7 deg | anchors 160 | 6.1s
+[591/812] mesh064 -> mesh044 | yaw -13.2 deg | anchors 160 | 6.1s
+[592/812] mesh064 -> mesh045 | yaw 10.3 deg | anchors 160 | 6.0s
+[593/812] mesh064 -> mesh046 | yaw -166.2 deg | anchors 160 | 6.5s
+[594/812] mesh064 -> mesh047 | yaw 3.6 deg | anchors 160 | 6.0s
+[595/812] mesh064 -> mesh048 | yaw -170.1 deg | anchors 160 | 6.1s
+[596/812] mesh064 -> mesh049 | yaw 19.0 deg | anchors 160 | 6.1s
+[597/812] mesh064 -> mesh050 | yaw 20.3 deg | anchors 160 | 6.1s
+[598/812] mesh064 -> mesh052 | yaw -173.7 deg | anchors 160 | 6.2s
+[599/812] mesh064 -> mesh053 | yaw 12.5 deg | anchors 160 | 5.7s
+[600/812] mesh064 -> mesh054 | yaw -161.4 deg | anchors 160 | 6.3s
+[601/812] mesh064 -> mesh055 | yaw -0.3 deg | anchors 160 | 6.1s
+[602/812] mesh064 -> mesh056 | yaw 2.2 deg | anchors 160 | 6.1s
+[603/812] mesh064 -> mesh057 | yaw 73.8 deg | anchors 160 | 6.0s
+[604/812] mesh064 -> mesh058 | yaw -168.4 deg | anchors 160 | 6.2s
+[605/812] mesh064 -> mesh059 | yaw -116.9 deg | anchors 160 | 6.0s
+[606/812] mesh064 -> mesh060 | yaw -121.4 deg | anchors 160 | 6.0s
+[607/812] mesh064 -> mesh061 | yaw 176.4 deg | anchors 160 | 6.0s
+[608/812] mesh064 -> mesh062 | yaw -168.5 deg | anchors 160 | 6.0s
+[609/812] mesh064 -> mesh063 | yaw 8.9 deg | anchors 160 | 6.1s
+[610/812] mesh064 -> mesh065 | yaw -85.1 deg | anchors 160 | 5.7s
+[611/812] mesh064 -> mesh066 | yaw 12.4 deg | anchors 160 | 6.1s
+[612/812] mesh064 -> mesh067 | yaw -163.7 deg | anchors 160 | 5.9s
+[613/812] mesh064 -> mesh068 | yaw 152.6 deg | anchors 160 | 5.9s
+[614/812] mesh064 -> mesh069 | yaw 27.0 deg | anchors 160 | 6.2s
+[615/812] mesh064 -> mesh070 | yaw -37.4 deg | anchors 160 | 6.2s
+[616/812] mesh064 -> mesh071 | yaw 89.7 deg | anchors 160 | 6.1s
+[617/812] mesh065 -> mesh042 | yaw -117.0 deg | anchors 160 | 6.1s
+[618/812] mesh065 -> mesh043 | yaw -94.2 deg | anchors 160 | 6.1s
+[619/812] mesh065 -> mesh044 | yaw 74.3 deg | anchors 160 | 6.1s
+[620/812] mesh065 -> mesh045 | yaw 82.0 deg | anchors 160 | 6.3s
+[621/812] mesh065 -> mesh046 | yaw 86.8 deg | anchors 160 | 5.7s
+[622/812] mesh065 -> mesh047 | yaw 83.8 deg | anchors 160 | 6.1s
+[623/812] mesh065 -> mesh048 | yaw -102.3 deg | anchors 160 | 5.6s
+[624/812] mesh065 -> mesh049 | yaw -89.2 deg | anchors 160 | 6.1s
+[625/812] mesh065 -> mesh050 | yaw 102.9 deg | anchors 160 | 6.0s
+[626/812] mesh065 -> mesh052 | yaw -93.7 deg | anchors 160 | 6.3s
+[627/812] mesh065 -> mesh053 | yaw -83.6 deg | anchors 160 | 6.1s
+[628/812] mesh065 -> mesh054 | yaw 100.9 deg | anchors 160 | 6.1s
+[629/812] mesh065 -> mesh055 | yaw 89.0 deg | anchors 160 | 6.1s
+[630/812] mesh065 -> mesh056 | yaw -103.3 deg | anchors 160 | 5.7s
+[631/812] mesh065 -> mesh057 | yaw -58.8 deg | anchors 160 | 6.0s
+[632/812] mesh065 -> mesh058 | yaw -87.0 deg | anchors 160 | 5.8s
+[633/812] mesh065 -> mesh059 | yaw 159.7 deg | anchors 160 | 5.9s
+[634/812] mesh065 -> mesh060 | yaw 138.0 deg | anchors 160 | 6.1s
+[635/812] mesh065 -> mesh061 | yaw -106.2 deg | anchors 160 | 6.1s
+[636/812] mesh065 -> mesh062 | yaw -84.2 deg | anchors 160 | 6.2s
+[637/812] mesh065 -> mesh063 | yaw 82.6 deg | anchors 160 | 6.2s
+[638/812] mesh065 -> mesh064 | yaw 76.5 deg | anchors 160 | 5.6s
+[639/812] mesh065 -> mesh066 | yaw -96.2 deg | anchors 160 | 6.1s
+[640/812] mesh065 -> mesh067 | yaw -83.6 deg | anchors 160 | 6.1s
+[641/812] mesh065 -> mesh068 | yaw 55.8 deg | anchors 160 | 6.1s
+[642/812] mesh065 -> mesh069 | yaw 115.4 deg | anchors 160 | 6.2s
+[643/812] mesh065 -> mesh070 | yaw 49.0 deg | anchors 160 | 6.1s
+[644/812] mesh065 -> mesh071 | yaw 56.1 deg | anchors 160 | 5.9s
+[645/812] mesh066 -> mesh042 | yaw -78.3 deg | anchors 160 | 6.1s
+[646/812] mesh066 -> mesh043 | yaw 3.8 deg | anchors 160 | 6.1s
+[647/812] mesh066 -> mesh044 | yaw 148.2 deg | anchors 160 | 5.9s
+[648/812] mesh066 -> mesh045 | yaw -2.5 deg | anchors 160 | 6.2s
+[649/812] mesh066 -> mesh046 | yaw -177.3 deg | anchors 160 | 5.6s
+[650/812] mesh066 -> mesh047 | yaw -2.5 deg | anchors 160 | 6.1s
+[651/812] mesh066 -> mesh048 | yaw -2.0 deg | anchors 160 | 6.1s
+[652/812] mesh066 -> mesh049 | yaw -168.0 deg | anchors 160 | 6.1s
+[653/812] mesh066 -> mesh050 | yaw 14.3 deg | anchors 160 | 5.9s
+[654/812] mesh066 -> mesh052 | yaw 179.1 deg | anchors 160 | 6.3s
+[655/812] mesh066 -> mesh053 | yaw 0.5 deg | anchors 160 | 6.1s
+[656/812] mesh066 -> mesh054 | yaw -164.9 deg | anchors 160 | 5.9s
+[657/812] mesh066 -> mesh055 | yaw -11.9 deg | anchors 160 | 6.1s
+[658/812] mesh066 -> mesh056 | yaw -14.0 deg | anchors 160 | 6.1s
+[659/812] mesh066 -> mesh057 | yaw -104.2 deg | anchors 160 | 6.3s
+[660/812] mesh066 -> mesh058 | yaw -0.1 deg | anchors 160 | 5.6s
+[661/812] mesh066 -> mesh059 | yaw -117.9 deg | anchors 160 | 6.1s
+[662/812] mesh066 -> mesh060 | yaw 74.9 deg | anchors 160 | 6.1s
+[663/812] mesh066 -> mesh061 | yaw 150.3 deg | anchors 160 | 6.0s
+[664/812] mesh066 -> mesh062 | yaw 0.4 deg | anchors 160 | 6.1s
+[665/812] mesh066 -> mesh063 | yaw 5.0 deg | anchors 160 | 6.3s
+[666/812] mesh066 -> mesh064 | yaw -13.3 deg | anchors 160 | 6.0s
+[667/812] mesh066 -> mesh065 | yaw 92.2 deg | anchors 160 | 6.1s
+[668/812] mesh066 -> mesh067 | yaw 5.8 deg | anchors 160 | 6.0s
+[669/812] mesh066 -> mesh068 | yaw 146.7 deg | anchors 160 | 6.1s
+[670/812] mesh066 -> mesh069 | yaw -154.8 deg | anchors 160 | 6.2s
+[671/812] mesh066 -> mesh070 | yaw 145.8 deg | anchors 160 | 5.7s
+[672/812] mesh066 -> mesh071 | yaw -50.8 deg | anchors 160 | 6.1s
+[673/812] mesh067 -> mesh042 | yaw -74.1 deg | anchors 160 | 6.1s
+[674/812] mesh067 -> mesh043 | yaw -10.1 deg | anchors 160 | 6.1s
+[675/812] mesh067 -> mesh044 | yaw 138.3 deg | anchors 160 | 6.0s
+[676/812] mesh067 -> mesh045 | yaw -14.8 deg | anchors 160 | 6.3s
+[677/812] mesh067 -> mesh046 | yaw 173.3 deg | anchors 160 | 6.1s
+[678/812] mesh067 -> mesh047 | yaw -11.5 deg | anchors 160 | 5.9s
+[679/812] mesh067 -> mesh048 | yaw 174.6 deg | anchors 160 | 6.1s
+[680/812] mesh067 -> mesh049 | yaw -176.3 deg | anchors 160 | 6.0s
+[681/812] mesh067 -> mesh050 | yaw 3.4 deg | anchors 160 | 6.3s
+[682/812] mesh067 -> mesh052 | yaw 167.0 deg | anchors 160 | 5.6s
+[683/812] mesh067 -> mesh053 | yaw -8.1 deg | anchors 160 | 6.1s
+[684/812] mesh067 -> mesh054 | yaw -177.8 deg | anchors 160 | 6.0s
+[685/812] mesh067 -> mesh055 | yaw 161.4 deg | anchors 160 | 6.1s
+[686/812] mesh067 -> mesh056 | yaw -27.7 deg | anchors 160 | 5.8s
+[687/812] mesh067 -> mesh057 | yaw 76.8 deg | anchors 160 | 6.4s
+[688/812] mesh067 -> mesh058 | yaw -6.4 deg | anchors 160 | 6.1s
+[689/812] mesh067 -> mesh059 | yaw -121.9 deg | anchors 160 | 6.3s
+[690/812] mesh067 -> mesh060 | yaw -106.5 deg | anchors 160 | 6.1s
+[691/812] mesh067 -> mesh061 | yaw 142.0 deg | anchors 160 | 6.0s
+[692/812] mesh067 -> mesh062 | yaw -5.7 deg | anchors 160 | 6.0s
+[693/812] mesh067 -> mesh063 | yaw -5.7 deg | anchors 160 | 5.6s
+[694/812] mesh067 -> mesh064 | yaw -26.7 deg | anchors 160 | 6.0s
+[695/812] mesh067 -> mesh065 | yaw 86.0 deg | anchors 160 | 6.1s
+[696/812] mesh067 -> mesh066 | yaw -5.2 deg | anchors 160 | 6.1s
+[697/812] mesh067 -> mesh068 | yaw 132.4 deg | anchors 160 | 5.7s
+[698/812] mesh067 -> mesh069 | yaw -164.1 deg | anchors 160 | 6.1s
+[699/812] mesh067 -> mesh070 | yaw 124.6 deg | anchors 160 | 5.7s
+[700/812] mesh067 -> mesh071 | yaw 121.9 deg | anchors 160 | 6.0s
+[701/812] mesh068 -> mesh042 | yaw 157.3 deg | anchors 160 | 6.1s
+[702/812] mesh068 -> mesh043 | yaw -152.3 deg | anchors 160 | 6.2s
+[703/812] mesh068 -> mesh044 | yaw -164.3 deg | anchors 160 | 6.2s
+[704/812] mesh068 -> mesh045 | yaw -148.5 deg | anchors 160 | 5.6s
+[705/812] mesh068 -> mesh046 | yaw 33.9 deg | anchors 160 | 6.4s
+[706/812] mesh068 -> mesh047 | yaw -151.5 deg | anchors 160 | 6.1s
+[707/812] mesh068 -> mesh048 | yaw 16.2 deg | anchors 160 | 5.9s
+[708/812] mesh068 -> mesh049 | yaw -139.4 deg | anchors 160 | 5.9s
+[709/812] mesh068 -> mesh050 | yaw -134.6 deg | anchors 160 | 5.9s
+[710/812] mesh068 -> mesh052 | yaw 27.4 deg | anchors 160 | 5.6s
+[711/812] mesh068 -> mesh053 | yaw -147.5 deg | anchors 160 | 5.9s
+[712/812] mesh068 -> mesh054 | yaw -143.7 deg | anchors 160 | 5.7s
+[713/812] mesh068 -> mesh055 | yaw -139.1 deg | anchors 160 | 5.9s
+[714/812] mesh068 -> mesh056 | yaw -155.8 deg | anchors 160 | 6.0s
+[715/812] mesh068 -> mesh057 | yaw -122.0 deg | anchors 160 | 6.2s
+[716/812] mesh068 -> mesh058 | yaw -152.8 deg | anchors 160 | 5.9s
+[717/812] mesh068 -> mesh059 | yaw 96.8 deg | anchors 160 | 6.2s
+[718/812] mesh068 -> mesh060 | yaw 120.3 deg | anchors 160 | 5.9s
+[719/812] mesh068 -> mesh061 | yaw 35.3 deg | anchors 160 | 6.0s
+[720/812] mesh068 -> mesh062 | yaw -149.2 deg | anchors 160 | 6.1s
+[721/812] mesh068 -> mesh063 | yaw -146.8 deg | anchors 160 | 5.8s
+[722/812] mesh068 -> mesh064 | yaw -153.4 deg | anchors 160 | 6.1s
+[723/812] mesh068 -> mesh065 | yaw -58.9 deg | anchors 160 | 6.1s
+[724/812] mesh068 -> mesh066 | yaw -150.9 deg | anchors 160 | 6.1s
+[725/812] mesh068 -> mesh067 | yaw -144.3 deg | anchors 160 | 6.2s
+[726/812] mesh068 -> mesh069 | yaw -102.9 deg | anchors 160 | 6.1s
+[727/812] mesh068 -> mesh070 | yaw 178.3 deg | anchors 160 | 5.6s
+[728/812] mesh068 -> mesh071 | yaw 78.5 deg | anchors 160 | 6.2s
+[729/812] mesh069 -> mesh042 | yaw 101.2 deg | anchors 160 | 6.1s
+[730/812] mesh069 -> mesh043 | yaw 162.2 deg | anchors 160 | 6.1s
+[731/812] mesh069 -> mesh044 | yaw 138.7 deg | anchors 160 | 6.1s
+[732/812] mesh069 -> mesh045 | yaw 160.7 deg | anchors 160 | 6.2s
+[733/812] mesh069 -> mesh046 | yaw -18.2 deg | anchors 160 | 6.2s
+[734/812] mesh069 -> mesh047 | yaw 160.5 deg | anchors 160 | 6.1s
+[735/812] mesh069 -> mesh048 | yaw -12.0 deg | anchors 160 | 6.2s
+[736/812] mesh069 -> mesh049 | yaw 159.6 deg | anchors 160 | 6.1s
+[737/812] mesh069 -> mesh050 | yaw 169.1 deg | anchors 160 | 6.0s
+[738/812] mesh069 -> mesh052 | yaw -17.3 deg | anchors 160 | 5.7s
+[739/812] mesh069 -> mesh053 | yaw 160.5 deg | anchors 160 | 5.8s
+[740/812] mesh069 -> mesh054 | yaw -14.0 deg | anchors 160 | 6.1s
+[741/812] mesh069 -> mesh055 | yaw 154.3 deg | anchors 160 | 6.0s
+[742/812] mesh069 -> mesh056 | yaw 149.0 deg | anchors 160 | 6.1s
+[743/812] mesh069 -> mesh057 | yaw 145.6 deg | anchors 160 | 6.1s
+[744/812] mesh069 -> mesh058 | yaw 165.3 deg | anchors 160 | 5.8s
+[745/812] mesh069 -> mesh059 | yaw -132.2 deg | anchors 160 | 6.2s
+[746/812] mesh069 -> mesh060 | yaw 78.3 deg | anchors 160 | 5.7s
+[747/812] mesh069 -> mesh061 | yaw -48.7 deg | anchors 160 | 5.9s
+[748/812] mesh069 -> mesh062 | yaw -18.4 deg | anchors 160 | 6.1s
+[749/812] mesh069 -> mesh063 | yaw 163.7 deg | anchors 160 | 5.7s
+[750/812] mesh069 -> mesh064 | yaw 159.5 deg | anchors 160 | 6.0s
+[751/812] mesh069 -> mesh065 | yaw -113.8 deg | anchors 160 | 6.2s
+[752/812] mesh069 -> mesh066 | yaw 155.4 deg | anchors 160 | 6.0s
+[753/812] mesh069 -> mesh067 | yaw 162.7 deg | anchors 160 | 6.1s
+[754/812] mesh069 -> mesh068 | yaw 102.5 deg | anchors 160 | 6.2s
+[755/812] mesh069 -> mesh070 | yaw -57.7 deg | anchors 160 | 6.3s
+[756/812] mesh069 -> mesh071 | yaw 81.3 deg | anchors 160 | 5.7s
+[757/812] mesh070 -> mesh042 | yaw 86.5 deg | anchors 160 | 5.8s
+[758/812] mesh070 -> mesh043 | yaw -147.3 deg | anchors 160 | 6.1s
+[759/812] mesh070 -> mesh044 | yaw -167.7 deg | anchors 160 | 6.1s
+[760/812] mesh070 -> mesh045 | yaw -153.9 deg | anchors 160 | 5.6s
+[761/812] mesh070 -> mesh046 | yaw 31.4 deg | anchors 160 | 6.0s
+[762/812] mesh070 -> mesh047 | yaw -154.0 deg | anchors 160 | 6.1s
+[763/812] mesh070 -> mesh048 | yaw -152.8 deg | anchors 160 | 6.0s
+[764/812] mesh070 -> mesh049 | yaw 46.5 deg | anchors 160 | 6.1s
+[765/812] mesh070 -> mesh050 | yaw -131.3 deg | anchors 160 | 6.2s
+[766/812] mesh070 -> mesh052 | yaw 28.9 deg | anchors 160 | 5.9s
+[767/812] mesh070 -> mesh053 | yaw 42.9 deg | anchors 160 | 6.1s
+[768/812] mesh070 -> mesh054 | yaw 43.2 deg | anchors 160 | 6.0s
+[769/812] mesh070 -> mesh055 | yaw -146.6 deg | anchors 160 | 6.1s
+[770/812] mesh070 -> mesh056 | yaw 31.6 deg | anchors 160 | 6.1s
+[771/812] mesh070 -> mesh057 | yaw 92.7 deg | anchors 160 | 5.6s
+[772/812] mesh070 -> mesh058 | yaw 26.9 deg | anchors 160 | 6.0s
+[773/812] mesh070 -> mesh059 | yaw -97.2 deg | anchors 160 | 6.0s
+[774/812] mesh070 -> mesh060 | yaw -92.6 deg | anchors 160 | 5.8s
+[775/812] mesh070 -> mesh061 | yaw 32.8 deg | anchors 160 | 5.9s
+[776/812] mesh070 -> mesh062 | yaw 30.1 deg | anchors 160 | 6.2s
+[777/812] mesh070 -> mesh063 | yaw -145.2 deg | anchors 160 | 6.1s
+[778/812] mesh070 -> mesh064 | yaw 20.6 deg | anchors 160 | 6.1s
+[779/812] mesh070 -> mesh065 | yaw -85.2 deg | anchors 160 | 6.1s
+[780/812] mesh070 -> mesh066 | yaw 36.0 deg | anchors 160 | 6.1s
+[781/812] mesh070 -> mesh067 | yaw -144.2 deg | anchors 160 | 6.2s
+[782/812] mesh070 -> mesh068 | yaw 171.2 deg | anchors 160 | 5.7s
+[783/812] mesh070 -> mesh069 | yaw 58.5 deg | anchors 160 | 6.1s
+[784/812] mesh070 -> mesh071 | yaw -43.7 deg | anchors 160 | 6.1s
+[785/812] mesh071 -> mesh042 | yaw 30.3 deg | anchors 160 | 6.1s
+[786/812] mesh071 -> mesh043 | yaw -9.5 deg | anchors 160 | 6.2s
+[787/812] mesh071 -> mesh044 | yaw 130.4 deg | anchors 160 | 6.1s
+[788/812] mesh071 -> mesh045 | yaw -30.6 deg | anchors 160 | 6.4s
+[789/812] mesh071 -> mesh046 | yaw -52.2 deg | anchors 160 | 6.1s
+[790/812] mesh071 -> mesh047 | yaw -40.9 deg | anchors 160 | 5.6s
+[791/812] mesh071 -> mesh048 | yaw -169.5 deg | anchors 160 | 5.9s
+[792/812] mesh071 -> mesh049 | yaw 126.4 deg | anchors 160 | 6.1s
+[793/812] mesh071 -> mesh050 | yaw -48.8 deg | anchors 160 | 5.7s
+[794/812] mesh071 -> mesh052 | yaw 2.9 deg | anchors 160 | 6.0s
+[795/812] mesh071 -> mesh053 | yaw -141.3 deg | anchors 160 | 5.8s
+[796/812] mesh071 -> mesh054 | yaw 172.9 deg | anchors 160 | 6.0s
+[797/812] mesh071 -> mesh055 | yaw -40.9 deg | anchors 160 | 6.1s
+[798/812] mesh071 -> mesh056 | yaw 31.7 deg | anchors 160 | 6.2s
+[799/812] mesh071 -> mesh057 | yaw 124.0 deg | anchors 160 | 5.8s
+[800/812] mesh071 -> mesh058 | yaw 106.3 deg | anchors 160 | 5.9s
+[801/812] mesh071 -> mesh059 | yaw -131.5 deg | anchors 160 | 6.1s
+[802/812] mesh071 -> mesh060 | yaw 1.5 deg | anchors 160 | 6.0s
+[803/812] mesh071 -> mesh061 | yaw 86.1 deg | anchors 160 | 6.2s
+[804/812] mesh071 -> mesh062 | yaw -34.5 deg | anchors 160 | 5.8s
+[805/812] mesh071 -> mesh063 | yaw -44.3 deg | anchors 160 | 5.9s
+[806/812] mesh071 -> mesh064 | yaw -171.8 deg | anchors 160 | 6.0s
+[807/812] mesh071 -> mesh065 | yaw -95.6 deg | anchors 160 | 6.2s
+[808/812] mesh071 -> mesh066 | yaw -135.4 deg | anchors 160 | 6.0s
+[809/812] mesh071 -> mesh067 | yaw -49.9 deg | anchors 160 | 6.0s
+[810/812] mesh071 -> mesh068 | yaw -1.0 deg | anchors 160 | 5.7s
+[811/812] mesh071 -> mesh069 | yaw 170.4 deg | anchors 160 | 6.0s
+[812/812] mesh071 -> mesh070 | yaw -162.3 deg | anchors 160 | 5.9s
+
+Saved maps to results/SCAPE/p2p_hadm (per-pair log: results/SCAPE/p2p_hadm/matching_log.jsonl)
+Evaluate: python geodesic_error.py --config config/SCAPE/corres_config.yaml --method hadm

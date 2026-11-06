@@ -92,7 +92,7 @@ training:
 
 # Correspondence validation during training -> checkpoints/model_FAUST_best.pth / _final.pth
 validation:
-  every_iters: 500      # validate every N encoder optimisation steps (and at every epoch end)
+  every_iters: 8000      # validate every N encoder optimisation steps (and at every epoch end)
   method: "heat_only"   # "heat_only" (fast) | "hadm" (full, slower) | "greedy"
   max_pairs: 6          # ordered validation pairs evaluated
 

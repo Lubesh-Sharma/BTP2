@@ -40,7 +40,7 @@ from core.orientation_training import (evaluate_rotation, correspondence_loss_sc
 from core.domain_loss import compute_domain_loss, FocalLoss
 from core.rotation_loss import multibin_rotation_loss, subset_rotation_consistency
 from core.validation import CorrespondenceValidator
-from utils.data import dataset_split, load_shapes, rebuild_training_data
+from utils.data import dataset_split, load_shapes
 from utils.logger import start_logging, save_json
 
 CHECKPOINT_VERSION = 'single-encoder-v1'
@@ -169,8 +169,7 @@ def train_model(model, orient_net, train_shapes, validation_shapes, config, resu
             scale = correspondence_loss_scale(epoch, oem_warmup, oem_transition)
             model.requires_grad_(scale > 0)
             model.train(scale > 0)
-            # The existing absolute-epoch cosine helper also schedules the encoder.
-            optimizer.param_groups[0]['lr'] = oem_learning_rate(epoch, lr, tc.get('encoder_lr_schedule')) * scale
+            optimizer.param_groups[0]['lr'] = lr * scale
             optimizer.param_groups[1]['lr'] = oem_learning_rate(epoch, lr, oem_lr_schedule)
             w_angle, w_domain = orientation_loss_weights(epoch, angle_weight_init, angle_weight_target,
                                                          angle_warmup_epochs, domain_weight)
@@ -296,8 +295,6 @@ def main():
     parser = argparse.ArgumentParser(description="Single-encoder ASMAE + OEM training")
     parser.add_argument('--config', default='config/FAUST/train_config.yaml')
     parser.add_argument('--fresh', action='store_true', help='ignore an existing final checkpoint')
-    parser.add_argument('--rebuild-data', action='store_true',
-                        help='rebuild OBJ kNN graphs and geometry caches using this training YAML')
     args = parser.parse_args()
     with open(args.config) as f:
         config = yaml.safe_load(f)
@@ -308,10 +305,6 @@ def main():
     seed = config['training'].get('seed', 42)
     random.seed(seed); np.random.seed(seed); torch.manual_seed(seed)
     os.makedirs(config['training']['checkpoint_dir'], exist_ok=True)
-
-    if args.rebuild_data:
-        rebuild_training_data(config)
-        random.seed(seed); np.random.seed(seed); torch.manual_seed(seed)
 
     train_files, val_files, test_files = dataset_split(config)
     print(f"Split: {len(train_files)} train, {len(val_files)} validation, {len(test_files)} test")

@@ -3,10 +3,6 @@
   "output_dir": "results/SHREC/preprocess",
   "result_dir": "results/SHREC",
   "cache_dir": "cache/SHREC",
-  "preprocessing": {
-    "off_dir": "input/SHREC/off",
-    "knn_k": 10
-  },
   "gt": {
     "format": "map",
     "map_dir": "input/SHREC/map",
@@ -54,7 +50,7 @@
     "angle_overlap": 1.5
   },
   "training": {
-    "epochs": 110,
+    "epochs": 70,
     "pairs_per_epoch": 552,
     "seed": 42,
     "validation_size": 2,
@@ -73,12 +69,6 @@
     ],
     "noise_variance": 0.0,
     "lr": 0.00025,
-    "encoder_lr_schedule": {
-      "start_epoch": 41,
-      "duration_epochs": 70,
-      "start_lr": 0.00025,
-      "min_lr": 1e-05
-    },
     "oem_lr_schedule": {
       "start_epoch": 41,
       "duration_epochs": 30,

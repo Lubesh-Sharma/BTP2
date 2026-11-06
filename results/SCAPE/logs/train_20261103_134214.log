@@ -1,0 +1,149 @@
+[log] train.py --config config/SCAPE/train_config.yaml --fresh
+[log] writing to results/SCAPE/logs/train_20261103_134214.log
+Dataset too small (71 files). Adjusted to 42 train, 29 test
+Split: 40 train, 2 validation, 29 test
+
+============================================================
+Loading 40 train shapes from: input/SCAPE/obj/k_10
+============================================================
+[1/40] mesh000.obj ... OK (4999 vertices, 53 features, DINO 384-d, mean conf 0.75)
+[2/40] mesh001.obj ... OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.74)
+[3/40] mesh002.obj ... OK (4999 vertices, 53 features, DINO 384-d, mean conf 0.74)
+[4/40] mesh003.obj ... OK (4997 vertices, 53 features, DINO 384-d, mean conf 0.70)
+[5/40] mesh004.obj ... OK (4999 vertices, 53 features, DINO 384-d, mean conf 0.68)
+[6/40] mesh005.obj ... OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.74)
+[7/40] mesh006.obj ... OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.73)
+[8/40] mesh007.obj ... OK (5004 vertices, 53 features, DINO 384-d, mean conf 0.58)
+[9/40] mesh008.obj ... OK (5001 vertices, 53 features, DINO 384-d, mean conf 0.73)
+[10/40] mesh009.obj ... OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.77)
+[11/40] mesh010.obj ... OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.74)
+[12/40] mesh011.obj ... OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.77)
+[13/40] mesh012.obj ... OK (4996 vertices, 53 features, DINO 384-d, mean conf 0.70)
+[14/40] mesh013.obj ... OK (5003 vertices, 53 features, DINO 384-d, mean conf 0.73)
+[15/40] mesh014.obj ... OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.73)
+[16/40] mesh015.obj ... OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[17/40] mesh016.obj ... OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.69)
+[18/40] mesh017.obj ... OK (4998 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[19/40] mesh018.obj ... OK (4999 vertices, 53 features, DINO 384-d, mean conf 0.67)
+[20/40] mesh019.obj ... OK (5003 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[21/40] mesh020.obj ... OK (5001 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[22/40] mesh021.obj ... OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.68)
+[23/40] mesh022.obj ... OK (4999 vertices, 53 features, DINO 384-d, mean conf 0.72)
+[24/40] mesh023.obj ... OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.74)
+[25/40] mesh024.obj ... OK (5002 vertices, 53 features, DINO 384-d, mean conf 0.72)
+[26/40] mesh025.obj ... OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.73)
+[27/40] mesh026.obj ... OK (5001 vertices, 53 features, DINO 384-d, mean conf 0.75)
+[28/40] mesh027.obj ... OK (4997 vertices, 53 features, DINO 384-d, mean conf 0.78)
+[29/40] mesh028.obj ... OK (5007 vertices, 53 features, DINO 384-d, mean conf 0.70)
+[30/40] mesh029.obj ... OK (4996 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[31/40] mesh030.obj ... OK (4998 vertices, 53 features, DINO 384-d, mean conf 0.78)
+[32/40] mesh031.obj ... OK (4999 vertices, 53 features, DINO 384-d, mean conf 0.72)
+[33/40] mesh032.obj ... OK (4999 vertices, 53 features, DINO 384-d, mean conf 0.69)
+[34/40] mesh033.obj ... OK (5001 vertices, 53 features, DINO 384-d, mean conf 0.72)
+[35/40] mesh034.obj ... OK (4998 vertices, 53 features, DINO 384-d, mean conf 0.75)
+[36/40] mesh035.obj ... OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.76)
+[37/40] mesh036.obj ... OK (4998 vertices, 53 features, DINO 384-d, mean conf 0.69)
+[38/40] mesh037.obj ... OK (5004 vertices, 53 features, DINO 384-d, mean conf 0.71)
+[39/40] mesh038.obj ... OK (4999 vertices, 53 features, DINO 384-d, mean conf 0.75)
+[40/40] mesh039.obj ... OK (5000 vertices, 53 features, DINO 384-d, mean conf 0.74)
+Loaded 40 train shapes
+
+============================================================
+Loading 2 validation shapes from: input/SCAPE/obj/k_10
+============================================================
+[1/2] mesh040.obj ... OK (4998 vertices, 53 features, DINO 384-d, mean conf 0.74)
+[2/2] mesh041.obj ... OK (4999 vertices, 53 features, DINO 384-d, mean conf 0.73)
+Loaded 2 validation shapes
+  Feature dim 53 | DINO dim 384 | encoder params 1,123,797 | OEM params 959,634
+
+============================================================
+SINGLE-ENCODER TRAINING (OEM-first schedule)
+  Train shapes: 40 | Validation: 2 | Device: cuda
+  OEM-only epochs 1-15; encoder ramp over 5 epochs; total 40
+  Mask ratio (nodes/feats): 0.7 / 0.5
+  Weights: contra=10.0 cycle=100.0 dist[biharmonic]=120.0 orient=60.0 self=5.0 dino=20.0
+============================================================
+  Validation metric: geodesic | method=heat_only | 2 cases | DINO=True
+Epoch 1: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 602.5013 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.6502 | domain: 0.1662
+  OEM train_sample: acc=53.9% | angle err=62.15 deg | within 15 deg=51.6% | >90 deg=33.6%
+  OEM validation: acc=60.2% | angle err=59.48 deg | within 15 deg=57.0% | >90 deg=32.0%
+  [final] checkpoint -> results/SCAPE/checkpoints/model_SCAPE_final.pth
+Epoch 2: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 472.9345 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.2939 | domain: 0.1559
+  OEM train_sample: acc=56.2% | angle err=63.34 deg | within 15 deg=60.2% | >90 deg=35.2%
+  OEM validation: acc=65.6% | angle err=45.05 deg | within 15 deg=67.2% | >90 deg=22.7%
+  [final] checkpoint -> results/SCAPE/checkpoints/model_SCAPE_final.pth
+Epoch 3: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 398.9806 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 1.1063 | domain: 0.1531
+  OEM train_sample: acc=66.4% | angle err=32.71 deg | within 15 deg=64.8% | >90 deg=13.3%
+  OEM validation: acc=72.7% | angle err=25.56 deg | within 15 deg=71.9% | >90 deg=10.2%
+  [final] checkpoint -> results/SCAPE/checkpoints/model_SCAPE_final.pth
+Epoch 4: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 339.8802 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 0.9664 | domain: 0.1528
+  OEM train_sample: acc=75.0% | angle err=25.66 deg | within 15 deg=79.7% | >90 deg=10.9%
+  OEM validation: acc=78.1% | angle err=23.86 deg | within 15 deg=82.0% | >90 deg=10.2%
+  [final] checkpoint -> results/SCAPE/checkpoints/model_SCAPE_final.pth
+Epoch 5: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 303.1433 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 0.8992 | domain: 0.1442
+  OEM train_sample: acc=78.1% | angle err=21.26 deg | within 15 deg=85.2% | >90 deg=9.4%
+  OEM validation: acc=80.5% | angle err=19.88 deg | within 15 deg=88.3% | >90 deg=8.6%
+  [final] checkpoint -> results/SCAPE/checkpoints/model_SCAPE_final.pth
+Epoch 6: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 281.5038 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 0.8772 | domain: 0.1427
+  OEM train_sample: acc=72.7% | angle err=36.22 deg | within 15 deg=76.6% | >90 deg=19.5%
+  OEM validation: acc=75.8% | angle err=33.87 deg | within 15 deg=79.7% | >90 deg=17.2%
+  [final] checkpoint -> results/SCAPE/checkpoints/model_SCAPE_final.pth
+Epoch 7: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 255.8305 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 0.8388 | domain: 0.1407
+  OEM train_sample: acc=83.6% | angle err=20.91 deg | within 15 deg=88.3% | >90 deg=9.4%
+  OEM validation: acc=85.9% | angle err=14.06 deg | within 15 deg=94.5% | >90 deg=5.5%
+  [final] checkpoint -> results/SCAPE/checkpoints/model_SCAPE_final.pth
+Epoch 8: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 235.0350 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 0.8079 | domain: 0.1415
+  OEM train_sample: acc=88.3% | angle err=11.78 deg | within 15 deg=93.8% | >90 deg=4.7%
+  OEM validation: acc=85.9% | angle err=12.51 deg | within 15 deg=94.5% | >90 deg=4.7%
+  [final] checkpoint -> results/SCAPE/checkpoints/model_SCAPE_final.pth
+Epoch 9: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 213.2778 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 0.7640 | domain: 0.1346
+  OEM train_sample: acc=84.4% | angle err=18.60 deg | within 15 deg=88.3% | >90 deg=8.6%
+  OEM validation: acc=83.6% | angle err=17.19 deg | within 15 deg=90.6% | >90 deg=7.8%
+  [final] checkpoint -> results/SCAPE/checkpoints/model_SCAPE_final.pth
+Epoch 10: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 206.3889 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 0.7611 | domain: 0.1318
+  OEM train_sample: acc=77.3% | angle err=22.85 deg | within 15 deg=84.4% | >90 deg=9.4%
+  OEM validation: acc=83.6% | angle err=13.06 deg | within 15 deg=93.0% | >90 deg=4.7%
+  [final] checkpoint -> results/SCAPE/checkpoints/model_SCAPE_final.pth
+Epoch 11: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 194.7283 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 0.7240 | domain: 0.1281
+  OEM train_sample: acc=89.1% | angle err=12.71 deg | within 15 deg=92.2% | >90 deg=4.7%
+  OEM validation: acc=85.2% | angle err=12.80 deg | within 15 deg=95.3% | >90 deg=4.7%
+  [final] checkpoint -> results/SCAPE/checkpoints/model_SCAPE_final.pth
+Epoch 12: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 196.6085 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 0.7328 | domain: 0.1253
+  OEM train_sample: acc=78.9% | angle err=20.73 deg | within 15 deg=87.5% | >90 deg=9.4%
+  OEM validation: acc=82.0% | angle err=16.59 deg | within 15 deg=91.4% | >90 deg=7.0%
+  [final] checkpoint -> results/SCAPE/checkpoints/model_SCAPE_final.pth
+Epoch 13: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 186.2436 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 0.6944 | domain: 0.1181
+  OEM train_sample: acc=85.9% | angle err=17.75 deg | within 15 deg=90.6% | >90 deg=8.6%
+  OEM validation: acc=86.7% | angle err=13.01 deg | within 15 deg=94.5% | >90 deg=5.5%
+  [final] checkpoint -> results/SCAPE/checkpoints/model_SCAPE_final.pth
+Epoch 14: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 187.8360 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 0.7019 | domain: 0.1154
+  OEM train_sample: acc=75.8% | angle err=22.11 deg | within 15 deg=78.1% | >90 deg=8.6%
+  OEM validation: acc=80.5% | angle err=14.25 deg | within 15 deg=93.0% | >90 deg=4.7%
+  [final] checkpoint -> results/SCAPE/checkpoints/model_SCAPE_final.pth
+Epoch 15: OEM only | encoder scale=0.00 | enc lr=0.00e+00 | OEM lr=2.50e-04
+  tot: 181.0726 | rec: 0.0000 | contra: 0.0000 | cycle: 0.0000 | dist: 0.0000 | orient: 0.0000 | self: 0.0000 | dino: 0.0000 | angle: 0.6749 | domain: 0.1153
+  OEM train_sample: acc=86.7% | angle err=16.17 deg | within 15 deg=91.4% | >90 deg=7.0%
+  OEM validation: acc=85.9% | angle err=13.85 deg | within 15 deg=93.8% | >90 deg=5.5%
+  [final] checkpoint -> results/SCAPE/checkpoints/model_SCAPE_final.pth
+Epoch 16: OEM + encoder | encoder scale=0.20 | enc lr=5.00e-05 | OEM lr=2.50e-04
+  tot: 191.6000 | rec: 5.3014 | contra: 0.5442 | cycle: 0.0280 | dist: 0.2229 | orient: 0.6631 | self: 5.9331 | dino: 0.2252 | angle: 0.6277 | domain: 0.1103
+  OEM train_sample: acc=70.3% | angle err=20.67 deg | within 15 deg=67.2% | >90 deg=7.0%
+  OEM validation: acc=81.2% | angle err=11.37 deg | within 15 deg=79.7% | >90 deg=1.6%
+  VALIDATION (end of epoch, epoch 16, step 1560): geodesic error = 0.04708 | best = 0.04708  * new best
+  [best] checkpoint -> results/SCAPE/checkpoints/model_SCAPE_best.pth
+  [final] checkpoint -> results/SCAPE/checkpoints/model_SCAPE_final.pth
+Epoch 17: OEM + encoder | encoder scale=0.40 | enc lr=1.00e-04 | OEM lr=2.50e-04

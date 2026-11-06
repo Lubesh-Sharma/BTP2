@@ -1,6 +1,6 @@
 data_dir: "/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/obj/k_10"
 output_dir: "results/FAUST/preprocess"   # FPS .pp debug files
-result_dir: "results/FAUST"            # logs, checkpoints, p2p maps, evaluation
+result_dir: "results/SHREC_to_FAUST"            # logs, checkpoints, p2p maps, evaluation
 cache_dir: "cache/FAUST"
 train_size: 80
 test_size: 20
@@ -8,9 +8,9 @@ test_size: 20
 # Ground truth (validation + evaluation only; never used for training)
 gt:
   format: "vts"
-  corres_dir: "input/FAUST/corres"
-  mat_dir: "input/FAUST/mat"      # geodesic matrices, key 'dist' (computed from the mesh if missing)
-  off_dir: "input/FAUST/off"      # meshes: only geodesic_error.py (area normalisation)
+  corres_dir: "/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/corres"
+  mat_dir: "/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/mat"      # geodesic matrices, key 'dist' (computed from the mesh if missing)
+  off_dir: "/data/home/user/Lubesh_22CS30065/btp2/input/FAUST/off"      # meshes: only geodesic_error.py (area normalisation)
   exclude: []
 
 geometry:
