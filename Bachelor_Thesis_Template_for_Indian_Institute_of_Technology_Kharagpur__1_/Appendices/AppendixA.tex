@@ -1,0 +1,81 @@
+\chapter{Experimental Development}
+\label{app:development}
+\lhead{Appendix A. \emph{Experimental Development}}
+
+This appendix explains the experimental progression summarized in Section~\ref{sec:ablation-overview}. The variants examine how representation, orientation and geometric matching interact when estimating correspondence between deformable shapes.
+
+\section{Student--Teacher Baseline}
+\label{app:baseline}
+The initial experiment used student--teacher learning without explicit geometric descriptors. The student learned from paired shape observations, and a moving-average teacher supplied a consistency target. This follows the broader principle of stabilizing representation learning through a slowly updated target model \citep{NIPS2017_68053af2}.
+
+Masked reconstruction related the source to a reference shape. The associated global matching objective used an entropically regularized transport formulation \citep{Cuturi_2013}. This stage established a representation-learning baseline for examining the contribution of additional geometric and visual cues.
+
+\section{Adding Coordinates}
+\label{app:coordinates}
+Explicit XYZ channels introduced positional information into the point representation. Coordinates describe the location of a point within the shape and complement spectral descriptors that can be similar at symmetric locations. The input matrix combined heat-based features with normalized spatial coordinates.
+
+Coordinate conditioning also made the reference frame relevant to feature learning. The same anatomical point can change its coordinates under rotation, and different poses can place corresponding body parts in different positions. This connection between position and orientation motivated the alignment experiments. Protecting coordinate channels during masking preserved the positional context of hidden descriptor entries.
+
+\section{Adding DINOv2 Features}
+\label{app:dino}
+The visual-cue experiment added DINOv2 features to the matching representation \citep{oquab2024dinov2learningrobustvisual}. Projected shape views supplied image descriptors, which were lifted to their visible points. Aggregation across views associated each point with visual context complementary to the geometric encoder.
+
+This stage focused on adding the visual cue before the later distortion and orientation changes. Visibility handling controlled which image observations contributed to a point descriptor. The feature-matching path combined the lifted representation with learned point features. Visual distillation, described later, extended this connection into the training objectives.
+
+\section{Distortion and Symmetry}
+\label{app:distortion}
+A distance-preservation objective constrained the spatial relationships induced by a soft correspondence. If $P$ maps source indices to target points, the transported positions are $\widehat Y=PY$. The Euclidean distortion objective compares distances between source points and their transported counterparts:
+\begin{equation}
+ L_{\mathrm{dist}}=\underset{i,j}{\operatorname{mean}}
+ \left|\|x_i-x_j\|_2-\|\widehat y_i-\widehat y_j\|_2\right|.
+\end{equation}
+
+In qualitative inspection, this term corrected left--right ambiguity to some extent. It encouraged groups of matched points to preserve their spatial relationships, rather than making each assignment independently. Front--back ambiguity then became a central focus: a large region could have coherent matches while being associated with the opposite facing direction. The following experiments examined additional directional cues and explicit orientation estimation.
+
+\section{HKS, WKS and Point Normals}
+\label{app:descriptors}
+A richer geometric representation combined heat-based features, WKS, coordinates and normal components. HKS and WKS describe complementary aspects of the spectrum \citep{10.5555/1735603.1735621,Aubry_2011_WKS}. Normal components supplied a local directional cue alongside these descriptors.
+
+The normals were estimated from point-cloud neighbourhoods; they were not mesh normals. Local covariance analysis identified the direction of least variation as a normal axis. Centroid-based orientation and neighbourhood sign propagation supplied variants for assigning its direction. The normal and coordinate channels were preserved during reconstruction masking.
+
+The experiments also examined an orientation penalty based on normal compatibility and a global proper-rotation criterion based on a fitted transformation. Reflecting the coordinate frame provided another way to examine front--back and left--right alternatives. These variants connected local descriptors with the direction implied by a candidate correspondence.
+
+\section{Canonical Orientation}
+\label{app:canonical}
+Canonicalization predicted a common frame for each shape before matching. A global point-cloud representation produced a continuous rotation parameterization \citep{Zhou_2019_CVPR}, which was converted to an orthonormal transformation and applied to the centred points. Synthetic rotations supplied a known relationship between transformed observations.
+
+Equivariance, canonical-coordinate agreement and consistency supervision encouraged the same shape to retain a common canonical interpretation under rotation. The approach is related in purpose to shape--pose disentanglement \citep{Katzir_2022_ShapePose}. The experiments highlighted the importance of choosing compatible frames across different articulated poses, motivating pairwise relative orientation.
+
+\section{SE-ORNet Orientation Estimation}
+\label{app:oem}
+The pairwise orientation module estimates how the target is rotated relative to the source. Cross-shape feature interaction connects the two point representations before angular prediction. The SE-ORNet formulation \citep{Deng_2023_CVPR} supplied the foundation for synthetic rotation supervision and domain adaptation.
+
+A synthetically rotated copy of a shape supplies known forward and inverse angles. Real pairs of distinct shapes contribute to domain adaptation, which aligns their pair representations with those of synthetic observations. Group normalization \citep{Wu_2018_GroupNorm} stabilizes intermediate feature normalization. The estimated relative rotation is applied before coordinate-conditioned correspondence learning.
+
+The orientation experiments also examined the relationship between learning alignment and learning correspondence. Orientation-focused optimization established the alignment task before progressively introducing the representation objectives. This separates their supervision while connecting their outputs through the aligned point coordinates.
+
+\section{Noise, Sampling and Angular Boundaries}
+\label{app:robustness}
+\subsection{Coordinate noise and point sampling}
+Coordinate perturbations tested orientation learning under small changes in the observed positions. Scaling perturbations by cloud size made them relative to the input geometry. Independently sampled point subsets tested whether the pair representation retained the same orientation information when different points were observed.
+
+Random sampling and spatially distributed sampling provided complementary subset strategies. The orientation prediction was applied to the full target cloud, preserving all points for dense correspondence. Reconstruction masking addressed a different question: it hid feature information while retaining the point locations and coordinate context for ASMAE.
+
+\subsection{Arbitrary angles and boundary avoidance}
+Angle-centre training associated synthetic rotations with discrete orientation classes. Arbitrary-angle augmentation extended the observations between class centres, exposing the classifier to continuously varying orientations. A boundary-avoidance variant restricted training rotations to neighbourhoods of the bin centres, excluding the regions where adjacent class assignments change.
+
+These experiments separated two issues: sensitivity to class boundaries and quantization of a continuous angle. Avoiding boundary regions altered the training distribution, while continuous residual prediction supplied an explicit way to represent the displacement within a bin.
+
+\section{Continuous Angular Refinement}
+\label{app:refinement}
+The refinement experiment combined overlapping angular bins with a residual for each bin, following MultiBin \citep{Mousavian_2017_MultiBin}. A confidence score selected an orientation hypothesis, and a cosine--sine vector described its continuous correction. Overlapping support allowed nearby bins to share supervision for boundary angles.
+
+Independent observations of the same pair supplied subset consistency. The objective compared their bin distributions and the residual predictions associated with corresponding bins. This retained separate orientation hypotheses while encouraging agreement under point resampling. Multiple subset predictions also supplied votes during inference.
+
+\section{Shared Representation and HADM}
+\label{app:hadm}
+The student--teacher arrangement was removed after it was observed to degrade correspondence during development. A shared ASMAE model learned both shapes directly, and the associated global transport objective was removed in the same redesign. Reconstruction was combined with intrinsic distortion, self-identity supervision and visual distillation.
+
+Biharmonic distortion compares distances in a spectral embedding \citep{Lipman_2010_Biharmonic}. Self-identity supervision associates the same vertices across augmented observations through an InfoNCE objective \citep{Oord_2018_CPC}. DINOv2 distillation transfers lifted visual information into the learned point representation, with observation confidence weighting the contribution of each point.
+
+HADM connects these representations to geometric matching. Fused features propose anchors, intrinsic distance agreement filters the proposals, and anchor-relative descriptors propagate spatial context. Orientation hypotheses are evaluated using feature and anchor evidence. A deformation graph then refines source positions under data, anchor and local rigidity constraints \citep{10.1145/1275808.1276478,sorkine2007rigid}. Dense assignment combines the resulting positional agreement with feature similarity. This integration links relative alignment, representation learning and non-rigid refinement within a single correspondence pipeline.

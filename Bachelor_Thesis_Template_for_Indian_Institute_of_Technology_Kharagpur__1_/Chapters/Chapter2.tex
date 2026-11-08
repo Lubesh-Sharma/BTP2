@@ -1,0 +1,36 @@
+\chapter{Related Works}
+\label{Chapter2}
+\lhead{Chapter 2. \emph{Related Works}}
+
+\section{Learning Correspondence from Point Clouds}
+PointNet \citep{Qi_2017_CVPR} learns from unordered point sets through shared pointwise operations and symmetric aggregation. PointNet++ \citep{NIPS2017_d8bf84be} introduces hierarchical neighbourhood processing, while DGCNN \citep{wang2019dynamicgraphcnnlearning} constructs edge features on learned neighbourhoods. These methods provide a foundation for extracting local and global information directly from point coordinates.
+
+DPC \citep{Lang_2021_DPC} learns correspondence through cross- and self-construction of point sets. CorrNet3D \citep{zeng2021corrnet3dunsupervisedendtoendlearning} also studies unsupervised dense point-cloud correspondence. Reconstruction provides a training signal without annotated inter-shape matches, connecting the learned representation to the geometry of the input shapes. Our representation-learning module follows this general principle and uses paired masked reconstruction.
+
+\section{Masked Reconstruction and ASMAE}
+Point-MAE \citep{Pang_2022} learns point-cloud representations by reconstructing masked patches. Point-M2AE \citep{Zhang_2022_ECCV} extends masked learning to multiple spatial scales. AMIGO \citep{article} introduces an Adaptive Siamese Masked Autoencoder that reconstructs source information using a target reference, together with adaptive masking and a global optimal-transport objective.
+
+Our ASMAE uses shared encoding and cross-attention reconstruction to connect the two shapes. Stochastic masking hides selected descriptor entries while preserving their coordinate context. Clean point embeddings also support geometric and visual supervision. The teacher-based variants described in the appendix draw on exponential-moving-average consistency learning \citep{NIPS2017_68053af2}, and their transport formulation is related to entropically regularized matching \citep{Cuturi_2013}.
+
+\section{Spectral Geometry and Intrinsic Distances}
+The Heat Kernel Signature (HKS) \citep{10.5555/1735603.1735621} characterizes shape points through heat diffusion. The Wave Kernel Signature (WKS) \citep{Aubry_2011_WKS} uses spectral energy bands to provide a complementary signature. Both relate point descriptors to the spectrum of a geometric operator.
+
+Our heat representation samples responses between each point and a set of landmarks. These responses form a point-by-landmark descriptor matrix. Classical HKS samples the diagonal of the heat kernel across diffusion times; landmark responses instead describe diffusion relative to selected source locations. The common heat-kernel foundation supplies spatially structured spectral information for point representation learning.
+
+Biharmonic distance \citep{Lipman_2010_Biharmonic} provides a spectral measure of separation between shape points. Our method uses a biharmonic embedding for metric regularization and anchor verification. CoE \citep{zeng2025coedeepcoupledembedding} provides related motivation for learning coupled embeddings with geometric structure. Intrinsic distance information complements coordinate-based alignment by describing relationships across the shape.
+
+\section{Relative Orientation Estimation}
+Shape--Pose Disentanglement \citep{Katzir_2022_ShapePose} studies the separation of shape and pose using equivariant representations. Continuous rotation parameterizations \citep{Zhou_2019_CVPR} provide a way to predict valid rotations without discontinuities introduced by some angular representations. These ideas motivate the canonical-orientation variants in our experimental progression.
+
+SE-ORNet \citep{Deng_2023_CVPR} combines orientation estimation, domain adaptation and self-ensembling for unsupervised correspondence. Its pairwise orientation module motivates our use of synthetic rotations to supervise relative alignment. Gradient reversal \citep{JMLR:v17:15-239} transfers the learned representation between synthetic same-shape pairs and pairs of different shapes. Group normalization \citep{Wu_2018_GroupNorm} normalizes intermediate features within the orientation network.
+
+MultiBin \citep{Mousavian_2017_MultiBin} combines coarse angular classification with continuous residual prediction. We adapt this principle to relative yaw between point clouds. Overlapping bins represent multiple nearby angular hypotheses, and a residual provides the displacement from the chosen bin centre. Consistency across independently sampled point subsets supports stable predictions from different observations of the same pair.
+
+\section{Visual Features and Deformation Matching}
+DINOv2 \citep{oquab2024dinov2learningrobustvisual} provides pretrained visual representations that can be transferred from rendered views to three-dimensional points. I2P-MAE \citep{Zhang_2023_CVPR} also explores image-to-point representation learning. DV-Matcher \citep{Chen_2025_CVPR} motivates combining visual features with deformation constraints for non-rigid matching. Our visual branch lifts image descriptors to visible points and uses them both for feature distillation and correspondence estimation.
+
+The self-identity objective follows the InfoNCE formulation of contrastive predictive coding \citep{Oord_2018_CPC}. Corresponding point identities in two augmented observations of the same shape provide positive pairs. This trains representations to preserve point identity under changes in observation and geometry.
+
+Spectral matching \citep{Leordeanu_2005_Spectral} evaluates candidate correspondences through pairwise compatibility and a leading eigenvector. HADM uses this principle to score anchor candidates by agreement of intrinsic distances. Anchor-relative descriptors then propagate geometric context to the remaining points.
+
+Embedded deformation \citep{10.1145/1275808.1276478} represents non-rigid motion through transformations attached to a graph. As-rigid-as-possible regularization \citep{sorkine2007rigid} encourages compatible local transformations. HADM optimizes a deformation graph during matching, using point features and anchors to guide the fit. The combination of visual features, intrinsic anchor consistency and deformation supplies complementary evidence for dense assignment.

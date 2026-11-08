@@ -1,0 +1,10 @@
+\chapter{Introduction}
+\label{Chapter1}
+\lhead{Chapter 1. \emph{Introduction}}
+
+\section{Problem and Scope}
+Dense correspondence establishes a point-to-point relationship between two three-dimensional shapes. For deformable human shapes, the same anatomical region can occupy very different positions as the body changes pose. A useful correspondence must therefore combine local shape information with the spatial relationships between body parts. This is important for transferring surface attributes, comparing shapes and analysing deformation.
+
+Point clouds provide a direct representation of a surface through its sampled positions. Estimating correspondence from these positions is challenging because local regions can have similar geometry, while global orientation and articulation change their coordinates. Bilateral symmetry introduces left--right ambiguity, and differences in facing direction introduce front--back ambiguity. These observations motivate a system that combines geometric descriptors, orientation estimation, learned point features and deformation-guided matching.
+
+The proposed pipeline uses an Adaptive Siamese Masked Autoencoder (ASMAE) to learn point representations from heat-based descriptors and coordinates. A relative orientation module aligns the input pair, while DINOv2 supplies complementary visual information. Heat-Anchored Deformation Matching (HADM) integrates these features with intrinsic geometric consistency and non-rigid refinement to obtain the final dense correspondence.

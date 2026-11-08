@@ -1,0 +1,31 @@
+\chapter{Conclusion}
+\label{Chapter5}
+\lhead{Chapter 5. \emph{Conclusion}}
+
+This report presents a correspondence pipeline that connects point-cloud representation learning with relative orientation and deformation-guided matching. Spectral heat descriptors capture relationships over the point graph, while explicit XYZ channels provide coordinate context. The orientation module places the input pair in a compatible frame using angular classification and continuous refinement.
+
+The shared ASMAE learns point features through masked reconstruction across the two shapes. Geometric consistency preserves spatial relationships, self-identity supervision retains point identity under augmentation, and DINOv2 distillation transfers visual information to the geometric representation. These objectives connect local discrimination with shape-wide structure.
+
+HADM combines geometric and visual features to propose correspondences, identifies anchors through intrinsic consistency, and propagates their information across the shapes. Deformation refinement then links the feature representation to positional agreement. The resulting dense point map provides the basis for transferring surface attributes between differently posed shapes.
+
+The experimental progression highlights the complementary roles of representation, orientation and matching. Distortion regularization partially reduced left--right ambiguity in qualitative inspection, while front--back ambiguity motivated relative orientation modelling. The resulting design uses a shared encoder, continuously refined alignment and anchor-guided deformation as connected modules of the correspondence system.
+
+\section{Ablation Overview}
+\label{sec:ablation-overview}
+The experimental progression examines the representation, alignment and matching components of the correspondence pipeline. The following observations summarize the motivation for each group of experiments, with detailed descriptions in Appendix~\ref{app:development}.
+
+The initial student--teacher baseline studied correspondence learning without explicit geometric descriptors. A moving-average teacher supplied consistency targets to the student. The baseline and its reconstruction formulation are described in Section~\ref{app:baseline}.
+
+Adding XYZ coordinates supplied positional context alongside the point descriptors. Protecting these channels during masking retained a spatial reference for reconstruction. Section~\ref{app:coordinates} explains coordinate conditioning and its connection to the choice of reference frame.
+
+DINOv2 introduced a complementary visual cue through descriptors lifted from projected views. This experiment examined visual feature matching before the later distortion and orientation changes; its construction is described in Section~\ref{app:dino}.
+
+Distance-preservation regularization reduced left--right ambiguity to some extent in qualitative inspection. Front--back ambiguity motivated the subsequent directional and alignment experiments. Section~\ref{app:distortion} describes the distortion objective and these observations.
+
+The descriptor experiments combined heat-based features, WKS and normals estimated from point-cloud neighbourhoods. These were point-estimated normals, not mesh normals. Section~\ref{app:descriptors} discusses the complementary spectral and directional information.
+
+Canonicalization explored a shared reference frame before correspondence estimation. Relative orientation then used pairwise feature interaction through the SE-ORNet orientation module. These approaches are detailed in Sections~\ref{app:canonical} and~\ref{app:oem}, respectively.
+
+The orientation variants examined coordinate noise, independently sampled points, arbitrary-angle augmentation and boundary avoidance. Overlapping bins and continuous residuals supplied a finer angular representation. Sections~\ref{app:robustness} and~\ref{app:refinement} describe these experiments and subset consistency.
+
+The shared-encoder design removed the student--teacher arrangement following observed degradation and combined intrinsic distortion, self-identity supervision and visual distillation. HADM connected the features to anchor consistency and deformation refinement. Section~\ref{app:hadm} describes this integration.

@@ -1,0 +1,297 @@
+\documentclass[12pt, a4paper, oneside]{Thesis} % Paper size, default font size and one-sided paper
+\usepackage{wrapfig}
+\usepackage{lscape}
+\usepackage{rotating}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{amsmath}
+
+
+\usepackage{lineno,hyperref}
+\modulolinenumbers[5]
+
+
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{stackengine}
+\usepackage{url}
+\usepackage{numprint}
+\usepackage{caption}
+
+\usepackage{booktabs}  
+\usepackage{siunitx}
+%\usepackage[showframe=false]{geometry}
+\usepackage{subfigure}
+
+\nprounddigits{3}
+\newcolumntype{P}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{M}[1]{>{\centering\arraybackslash}m{#1}}
+
+\setstackEOL{\#}
+\setstackgap{L}{12pt}
+
+
+%\usepackage{subcaption} %incompatible with subfig
+\graphicspath{{Pictures/}} % Specifies the directory where pictures are stored
+\usepackage{natbib} % Use the natbib reference package - read up on this to edit the reference style; if you want text (e.g. Smith et al., 2012) for the in-text references (instead of numbers), remove 'numbers' v
+
+\hypersetup{urlcolor=black, colorlinks=false} % Colors hyperlinks in blue - change to black if annoyingv`	
+
+\thesistitle{Learning correspondence estimation for deformable 3D shapes}
+\supervisor{Professor Ayan Chaudhury}
+\degree{Integrated Dual Degree (B.Tech + M.Tech)}
+\degreemajor{Computer Science and Engineering}
+\authors{Lubesh Kumar Sharma}
+\rollno{22CS30065}
+\university{Indian Institute of Technology Kharagpur}
+\department{Department of Computer Science and Engineering}
+\unisite{http://www.iitkgp.ac.in}
+\depsite{http://www.iitkgp.ac.in/department/CSE}
+\placeshrt{Kharagpur}
+\placelng{Kharagpur - 721302, India}
+\datesub{8 Nov 2026}
+\datesig{8 Nov 2026}
+\semsub{Spring Semester, 2025-26}
+\keywords{Learning correspondence estimation for deformable 3D shapes}
+\coursecd{Project-II (CS47006) }
+
+\title{\ttitle} % Defines the thesis title - don't touch this
+\begin{document}
+%\makeatletter
+%\renewcommand*{\NAT@nmfmt}[1]{\textsc{#1}}
+%\makeatother
+
+% prints author names as small caps
+
+
+\frontmatter % Use roman page numbering style (i, ii, iii, iv...) for the pre-content pages
+
+\setstretch{1.6} % Line spacing of 1.6 (double line spacing)
+
+% Define the page headers using the FancyHdr package and set up for one-sided printing
+\fancyhead{} % Clears all page headers and footers
+\rhead{\thepage} % Sets the right side header to show the page number
+\lhead{} % Clears the left side page header
+
+%\pagestyle{fancy} % Finally, use the "fancy" page style to implement the FancyHdr headers
+
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}} % New command to make the lines in the title page
+
+% PDF meta-data
+\hypersetup{pdftitle={\ttitle}}
+\hypersetup{pdfsubject=\subjectname}
+\hypersetup{pdfauthor=\authornames}
+\hypersetup{pdfkeywords=\keywordnames}
+
+%----------------------------------------------------------------------------------------
+%	TITLE PAGE
+%----------------------------------------------------------------------------------------
+\maketitle
+%\titlepg % Add a gap in the Contents, for aesthetics
+
+\clearpage % Start a new page
+
+%----------------------------------------------------------------------------------------
+%	DECLARATION PAGE
+%	Your institution may give you a different text to place here
+%----------------------------------------------------------------------------------------
+
+
+\Declaration{}% Add a gap in the Contents, for aesthetics
+
+
+%----------------------------------------------------------------------------------------
+%	CERTIFICATE PAGE
+%----------------------------------------------------------------------------------------
+
+\addtotoc{Certificate} % Add the "Abstract" page entry to the Contents
+
+\certificate{\addtocontents{toc}{}} % Original certificate layout
+
+\clearpage % Start a new page
+
+%----------------------------------------------------------------------------------------
+%	ABSTRACT PAGE
+%----------------------------------------------------------------------------------------
+
+\addtotoc{Abstract} % Add the "Abstract" page entry to the Contents
+
+\abstract{\addtocontents{toc}{} % Add a gap in the Contents, for aesthetics
+
+Dense correspondence between deformable three-dimensional shapes requires a dense map that preserves anatomical meaning across changes in pose and orientation. This report presents a point-cloud pipeline combining spectral geometry, relative orientation estimation, masked representation learning and deformation-guided matching. Heat-based descriptors and explicit coordinates describe each point, while an orientation module adapted from SE-ORNet predicts relative yaw through overlapping angular bins and continuous refinement. A shared Adaptive Siamese Masked Autoencoder learns geometric features through cross-shape reconstruction, supported by intrinsic consistency, self-identity supervision and confidence-weighted DINOv2 distillation.
+
+\vspace{0.8cm}
+
+Heat-Anchored Deformation Matching combines the learned geometric and visual features with intrinsic anchor verification, anchor-relative descriptors and non-rigid deformation. The resulting dense map supports attribute transfer between differently posed shapes. The experimental progression examines coordinate conditioning, visual cues, distortion regularization, point-estimated normals, canonicalization and relative orientation. Qualitative observations of partial left--right improvement under distortion regularization motivated further study of front--back alignment. The report describes the roles of the pipeline modules and the experimental rationale connecting them, with a concise overview following the conclusion and a detailed account in the appendix.
+}
+
+\clearpage % Start a new page
+
+
+
+%----------------------------------------------------------------------------------------
+%	ACKNOWLEDGEMENTS
+%----------------------------------------------------------------------------------------
+
+\setstretch{1.3} % Reset the line-spacing to 1.3 for body text (if it has changed)
+
+\acknowledgements{\addtocontents{toc}{} % Add a gap in the Contents, for aesthetics
+
+\noindent
+I would like to thank my supervisor Professor Ayan Chaudhury, Department of Computer Science and Engineering, Indian Institute of Technology Kharagpur, for his valuable guidance and support throughout the course of my B.Tech project work.
+
+\vspace{0.8cm}
+
+\noindent
+I would like to thank Mr. Supon Mazumdar, Department of Computer Science and Engineering, IIT Kharagpur, who has helped me continuously in this project. Without his tremendous support, this work might not have been completed.
+
+\vspace{0.8cm}
+
+\noindent
+I would like to express my gratitude to all faculty members of the Department of Computer Science and Engineering for guiding us and providing knowledge in various subjects over the past few years.
+
+\vspace{0.8cm}
+
+\noindent
+Finally, my deep and sincere gratitude to my family and friends at IIT Kharagpur for their continuous love and support.
+
+}
+
+\clearpage % Start a new page
+
+%----------------------------------------------------------------------------------------
+%	LIST OF CONTENTS/FIGURES PAGES
+%----------------------------------------------------------------------------------------
+
+\pagestyle{fancy} % The page style headers have been "empty" all this time, now use the "fancy" headers as defined before to bring them back
+
+\lhead{\emph{Contents}} % Set the left side page header to "Contents"
+\tableofcontents % Write out the Table of Contents
+
+\lhead{\emph{List of Figures}} % Set the left side page header to "List of Figures"
+\listoffigures % Write out the List of Figures
+
+\lhead{\emph{List of Tables}} % Set the left side page header to "List of Tables"
+\listoftables % Write out the List of Tables
+
+%----------------------------------------------------------------------------------------
+%	ABBREVIATIONS
+%----------------------------------------------------------------------------------------
+
+\clearpage % Start a new page
+
+\setstretch{1.5} % Set the line spacing to 1.5, this makes the following tables easier to read
+
+\lhead{\emph{Abbreviations}} % Set the left side page header to "Abbreviations"
+
+\listofsymbols{ll} % Include a list of Abbreviations (a table of two columns)
+{
+	\textbf{3D} & \textbf{T}hree-\textbf{D}imensional \\
+	\textbf{AAMG} & \textbf{A}daptive \textbf{A}dversarial \textbf{M}ask \textbf{G}enerator \\
+	\textbf{AMIGO} & \textbf{A}daptive \textbf{Siamese} \textbf{M}asked \textbf{A}utoencoder with GO \\
+	\textbf{ARAP} & \textbf{A}s-\textbf{R}igid-\textbf{A}s-\textbf{P}ossible \\
+	\textbf{ASMAE} & \textbf{A}daptive \textbf{S}iamese \textbf{M}asked \textbf{A}utoencoder \\
+	\textbf{CD} & \textbf{C}hamfer \textbf{D}istance \\
+	\textbf{CE} & \textbf{C}ross-\textbf{E}ntropy \\
+	\textbf{CoE} & \textbf{C}oupled \textbf{E}mbedding \\
+	\textbf{CVPR} & \textbf{C}onference on \textbf{C}omputer \textbf{V}ision and \textbf{P}attern \textbf{R}ecognition \\
+	\textbf{DGCNN} & \textbf{D}ynamic \textbf{G}raph \textbf{C}onvolutional \textbf{N}eural \textbf{N}etwork \\
+	\textbf{DPC} & \textbf{D}eep \textbf{P}oint \textbf{C}orrespondence \\
+	\textbf{DV-Matcher} & \textbf{D}eformation-based \textbf{N}on-\textbf{r}igid \textbf{P}oint \textbf{C}loud \textbf{M}atching \\
+	\textbf{DINOv2} & Self-supervised visual feature backbone \\
+	\textbf{EMA} & \textbf{E}xponential \textbf{M}oving \textbf{A}verage \\
+	\textbf{FIM} & \textbf{F}eature \textbf{I}nteraction \textbf{M}odule \\
+	\textbf{FPS} & \textbf{F}arthest \textbf{P}oint \textbf{S}ampling \\
+	\textbf{GELU} & \textbf{G}aussian \textbf{E}rror \textbf{L}inear \textbf{U}nit \\
+	\textbf{GO} & \textbf{G}lobal \textbf{O}ptimization \\
+	\textbf{HADM} & \textbf{H}eat-\textbf{A}nchored \textbf{D}eformation \textbf{M}atching \\
+	\textbf{HKS} & \textbf{H}eat \textbf{K}ernel \textbf{S}ignature \\
+	\textbf{InfoNCE} & Noise-contrastive representation-learning objective \\
+	\textbf{ICCV} & \textbf{I}nternational \textbf{C}onference on \textbf{C}omputer \textbf{V}ision \\
+	\textbf{kNN} & \textbf{k}-\textbf{N}earest \textbf{N}eighbor \\
+	\textbf{LBO} & \textbf{L}aplace-\textbf{B}eltrami \textbf{O}perator \\
+	\textbf{LG-NET} & \textbf{L}ocal-and-\textbf{G}lobal attention \textbf{N}etwork \\
+	\textbf{LiDAR} & \textbf{L}ight \textbf{D}etection \textbf{A}nd \textbf{R}anging \\
+	\textbf{MAE} & \textbf{M}asked \textbf{A}utoencoder \\
+	\textbf{MGE} & \textbf{M}ean \textbf{G}eodesic \textbf{E}rror \\
+	\textbf{MLP} & \textbf{M}ulti-\textbf{L}ayer \textbf{P}erceptron \\
+	\textbf{NeRF} & \textbf{N}eural \textbf{R}adiance \textbf{F}ields \\
+	\textbf{OEM} & \textbf{O}rientation \textbf{E}stimation \textbf{M}odule \\
+	\textbf{OT} & \textbf{O}ptimal \textbf{T}ransport \\
+	\textbf{PCA} & \textbf{P}rincipal \textbf{C}omponent \textbf{A}nalysis \\
+	\textbf{p2p} & \textbf{P}oint-\textbf{to}-\textbf{P}oint \\
+	\textbf{SCAPE} & \textbf{S}hape \textbf{C}ompletion \textbf{a}nd \textbf{A}nimation for \textbf{P}eople \\
+	\textbf{SE-ORNet} & \textbf{S}elf-\textbf{E}nsembling \textbf{O}rientation-\textbf{A}ware \textbf{N}etwork \\
+	\textbf{WKS} & \textbf{W}ave \textbf{K}ernel \textbf{S}ignature \\
+	\textbf{SHOT} & \textbf{S}ignature of \textbf{H}istograms of \textbf{O}rientations \\
+}
+
+%----------------------------------------------------------------------------------------
+%	PHYSICAL CONSTANTS/OTHER DEFINITIONS
+%----------------------------------------------------------------------------------------
+%
+%\clearpage % Start a new page
+%
+%\lhead{\emph{Physical Constants}} % Set the left side page header to "Physical Constants"
+%
+%\listofconstants{lrcl} % Include a list of Physical Constants (a four column table)
+%{
+%Speed of Light & $c$ & $=$ & $2.997\ 924\ 58\times10^{8}\ \mbox{ms}^{-\mbox{s}}$ (exact)\\
+%% Constant Name & Symbol & = & Constant Value (with units) \\
+%}
+
+%----------------------------------------------------------------------------------------
+%	DEDICATION
+%----------------------------------------------------------------------------------------
+%
+%\setstretch{1.3} % Return the line spacing back to 1.3
+%
+%\pagestyle{empty} % Page style needs to be empty for this page
+%
+%\dedicatory{For/Dedicated to/To my\ldots} % Dedication text
+%
+%\addtocontents{toc}{\vspace{2em}} % Add a gap in the Contents, for aesthetics
+
+%----------------------------------------------------------------------------------------
+%	THESIS CONTENT - CHAPTERS
+%----------------------------------------------------------------------------------------
+
+\mainmatter % Begin numeric (1,2,3...) page numbering
+
+\pagestyle{fancy} % Return the page headers back to the "fancy" style
+
+% Include the chapters of the thesis as separate files from the Chapters folder
+% Uncomment the lines as you write the chapters
+
+\input{Chapters/Chapter1}
+\input{Chapters/Chapter2} 
+\input{Chapters/Chapter3} 
+\input{Chapters/Chapter4} 
+\input{Chapters/Chapter5}
+
+%----------------------------------------------------------------------------------------
+%	BIBLIOGRAPHY
+%----------------------------------------------------------------------------------------
+%\nocite{*}
+
+\lhead{\emph{Bibliography}} % Change the page header to say "Bibliography"
+
+\nocite{*} % Include all references in the Bibliography, even if not cited in the text
+
+\bibliographystyle{apalike} % Use the "custom" BibTeX style for formatting the Bibliography
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{Bibliography}
+\label{Bibliography}
+\bibliography{Bibliography} % The references (bibliography) information are stored in the file named "Bibliography.bib"
+
+\clearpage
+\appendix
+\input{Appendices/AppendixA}
+\backmatter
+
+\end{document}  

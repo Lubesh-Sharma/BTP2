@@ -1,0 +1,19 @@
+\chapter{Experiments and Results}
+\label{Chapter4}
+\lhead{Chapter 4. \emph{Experiments and Results}}
+
+\section{Datasets}
+FAUST \citep{Bogo_2014_FAUST}, SCAPE \citep{10.1145/1186822.1073207}, SHREC'19 \citep{Melzi_2019_SHREC} and SURREAL \citep{Varol_2017_SURREAL} provide human-shape data for studying correspondence under variation in pose and identity. FAUST contains registered human scans, SCAPE models articulated body deformation, SHREC'19 addresses correspondence between human shapes, and SURREAL supplies synthetic human observations. These benchmarks connect geometric matching to the anatomical structure of deformable bodies.
+
+\section{Correspondence Evaluation}
+For a source point $i$, let $T(i)$ be its predicted target and $T^*(i)$ the reference match. Normalized geodesic error measures their separation on the target surface:
+\begin{equation}
+ e_i=\frac{d_Y(T(i),T^*(i))}{\sqrt{\operatorname{area}(Y)}}.
+\end{equation}
+The mean over evaluated vertices gives a pair score, and averaging pair scores gives the aggregate error. Lower error indicates closer agreement with the reference correspondence. Surface-area normalization supports comparison across different shape scales.
+
+Colour transfer provides a complementary view of the dense map. A source colour field assigns distinct colours to different regions, and correspondence transfers these attributes to the target. Consistent placement of colour regions allows inspection of anatomical alignment across changes in pose. The same visualization convention supports comparisons between the pipeline and its component variants.
+
+% Editorial insertion point: verified quantitative comparison tables and measured
+% colour-transfer results for the pipeline and ablations. These comments do not
+% render in the report. Do not insert illustrative outputs as experimental evidence.
